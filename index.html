@@ -11,17 +11,17 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg: #0d0f14;
-  --surface: #13161e;
-  --card: #1a1e2a;
-  --border: #252a38;
-  --accent: #f0c040;
-  --accent2: #4fc3f7;
-  --red: #ff5c5c;
-  --green: #56e39f;
-  --purple: #a78bfa;
-  --text: #e8eaf0;
-  --muted: #6b7280;
+  --bg: #f0f4f0;
+  --surface: #e8f0e8;
+  --card: #ffffff;
+  --border: #d0ddd0;
+  --accent: #1a7a3c;
+  --accent2: #2196a8;
+  --red: #e53935;
+  --green: #1a7a3c;
+  --purple: #6d4fc2;
+  --text: #1a2e1a;
+  --muted: #5a7a5a;
   --font-display: 'Bebas Neue', sans-serif;
   --font-mono: 'Space Mono', monospace;
   --font-body: 'DM Sans', sans-serif;
@@ -39,7 +39,7 @@ body::before {
   content: '';
   position: fixed; inset: 0;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
-  pointer-events: none; z-index: 9999; opacity: 0.4;
+  pointer-events: none; z-index: 9999; opacity: 0.15;
 }
 
 /* ── HEADER ── */
@@ -48,7 +48,7 @@ header {
   padding: 16px 40px;
   display: flex; align-items: center; justify-content: space-between;
   position: sticky; top: 0;
-  background: rgba(13,15,20,0.96);
+  background: rgba(240,244,240,0.97);
   backdrop-filter: blur(16px);
   z-index: 100;
 }
@@ -99,7 +99,7 @@ main { padding: 32px 40px; max-width: 1500px; margin: 0 auto; }
 
 /* ── STATS ── */
 .stats-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 28px; }
-.stat-card {
+.stat-card { box-shadow: 0 2px 8px rgba(0,0,0,0.06);
   background: var(--card); border: 1px solid var(--border);
   padding: 20px 22px; position: relative; overflow: hidden;
   animation: fadeUp 0.5s ease both;
@@ -131,7 +131,7 @@ main { padding: 32px 40px; max-width: 1500px; margin: 0 auto; }
 .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
 
 /* ── PANELS ── */
-.panel { background: var(--card); border: 1px solid var(--border); }
+.panel { background: var(--card); border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
 .panel-header {
   padding: 16px 22px; border-bottom: 1px solid var(--border);
   display: flex; align-items: center; justify-content: space-between;
@@ -199,7 +199,7 @@ main { padding: 32px 40px; max-width: 1500px; margin: 0 auto; }
 
 /* ── CHARTS TAB ── */
 .charts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-.chart-panel { background: var(--card); border: 1px solid var(--border); }
+.chart.panel { background: var(--card); border: 1px solid var(--border); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
 .chart-body { padding: 20px; height: 300px; position: relative; }
 .chart-body.tall { height: 360px; }
 
@@ -214,7 +214,7 @@ main { padding: 32px 40px; max-width: 1500px; margin: 0 auto; }
 
 /* ── PDF MODAL ── */
 .modal-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  position: fixed; inset: 0; background: rgba(26,46,26,0.6);
   z-index: 200; display: none; align-items: center; justify-content: center;
 }
 .modal-overlay.open { display: flex; }
@@ -442,8 +442,8 @@ let charts = {};
 const DEFAULT_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSvNJan33W7v9eSvHAd9S7Iftzs1i_Nn6lp7_ls0H1pKkfgxU2RTUvhXendAm4aR8qcm9q1w1AMRPAC/pub?gid=1037838882&single=true&output=csv';
 
 const COLORS = ['#f0c040','#4fc3f7','#56e39f','#a78bfa','#ff5c5c','#fb923c','#34d399','#60a5fa'];
-Chart.defaults.color = '#6b7280';
-Chart.defaults.borderColor = '#252a38';
+Chart.defaults.color = '#5a7a5a';
+Chart.defaults.borderColor = '#d0ddd0';
 Chart.defaults.font.family = "'Space Mono', monospace";
 Chart.defaults.font.size = 10;
 
@@ -965,7 +965,7 @@ ${today},KBY 400,TOM WASIKE,1850`;
 
 // ── INIT ──
 window.addEventListener('DOMContentLoaded', () => {
-  const saved = localStorage.getItem('saccoSheetUrl') || DEFAULT_URL;
+  localStorage.removeItem('saccoSheetUrl'); const saved = DEFAULT_URL;
   document.getElementById('sheetUrl').value = saved;
   loadData();
 });
