@@ -7,896 +7,862 @@
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <style>
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-:root {
-  --bg: #f5f7f5; --card: #ffffff; --border: #dde8dd;
-  --accent: #1a7a3c; --accent-light: #e8f5ed; --accent2: #f0a500;
-  --red: #e53935; --red-light: #fdecea; --text: #1a2e1a; --muted: #6a8a6a;
-  --font-display: 'Bebas Neue', sans-serif;
-  --font-mono: 'Space Mono', monospace;
-  --font-body: 'DM Sans', sans-serif;
-  --shadow: 0 2px 16px rgba(26,122,60,0.10);
-  --shadow-lg: 0 8px 32px rgba(26,122,60,0.15);
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f5f7f5;--card:#fff;--border:#dde8dd;
+  --accent:#1a7a3c;--alight:#e8f5ed;--accent2:#f0a500;
+  --red:#e53935;--rlight:#fdecea;--text:#1a2e1a;--muted:#6a8a6a;
+  --font-d:'Bebas Neue',sans-serif;--font-m:'Space Mono',monospace;--font-b:'DM Sans',sans-serif;
+  --sh:0 2px 16px rgba(26,122,60,.10);--shlg:0 8px 32px rgba(26,122,60,.15);
 }
-body { background: var(--bg); color: var(--text); font-family: var(--font-body); min-height: 100vh; max-width: 480px; margin: 0 auto; }
+body{background:var(--bg);color:var(--text);font-family:var(--font-b);min-height:100vh;max-width:480px;margin:0 auto}
+header{background:var(--accent);padding:14px 18px 10px;position:sticky;top:0;z-index:100}
+.hrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px}
+.logo{font-family:var(--font-d);font-size:1.6rem;letter-spacing:3px;color:#fff}
+.logo span{color:var(--accent2)}
+.hsub{font-family:var(--font-m);font-size:.52rem;color:rgba(255,255,255,.6);letter-spacing:2px}
+.dbadge{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);padding:4px 10px;font-family:var(--font-m);font-size:.55rem;color:#fff;letter-spacing:1px;cursor:pointer;transition:background .2s}
+.dbadge:hover{background:rgba(255,255,255,.25)}
+.bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:2px solid var(--border);display:grid;grid-template-columns:1fr 1fr 1fr 1fr;z-index:100}
+.nbtn{padding:10px 4px;text-align:center;cursor:pointer;border:none;background:transparent;transition:background .15s}
+.nbtn.active{background:var(--alight)}
+.nbtn .ni{font-size:1.2rem;display:block;margin-bottom:1px}
+.nbtn .nl{font-family:var(--font-m);font-size:.48rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+.nbtn.active .nl{color:var(--accent)}
+main{padding:14px 14px 76px}
+.page{display:none}.page.active{display:block}
 
-/* HEADER */
-header { background: var(--accent); padding: 16px 20px 12px; position: sticky; top: 0; z-index: 100; }
-.header-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
-.logo { font-family: var(--font-display); font-size: 1.7rem; letter-spacing: 3px; color: #fff; }
-.logo span { color: var(--accent2); }
-.header-sub { font-family: var(--font-mono); font-size: 0.55rem; color: rgba(255,255,255,0.6); letter-spacing: 2px; }
-.driver-badge { background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.2); padding: 5px 10px; font-family: var(--font-mono); font-size: 0.58rem; color: #fff; letter-spacing: 1px; cursor: pointer; transition: background 0.2s; }
-.driver-badge:hover { background: rgba(255,255,255,0.25); }
+/* CARD */
+.card{background:var(--card);border:1px solid var(--border);padding:18px;margin-bottom:14px;box-shadow:var(--sh);animation:fadeUp .3s ease}
+.ctitle{font-family:var(--font-d);font-size:1.25rem;color:var(--accent);letter-spacing:2px;margin-bottom:5px}
+.csub{font-family:var(--font-m);font-size:.55rem;color:var(--muted);letter-spacing:1px;margin-bottom:14px}
 
-/* BOTTOM NAV */
-.bottom-nav { position: fixed; bottom: 0; left: 50%; transform: translateX(-50%); width: 100%; max-width: 480px; background: #fff; border-top: 2px solid var(--border); display: grid; grid-template-columns: 1fr 1fr 1fr; z-index: 100; }
-.nav-btn { padding: 12px 8px; text-align: center; cursor: pointer; border: none; background: transparent; transition: background 0.15s; }
-.nav-btn.active { background: var(--accent-light); }
-.nav-btn .nav-icon { font-size: 1.3rem; display: block; margin-bottom: 2px; }
-.nav-btn .nav-label { font-family: var(--font-mono); font-size: 0.52rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
-.nav-btn.active .nav-label { color: var(--accent); }
-
-main { padding: 16px 16px 80px; }
-
-/* CARDS */
-.card { background: var(--card); border: 1px solid var(--border); padding: 20px; margin-bottom: 16px; box-shadow: var(--shadow); animation: fadeUp 0.3s ease; }
-.card-title { font-family: var(--font-display); font-size: 1.3rem; color: var(--accent); letter-spacing: 2px; margin-bottom: 6px; }
-.card-sub { font-family: var(--font-mono); font-size: 0.58rem; color: var(--muted); letter-spacing: 1px; margin-bottom: 16px; }
-
-/* FIELDS */
-.field { margin-bottom: 12px; }
-.field label { display: block; font-family: var(--font-mono); font-size: 0.56rem; color: var(--muted); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 5px; }
-.field select, .field input { width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 10px 12px; font-family: var(--font-body); font-size: 0.88rem; outline: none; transition: border-color 0.2s; appearance: none; }
-.field select:focus, .field input:focus { border-color: var(--accent); }
+/* FIELD */
+.field{margin-bottom:11px}
+.field label{display:block;font-family:var(--font-m);font-size:.54rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px}
+.field select,.field input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;font-family:var(--font-b);font-size:.88rem;outline:none;transition:border-color .2s;appearance:none}
+.field select:focus,.field input:focus{border-color:var(--accent)}
 
 /* STATION GRID */
-.station-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
-.station-btn { background: var(--bg); border: 2px solid var(--border); padding: 12px 8px; text-align: center; cursor: pointer; transition: all 0.2s; font-family: var(--font-body); font-size: 0.78rem; color: var(--text); font-weight: 500; }
-.station-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
-.station-btn.selected { border-color: var(--accent); background: var(--accent); color: #fff; }
-.station-btn.disabled { opacity: 0.25; cursor: not-allowed; pointer-events: none; }
-.station-btn .dist { display: block; font-family: var(--font-mono); font-size: 0.5rem; opacity: 0.7; margin-top: 2px; }
+.sgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px}
+.sbtn{background:var(--bg);border:2px solid var(--border);padding:11px 8px;text-align:center;cursor:pointer;transition:all .2s;font-family:var(--font-b);font-size:.76rem;color:var(--text);font-weight:500}
+.sbtn:hover{border-color:var(--accent);color:var(--accent);background:var(--alight)}
+.sbtn.sel{border-color:var(--accent);background:var(--accent);color:#fff}
+.sbtn.dis{opacity:.25;cursor:not-allowed;pointer-events:none}
+.sbtn .dist{display:block;font-family:var(--font-m);font-size:.48rem;opacity:.7;margin-top:2px}
 
-/* GPS BAR */
-.gps-bar { display: flex; align-items: center; gap: 8px; padding: 9px 12px; background: var(--accent-light); border: 1px solid var(--border); margin-bottom: 14px; font-family: var(--font-mono); font-size: 0.58rem; color: var(--accent); letter-spacing: 1px; }
-.gps-bar.error { background: var(--red-light); border-color: var(--red); color: var(--red); }
+/* GPS */
+.gbar{display:flex;align-items:center;gap:7px;padding:8px 11px;background:var(--alight);border:1px solid var(--border);margin-bottom:12px;font-family:var(--font-m);font-size:.55rem;color:var(--accent);letter-spacing:1px}
+.gbar.err{background:var(--rlight);border-color:var(--red);color:var(--red)}
 
-/* ROUTE DISPLAY */
-.route-display { display: flex; align-items: center; gap: 10px; padding: 14px; background: var(--accent-light); border: 1px solid var(--border); margin-bottom: 14px; }
-.route-station { flex: 1; text-align: center; }
-.route-station .name { font-family: var(--font-mono); font-size: 0.72rem; font-weight: 700; color: var(--accent); letter-spacing: 1px; }
-.route-station .role { font-family: var(--font-mono); font-size: 0.5rem; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 3px; }
-.route-arrow { font-size: 1.3rem; color: var(--accent); }
+/* ROUTE */
+.rdisp{display:flex;align-items:center;gap:10px;padding:12px;background:var(--alight);border:1px solid var(--border);margin-bottom:12px}
+.rs{flex:1;text-align:center}
+.rs .rn{font-family:var(--font-m);font-size:.7rem;font-weight:700;color:var(--accent);letter-spacing:1px}
+.rs .rl{font-family:var(--font-m);font-size:.48rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px}
+.rarr{font-size:1.3rem;color:var(--accent)}
 
 /* TIMER */
-.timer-display { text-align: center; padding: 14px; background: var(--text); color: #fff; margin-bottom: 14px; }
-.timer-label { font-family: var(--font-mono); font-size: 0.52rem; letter-spacing: 2px; color: rgba(255,255,255,0.5); text-transform: uppercase; margin-bottom: 4px; }
-.timer-value { font-family: var(--font-display); font-size: 2.6rem; letter-spacing: 3px; color: #22c55e; }
+.tdisp{text-align:center;padding:13px;background:var(--text);color:#fff;margin-bottom:12px}
+.tl{font-family:var(--font-m);font-size:.5rem;letter-spacing:2px;color:rgba(255,255,255,.5);text-transform:uppercase;margin-bottom:4px}
+.tv{font-family:var(--font-d);font-size:2.5rem;letter-spacing:3px;color:#22c55e}
 
 /* AMOUNT */
-.amount-wrap { position: relative; margin-bottom: 14px; }
-.amount-prefix { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); font-weight: 700; }
-.amount-input { width: 100%; background: var(--bg); border: 2px solid var(--border); color: var(--text); padding: 13px 13px 13px 52px; font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700; outline: none; transition: border-color 0.2s; letter-spacing: 1px; }
-.amount-input:focus { border-color: var(--accent); }
+.awrap{position:relative;margin-bottom:12px}
+.apfx{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-family:var(--font-m);font-size:.75rem;color:var(--muted);font-weight:700}
+.ainput{width:100%;background:var(--bg);border:2px solid var(--border);color:var(--text);padding:12px 12px 12px 50px;font-family:var(--font-m);font-size:1.1rem;font-weight:700;outline:none;transition:border-color .2s;letter-spacing:1px}
+.ainput:focus{border-color:var(--accent)}
 
 /* LOCKED */
-.locked-section { padding: 18px; background: #f8f8f8; border: 2px dashed var(--border); text-align: center; margin-bottom: 14px; }
-.locked-icon { font-size: 1.8rem; margin-bottom: 6px; opacity: 0.3; }
-.locked-text { font-family: var(--font-mono); font-size: 0.6rem; color: var(--muted); letter-spacing: 1px; line-height: 1.8; text-transform: uppercase; }
+.lock{padding:16px;background:#f8f8f8;border:2px dashed var(--border);text-align:center;margin-bottom:12px}
+.lico{font-size:1.6rem;margin-bottom:5px;opacity:.3}
+.ltxt{font-family:var(--font-m);font-size:.58rem;color:var(--muted);letter-spacing:1px;line-height:1.8;text-transform:uppercase}
 
 /* BUTTONS */
-.btn-block { width: 100%; padding: 14px; font-family: var(--font-display); font-size: 1.1rem; letter-spacing: 3px; cursor: pointer; border: none; transition: all 0.2s; margin-bottom: 8px; }
-.btn-start { background: var(--accent); color: #fff; }
-.btn-start:hover { background: #156632; }
-.btn-start:disabled { background: var(--muted); cursor: not-allowed; }
-.btn-arrive { background: var(--accent2); color: #fff; }
-.btn-arrive:hover { background: #d4920a; }
-.btn-end { background: var(--red); color: #fff; }
-.btn-end:hover { background: #c0392b; }
-.btn-end:disabled { background: var(--muted); cursor: not-allowed; }
-.btn-outline { background: transparent; border: 1px solid var(--border); color: var(--muted); font-family: var(--font-mono); font-size: 0.65rem; letter-spacing: 1px; padding: 10px; width: 100%; cursor: pointer; margin-bottom: 8px; }
-.btn-outline:hover { border-color: var(--red); color: var(--red); }
-.btn-sm { padding: 8px 16px; font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 1px; cursor: pointer; border: none; transition: all 0.2s; }
-.btn-green { background: var(--accent); color: #fff; }
-.btn-yellow { background: var(--accent2); color: #fff; }
-.btn-red { background: var(--red); color: #fff; }
+.bb{width:100%;padding:13px;font-family:var(--font-d);font-size:1.1rem;letter-spacing:3px;cursor:pointer;border:none;transition:all .2s;margin-bottom:7px}
+.bstart{background:var(--accent);color:#fff}.bstart:hover{background:#156632}.bstart:disabled{background:var(--muted);cursor:not-allowed}
+.barrive{background:var(--accent2);color:#fff}.barrive:hover{background:#d4920a}
+.bend{background:var(--red);color:#fff}.bend:hover{background:#c0392b}.bend:disabled{background:var(--muted);cursor:not-allowed}
+.bout{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:var(--font-m);font-size:.62rem;letter-spacing:1px;padding:9px;width:100%;cursor:pointer;margin-bottom:7px}
+.bout:hover{border-color:var(--red);color:var(--red)}
+.bsm{padding:7px 14px;font-family:var(--font-m);font-size:.58rem;letter-spacing:1px;cursor:pointer;border:none;transition:all .2s;border-radius:0}
+.bg{background:var(--accent);color:#fff}.by{background:var(--accent2);color:#fff}.br{background:var(--red);color:#fff}
+.bghost{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:var(--font-m);font-size:.58rem;padding:7px 14px;cursor:pointer}
+.bghost:hover{border-color:var(--accent);color:var(--accent)}
 
 /* SUCCESS */
-.success-card { background: var(--accent); color: #fff; padding: 24px 20px; text-align: center; margin-bottom: 16px; box-shadow: var(--shadow-lg); animation: fadeUp 0.4s ease; }
-.success-icon { font-size: 2.5rem; margin-bottom: 10px; }
-.success-title { font-family: var(--font-display); font-size: 1.8rem; letter-spacing: 3px; margin-bottom: 6px; }
-.success-sub { font-family: var(--font-mono); font-size: 0.6rem; opacity: 0.8; letter-spacing: 1px; line-height: 1.8; }
-.success-details { background: rgba(255,255,255,0.15); padding: 12px; margin: 14px 0; }
-.detail-row { display: flex; justify-content: space-between; font-family: var(--font-mono); font-size: 0.62rem; margin-bottom: 5px; }
-.detail-row:last-child { margin-bottom: 0; }
+.scard{background:var(--accent);color:#fff;padding:22px 18px;text-align:center;margin-bottom:14px;box-shadow:var(--shlg);animation:fadeUp .4s ease}
+.sico{font-size:2.2rem;margin-bottom:8px}
+.stitle{font-family:var(--font-d);font-size:1.7rem;letter-spacing:3px;margin-bottom:5px}
+.ssub{font-family:var(--font-m);font-size:.58rem;opacity:.8;letter-spacing:1px;line-height:1.8}
+.sdetails{background:rgba(255,255,255,.15);padding:11px;margin:12px 0}
+.drow{display:flex;justify-content:space-between;font-family:var(--font-m);font-size:.6rem;margin-bottom:4px}
+.drow:last-child{margin-bottom:0}
 
 /* HISTORY */
-.history-section { margin-top: 6px; }
-.section-title { font-family: var(--font-mono); font-size: 0.58rem; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; padding-bottom: 6px; border-bottom: 1px solid var(--border); }
-.history-item { background: var(--card); border: 1px solid var(--border); padding: 12px 14px; margin-bottom: 8px; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
-.history-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 3px; }
-.history-route { font-family: var(--font-mono); font-size: 0.72rem; font-weight: 700; color: var(--accent); letter-spacing: 1px; }
-.history-amount { font-family: var(--font-mono); font-size: 0.68rem; color: #22c55e; font-weight: 700; }
-.history-bottom { display: flex; justify-content: space-between; font-size: 0.66rem; color: var(--muted); }
-.history-time { font-family: var(--font-mono); font-size: 0.56rem; }
+.hsect{margin-top:6px}
+.stitle2{font-family:var(--font-m);font-size:.55rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:9px;padding-bottom:6px;border-bottom:1px solid var(--border)}
+.hitem{background:var(--card);border:1px solid var(--border);padding:11px 13px;margin-bottom:7px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.htop{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px}
+.hroute{font-family:var(--font-m);font-size:.68rem;font-weight:700;color:var(--accent);letter-spacing:1px}
+.hamt{font-family:var(--font-m);font-size:.65rem;color:#22c55e;font-weight:700}
+.hbot{display:flex;justify-content:space-between;font-size:.64rem;color:var(--muted)}
+.htime{font-family:var(--font-m);font-size:.52rem}
 
-/* REPORTS TAB */
-.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
-.stat-box { background: var(--card); border: 1px solid var(--border); padding: 16px; box-shadow: var(--shadow); }
-.stat-box .lbl { font-family: var(--font-mono); font-size: 0.52rem; color: var(--muted); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
-.stat-box .val { font-family: var(--font-display); font-size: 1.8rem; color: var(--text); line-height: 1; }
-.stat-box .val.green { color: var(--accent); }
-.stat-box .val.yellow { color: var(--accent2); }
+/* REPORTS */
+.sgrid2{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px}
+.sbox{background:var(--card);border:1px solid var(--border);padding:14px;box-shadow:var(--sh)}
+.sbox .sl{font-family:var(--font-m);font-size:.5rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:5px}
+.sbox .sv{font-family:var(--font-d);font-size:1.7rem;color:var(--text);line-height:1}
+.sv.green{color:var(--accent)}.sv.yellow{color:var(--accent2)}
+.fchips{display:flex;gap:5px;margin-bottom:12px;flex-wrap:wrap}
+.fchip{background:var(--bg);border:1px solid var(--border);padding:4px 10px;font-family:var(--font-m);font-size:.52rem;letter-spacing:1px;cursor:pointer;color:var(--muted);transition:all .15s;text-transform:uppercase}
+.fchip.active{background:var(--accent);border-color:var(--accent);color:#fff}
+.rtable{background:var(--card);border:1px solid var(--border);overflow:hidden;margin-bottom:12px}
+.rth{display:grid;grid-template-columns:1fr 1fr 55px 75px;padding:7px 11px;background:var(--accent);font-family:var(--font-m);font-size:.48rem;color:#fff;letter-spacing:1px;text-transform:uppercase;gap:5px}
+.rtr{display:grid;grid-template-columns:1fr 1fr 55px 75px;padding:9px 11px;border-bottom:1px solid var(--border);font-size:.7rem;gap:5px;align-items:center;transition:background .1s}
+.rtr:hover{background:var(--alight)}.rtr:last-child{border-bottom:none}
+.trroute{font-family:var(--font-m);font-size:.57rem;color:var(--accent);font-weight:700}
+.trdrv{font-size:.66rem;color:var(--muted)}
+.trtm{font-family:var(--font-m);font-size:.52rem;color:var(--muted)}
+.tramt{font-family:var(--font-m);font-size:.62rem;color:#22c55e;font-weight:700;text-align:right}
+.exprow{display:flex;gap:7px;margin-bottom:12px}
+.exprow button{flex:1}
 
-.report-filters { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
-.filter-chip { background: var(--bg); border: 1px solid var(--border); padding: 5px 12px; font-family: var(--font-mono); font-size: 0.55rem; letter-spacing: 1px; cursor: pointer; color: var(--muted); transition: all 0.15s; text-transform: uppercase; }
-.filter-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
-
-.report-table { background: var(--card); border: 1px solid var(--border); overflow: hidden; margin-bottom: 14px; }
-.table-header { display: grid; grid-template-columns: 1fr 1fr 60px 80px; padding: 8px 12px; background: var(--accent); font-family: var(--font-mono); font-size: 0.5rem; color: #fff; letter-spacing: 1px; text-transform: uppercase; gap: 6px; }
-.table-row { display: grid; grid-template-columns: 1fr 1fr 60px 80px; padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 0.72rem; gap: 6px; align-items: center; transition: background 0.1s; }
-.table-row:hover { background: var(--accent-light); }
-.table-row:last-child { border-bottom: none; }
-.table-route { font-family: var(--font-mono); font-size: 0.6rem; color: var(--accent); font-weight: 700; }
-.table-driver { font-size: 0.68rem; color: var(--muted); }
-.table-time { font-family: var(--font-mono); font-size: 0.55rem; color: var(--muted); }
-.table-amount { font-family: var(--font-mono); font-size: 0.65rem; color: #22c55e; font-weight: 700; text-align: right; }
-
-.export-row { display: flex; gap: 8px; margin-bottom: 14px; }
-.export-row button { flex: 1; }
-
-/* SETUP TAB */
-.setup-section { margin-bottom: 20px; }
-.setup-section .section-title { margin-bottom: 12px; }
-.url-display { background: var(--bg); border: 1px solid var(--border); padding: 10px 12px; font-family: var(--font-mono); font-size: 0.58rem; color: var(--muted); word-break: break-all; line-height: 1.6; margin-bottom: 8px; }
-.connected-badge { display: inline-flex; align-items: center; gap: 6px; background: var(--accent-light); border: 1px solid var(--accent); padding: 5px 12px; font-family: var(--font-mono); font-size: 0.58rem; color: var(--accent); letter-spacing: 1px; margin-bottom: 12px; }
-.dot-green { width: 7px; height: 7px; border-radius: 50%; background: #22c55e; }
-.steps-list { counter-reset: steps; }
-.step { counter-increment: steps; padding: 10px 12px 10px 36px; border-left: 2px solid var(--border); margin-bottom: 8px; position: relative; font-size: 0.78rem; color: var(--text); line-height: 1.6; }
-.step::before { content: counter(steps); position: absolute; left: -14px; top: 8px; width: 26px; height: 26px; background: var(--accent); color: #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 0.65rem; font-weight: 700; }
-.step code { background: var(--accent-light); padding: 1px 5px; font-family: var(--font-mono); font-size: 0.7rem; color: var(--accent); }
-.input-row { display: flex; gap: 8px; align-items: end; }
-.input-row .field { flex: 1; margin: 0; }
-.input-row button { flex-shrink: 0; padding: 10px 16px; }
+/* ADMIN */
+.apinbox{text-align:center;padding:40px 20px}
+.apintitle{font-family:var(--font-d);font-size:2rem;color:var(--accent);letter-spacing:3px;margin-bottom:8px}
+.apinsub{font-family:var(--font-m);font-size:.6rem;color:var(--muted);letter-spacing:1px;margin-bottom:20px}
+.pininput{width:200px;text-align:center;font-family:var(--font-m);font-size:1.5rem;letter-spacing:8px;background:var(--bg);border:2px solid var(--border);color:var(--text);padding:14px;outline:none;margin:0 auto 16px;display:block}
+.pininput:focus{border-color:var(--accent)}
+.alist{margin-bottom:6px}
+.aitem{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--card);border:1px solid var(--border);margin-bottom:6px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.aitem-name{font-family:var(--font-m);font-size:.72rem;color:var(--text);font-weight:700;letter-spacing:1px}
+.aitem-sub{font-size:.64rem;color:var(--muted);margin-top:2px}
+.adel{background:none;border:none;cursor:pointer;font-size:1rem;color:var(--muted);padding:4px 8px;transition:color .2s}
+.adel:hover{color:var(--red)}
+.addrow{display:flex;gap:7px;align-items:end;margin-top:10px}
+.addrow .field{flex:1;margin:0}
+.addrow button{flex-shrink:0;padding:10px 14px}
+.atabs{display:flex;gap:0;margin-bottom:14px;border-bottom:2px solid var(--border)}
+.atab{font-family:var(--font-m);font-size:.58rem;letter-spacing:1px;padding:10px 16px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;background:transparent;border-top:none;border-left:none;border-right:none;transition:all .2s;text-transform:uppercase}
+.atab:hover{color:var(--text)}
+.atab.active{color:var(--accent);border-bottom-color:var(--accent);margin-bottom:-2px}
+.asect{display:none}.asect.active{display:block}
+.atag{display:inline-flex;align-items:center;gap:5px;background:var(--alight);border:1px solid var(--accent);padding:4px 10px;font-family:var(--font-m);font-size:.6rem;color:var(--accent);letter-spacing:1px;margin:0 4px 4px 0}
+.atag .xtag{cursor:pointer;opacity:.6;font-size:.8rem}.atag .xtag:hover{opacity:1;color:var(--red)}
+.conn-badge{display:inline-flex;align-items:center;gap:5px;background:var(--alight);border:1px solid var(--accent);padding:4px 12px;font-family:var(--font-m);font-size:.55rem;color:var(--accent);letter-spacing:1px;margin-bottom:10px}
+.dg{width:7px;height:7px;border-radius:50%;background:#22c55e}
+.urlbox{background:var(--bg);border:1px solid var(--border);padding:9px 11px;font-family:var(--font-m);font-size:.55rem;color:var(--muted);word-break:break-all;line-height:1.6;margin-bottom:8px}
+.steps{counter-reset:s}
+.step{counter-increment:s;padding:9px 11px 9px 34px;border-left:2px solid var(--border);margin-bottom:7px;position:relative;font-size:.76rem;color:var(--text);line-height:1.6}
+.step::before{content:counter(s);position:absolute;left:-13px;top:7px;width:24px;height:24px;background:var(--accent);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-m);font-size:.6rem;font-weight:700}
+.step code{background:var(--alight);padding:1px 5px;font-family:var(--font-m);font-size:.68rem;color:var(--accent)}
+.irow{display:flex;gap:7px;align-items:end}
+.irow .field{flex:1;margin:0}
+.irow button{flex-shrink:0;padding:10px 14px}
 
 /* TOAST */
-.toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: var(--text); color: #fff; padding: 10px 20px; font-family: var(--font-mono); font-size: 0.62rem; letter-spacing: 1px; z-index: 999; opacity: 0; transition: opacity 0.3s; max-width: 90vw; text-align: center; }
-.toast.show { opacity: 1; }
-
-/* SPINNER */
-.spinner { width: 20px; height: 20px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; margin: 30px auto; }
-@keyframes spin { to { transform: rotate(360deg); } }
-@keyframes fadeUp { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
-
-.tab-page { display: none; }
-.tab-page.active { display: block; }
-.empty-msg { text-align: center; padding: 40px 20px; font-family: var(--font-mono); font-size: 0.65rem; color: var(--muted); letter-spacing: 1px; line-height: 2; }
+.toast{position:fixed;bottom:78px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:9px 18px;font-family:var(--font-m);font-size:.6rem;letter-spacing:1px;z-index:999;opacity:0;transition:opacity .3s;max-width:90vw;text-align:center}
+.toast.show{opacity:1}
+.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:30px auto}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.empty{text-align:center;padding:36px 18px;font-family:var(--font-m);font-size:.62rem;color:var(--muted);letter-spacing:1px;line-height:2}
+.divline{height:1px;background:var(--border);margin:14px 0}
+.pill{display:inline-block;background:var(--alight);color:var(--accent);font-family:var(--font-m);font-size:.5rem;padding:2px 7px;letter-spacing:1px;margin-left:6px;vertical-align:middle}
+.pill.red{background:var(--rlight);color:var(--red)}
 </style>
 </head>
 <body>
 
 <header>
-  <div class="header-top">
+  <div class="hrow">
     <div class="logo">FELISHA<span> SACCO</span></div>
-    <div class="driver-badge" id="driverBadge" onclick="goSetup()">— TAP TO LOGIN —</div>
+    <div class="dbadge" id="driverBadge" onclick="goSetup()">— TAP TO LOGIN —</div>
   </div>
-  <div class="header-sub">// TRIP LOGGER &amp; REPORTS</div>
+  <div class="hsub">// TRIP LOGGER &amp; REPORTS</div>
 </header>
 
 <main>
-  <div id="page-log" class="tab-page active"></div>
-  <div id="page-reports" class="tab-page"></div>
-  <div id="page-settings" class="tab-page"></div>
+  <div id="page-log" class="page active"></div>
+  <div id="page-reports" class="page"></div>
+  <div id="page-admin" class="page"></div>
+  <div id="page-settings" class="page"></div>
 </main>
 
-<nav class="bottom-nav">
-  <button class="nav-btn active" id="nav-log" onclick="switchPage('log')">
-    <span class="nav-icon">🚌</span>
-    <span class="nav-label">LOG TRIP</span>
+<nav class="bnav">
+  <button class="nbtn active" id="nav-log" onclick="switchPage('log')">
+    <span class="ni">🚌</span><span class="nl">LOG TRIP</span>
   </button>
-  <button class="nav-btn" id="nav-reports" onclick="switchPage('reports')">
-    <span class="nav-icon">📊</span>
-    <span class="nav-label">REPORTS</span>
+  <button class="nbtn" id="nav-reports" onclick="switchPage('reports')">
+    <span class="ni">📊</span><span class="nl">REPORTS</span>
   </button>
-  <button class="nav-btn" id="nav-settings" onclick="switchPage('settings')">
-    <span class="nav-icon">⚙️</span>
-    <span class="nav-label">SETTINGS</span>
+  <button class="nbtn" id="nav-admin" onclick="switchPage('admin')">
+    <span class="ni">👑</span><span class="nl">ADMIN</span>
+  </button>
+  <button class="nbtn" id="nav-settings" onclick="switchPage('settings')">
+    <span class="ni">⚙️</span><span class="nl">SETTINGS</span>
   </button>
 </nav>
 
 <div class="toast" id="toast"></div>
 
 <script>
-// ══════════════════════════════════════════
-// CONFIG — Edit stations, drivers, cars here
-// ══════════════════════════════════════════
-const STATIONS = [
-  { name: 'NAIROBI CBD',  lat: -1.2833, lng: 36.8167 },
-  { name: 'WESTLANDS',    lat: -1.2676, lng: 36.8112 },
-  { name: 'KAREN',        lat: -1.3197, lng: 36.7073 },
-  { name: 'NGONG',        lat: -1.3583, lng: 36.6583 },
-  { name: 'RONGAI',       lat: -1.3944, lng: 36.7452 },
-  { name: "LANG'ATA",     lat: -1.3204, lng: 36.7571 },
-  { name: 'KIKUYU',       lat: -1.2463, lng: 36.6637 },
-  { name: 'LIMURU',       lat: -1.1095, lng: 36.6431 },
+// ════════════════════════════════════════════
+// DEFAULT DATA (from your Google Form)
+// ════════════════════════════════════════════
+const DEFAULT_DRIVERS = ['FESTUS KIPKURUI','TOM WASIKE','FELIX OTIENO','MUTUA KIRUI','JANETH TIONY','ABIGAEL CHEPKORIR','GRACE WANGECHI'];
+const DEFAULT_CARS = ['KBZ 300','KBY 400','KBU 500','KCA 200','KDY 260W','KYA 520X','KAF 2601'];
+const DEFAULT_STATIONS = [
+  {name:'NAIROBI CBD',lat:-1.2833,lng:36.8167},
+  {name:'WESTLANDS',lat:-1.2676,lng:36.8112},
+  {name:'KAREN',lat:-1.3197,lng:36.7073},
+  {name:'NGONG',lat:-1.3583,lng:36.6583},
+  {name:'RONGAI',lat:-1.3944,lng:36.7452},
+  {name:"LANG'ATA",lat:-1.3204,lng:36.7571},
+  {name:'KIKUYU',lat:-1.2463,lng:36.6637},
+  {name:'LIMURU',lat:-1.1095,lng:36.6431},
 ];
+const ADMIN_PIN = '1234'; // Change this!
 
-const DRIVERS = ['FESTUS KIPKURUI','TOM WASIKE','FELIX OTIENO','MUTUA KIRUI','JANETH TIONY','GRACE WANGECHI'];
-const CAR_PLATES = ['KBZ 300','KBY 400','KBU 500','KCA 200'];
-
-// ══════════════════════════════════════════
-// STATE
-// ══════════════════════════════════════════
-let tripState = {
-  phase: 'setup', driver: '', carPlate: '',
-  fromStation: null, toStation: null, amount: '',
-  tripStart: null, tripEnd: null,
-  gpsLat: null, gpsLng: null, gpsStatus: 'unknown', nearestStation: null,
-};
-
-let appConfig = {
-  appsScriptUrl: '',
-  sheetCsvUrl: 'https://docs.google.com/spreadsheets/d/162XUZwBJcpIc9m_011hzaBdbJY_I7Bf772aeJt7oQIs/pub?gid=0&single=true&output=csv',
-};
-
-let localTrips = [];
-let sheetTrips = [];
-let reportFilter = 'all';
-let timerInterval = null;
-let currentPage = 'log';
-
-// Load from localStorage
-try { localTrips = JSON.parse(localStorage.getItem('felishaTrips') || '[]'); } catch(e){}
-try { const c = JSON.parse(localStorage.getItem('felishaConfig') || '{}'); appConfig = {...appConfig, ...c}; } catch(e){}
-try { const d = localStorage.getItem('felishaDriver'); if(d) { const p = JSON.parse(d); tripState.driver = p.driver; tripState.carPlate = p.carPlate; if(tripState.driver) tripState.phase = 'idle'; } } catch(e){}
-
-// ══════════════════════════════════════════
-// PAGE NAVIGATION
-// ══════════════════════════════════════════
-function switchPage(page) {
-  currentPage = page;
-  document.querySelectorAll('.tab-page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('page-'+page).classList.add('active');
-  document.getElementById('nav-'+page).classList.add('active');
-  if (page === 'log') renderLog();
-  if (page === 'reports') renderReports();
-  if (page === 'settings') renderSettings();
+// ════════════════════════════════════════════
+// STATE — loaded from localStorage
+// ════════════════════════════════════════════
+function loadCfg(key, def) {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; } catch(e) { return def; }
 }
 
-function goSetup() { tripState.phase = 'setup'; switchPage('log'); }
+let DRIVERS   = loadCfg('fs_drivers', DEFAULT_DRIVERS);
+let CARS      = loadCfg('fs_cars', DEFAULT_CARS);
+let STATIONS  = loadCfg('fs_stations', DEFAULT_STATIONS);
+let localTrips = loadCfg('fs_trips', []);
+let sheetTrips = [];
+let appConfig  = loadCfg('fs_config', {appsScriptUrl:'', sheetCsvUrl:'https://docs.google.com/spreadsheets/d/162XUZwBJcpIc9m_011hzaBdbJY_I7Bf772aeJt7oQIs/pub?gid=0&single=true&output=csv'});
 
-// ══════════════════════════════════════════
+let tripState = {
+  phase: 'setup', driver:'', carPlate:'',
+  fromStation:null, toStation:null, amount:'',
+  tripStart:null, tripEnd:null,
+  gpsLat:null, gpsLng:null, gpsStatus:'unknown', nearestStation:null,
+};
+// Restore logged-in driver
+const sd = loadCfg('fs_driver', null);
+if (sd) { tripState.driver=sd.driver; tripState.carPlate=sd.carPlate; tripState.phase='idle'; }
+
+let currentPage = 'log';
+let reportFilter = 'all';
+let adminTab = 'drivers';
+let adminUnlocked = false;
+let timerInterval = null;
+
+function save(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+
+// ════════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════════
+function switchPage(p) {
+  currentPage = p;
+  document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.nbtn').forEach(x=>x.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  document.getElementById('nav-'+p).classList.add('active');
+  if(p==='log') renderLog();
+  if(p==='reports') renderReports();
+  if(p==='admin') renderAdmin();
+  if(p==='settings') renderSettings();
+}
+function goSetup() { tripState.phase='setup'; switchPage('log'); }
+
+// ════════════════════════════════════════════
 // GPS
-// ══════════════════════════════════════════
+// ════════════════════════════════════════════
 function getGPS() {
-  tripState.gpsStatus = 'detecting';
-  if (!navigator.geolocation) { tripState.gpsStatus = 'error'; renderLog(); return; }
+  tripState.gpsStatus='detecting';
+  if(!navigator.geolocation){tripState.gpsStatus='error';renderLog();return;}
   navigator.geolocation.getCurrentPosition(
-    pos => {
-      tripState.gpsLat = pos.coords.latitude;
-      tripState.gpsLng = pos.coords.longitude;
-      tripState.gpsStatus = 'ok';
-      tripState.nearestStation = findNearest(tripState.gpsLat, tripState.gpsLng);
-      renderLog();
-    },
-    () => { tripState.gpsStatus = 'error'; renderLog(); },
-    { enableHighAccuracy: true, timeout: 10000 }
+    p=>{tripState.gpsLat=p.coords.latitude;tripState.gpsLng=p.coords.longitude;tripState.gpsStatus='ok';tripState.nearestStation=findNearest(tripState.gpsLat,tripState.gpsLng);renderLog();},
+    ()=>{tripState.gpsStatus='error';renderLog();},
+    {enableHighAccuracy:true,timeout:10000}
   );
 }
+function hav(a,b,c,d){const R=6371,dL=(c-a)*Math.PI/180,dO=(d-b)*Math.PI/180,x=Math.sin(dL/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dO/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
+function findNearest(lat,lng){let b=null,bd=Infinity;STATIONS.forEach(s=>{const d=hav(lat,lng,s.lat,s.lng);if(d<bd){bd=d;b={...s,dist:d};}});return b;}
+function distKm(s){if(!tripState.gpsLat||!s)return null;return hav(tripState.gpsLat,tripState.gpsLng,s.lat,s.lng);}
 
-function haversine(la1,lo1,la2,lo2) {
-  const R=6371, dL=(la2-la1)*Math.PI/180, dO=(lo2-lo1)*Math.PI/180;
-  const a=Math.sin(dL/2)**2+Math.cos(la1*Math.PI/180)*Math.cos(la2*Math.PI/180)*Math.sin(dO/2)**2;
-  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
-}
-
-function findNearest(lat,lng) {
-  let best=null, bd=Infinity;
-  STATIONS.forEach(s => { const d=haversine(lat,lng,s.lat,s.lng); if(d<bd){bd=d;best={...s,dist:d};} });
-  return best;
-}
-
-function distKm(s) {
-  if(!tripState.gpsLat||!s) return null;
-  return haversine(tripState.gpsLat,tripState.gpsLng,s.lat,s.lng);
-}
-
-// ══════════════════════════════════════════
+// ════════════════════════════════════════════
 // TIMER
-// ══════════════════════════════════════════
-function startTimer() {
+// ════════════════════════════════════════════
+function startTimer(){
   clearInterval(timerInterval);
-  timerInterval = setInterval(() => {
-    const el = document.getElementById('timerVal');
-    if (el && tripState.tripStart) {
-      const secs = Math.floor((Date.now()-tripState.tripStart)/1000);
-      el.textContent = `${String(Math.floor(secs/3600)).padStart(2,'0')}:${String(Math.floor((secs%3600)/60)).padStart(2,'0')}:${String(secs%60).padStart(2,'0')}`;
+  timerInterval=setInterval(()=>{
+    const el=document.getElementById('timerVal');
+    if(el&&tripState.tripStart){
+      const s=Math.floor((Date.now()-tripState.tripStart)/1000);
+      el.textContent=`${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor((s%3600)/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
     }
-  }, 1000);
+  },1000);
 }
 
-// ══════════════════════════════════════════
+// ════════════════════════════════════════════
 // TOAST
-// ══════════════════════════════════════════
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3000);
-}
+// ════════════════════════════════════════════
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
 
-// ══════════════════════════════════════════
+// ════════════════════════════════════════════
 // TRIP ACTIONS
-// ══════════════════════════════════════════
-function saveDriver() {
-  const d = document.getElementById('selDriver')?.value;
-  const p = document.getElementById('selPlate')?.value;
-  if (!d||!p) { showToast('SELECT DRIVER AND CAR PLATE'); return; }
-  tripState.driver = d; tripState.carPlate = p; tripState.phase = 'idle';
-  localStorage.setItem('felishaDriver', JSON.stringify({driver:d, carPlate:p}));
-  document.getElementById('driverBadge').textContent = d.split(' ')[0];
-  getGPS(); renderLog();
+// ════════════════════════════════════════════
+function saveDriver(){
+  const d=document.getElementById('selD')?.value, p=document.getElementById('selP')?.value;
+  if(!d||!p){toast('SELECT DRIVER AND CAR PLATE');return;}
+  tripState.driver=d;tripState.carPlate=p;tripState.phase='idle';
+  save('fs_driver',{driver:d,carPlate:p});
+  document.getElementById('driverBadge').textContent=d.split(' ')[0]+' · '+p;
+  getGPS();renderLog();
 }
+function selFrom(n){tripState.fromStation=STATIONS.find(s=>s.name===n);renderLog();}
+function selTo(n){if(tripState.phase!=='arrived')return;tripState.toStation=STATIONS.find(s=>s.name===n);renderLog();}
 
-function selectFrom(name) { tripState.fromStation = STATIONS.find(s=>s.name===name); renderLog(); }
-function selectTo(name) { if(tripState.phase!=='arrived') return; tripState.toStation = STATIONS.find(s=>s.name===name); renderLog(); }
-
-function startTrip() {
-  if (!tripState.fromStation) { showToast('SELECT YOUR STARTING STATION'); return; }
-  tripState.phase = 'active'; tripState.tripStart = Date.now(); tripState.toStation = null;
-  renderLog(); startTimer(); showToast('TRIP STARTED — SAFE JOURNEY! 🚌');
+function startTrip(){
+  if(!tripState.fromStation){toast('SELECT YOUR STARTING STATION');return;}
+  tripState.phase='active';tripState.tripStart=Date.now();tripState.toStation=null;
+  renderLog();startTimer();toast('TRIP STARTED — SAFE JOURNEY! 🚌');
 }
-
-function arriveAtStation() {
-  tripState.phase = 'arrived'; tripState.tripEnd = Date.now();
-  clearInterval(timerInterval); getGPS(); renderLog();
-  showToast('ARRIVAL CONFIRMED — SELECT DESTINATION');
+function arrive(){
+  tripState.phase='arrived';tripState.tripEnd=Date.now();
+  clearInterval(timerInterval);getGPS();renderLog();
+  toast('ARRIVED — SELECT DESTINATION & ENTER AMOUNT');
 }
-
-function endTrip() {
-  const amt = parseFloat(document.getElementById('amountInput')?.value||'0');
-  if (!tripState.toStation) { showToast('SELECT YOUR DESTINATION STATION'); return; }
-  if (!amt||amt<=0) { showToast('ENTER AMOUNT COLLECTED'); return; }
-  if (tripState.toStation.name===tripState.fromStation.name) { showToast('TO STATION MUST BE DIFFERENT'); return; }
-
-  const trip = {
-    id: Date.now(),
-    driver: tripState.driver, carPlate: tripState.carPlate,
-    fromStation: tripState.fromStation.name, toStation: tripState.toStation.name,
-    amount: amt,
-    duration: Math.floor((tripState.tripEnd-tripState.tripStart)/60000),
-    date: new Date().toLocaleDateString('en-GB'),
-    time: new Date().toLocaleTimeString(),
-    timestamp: new Date().toISOString(),
+function endTrip(){
+  const amt=parseFloat(document.getElementById('amtIn')?.value||'0');
+  if(!tripState.toStation){toast('SELECT DESTINATION STATION');return;}
+  if(!amt||amt<=0){toast('ENTER AMOUNT COLLECTED');return;}
+  if(tripState.toStation.name===tripState.fromStation.name){toast('TO STATION MUST BE DIFFERENT');return;}
+  const trip={
+    id:Date.now(),driver:tripState.driver,carPlate:tripState.carPlate,
+    fromStation:tripState.fromStation.name,toStation:tripState.toStation.name,
+    amount:amt,duration:Math.floor((tripState.tripEnd-tripState.tripStart)/60000),
+    date:new Date().toLocaleDateString('en-GB'),time:new Date().toLocaleTimeString(),
+    timestamp:new Date().toISOString(),
   };
-
-  localTrips.unshift(trip);
-  localStorage.setItem('felishaTrips', JSON.stringify(localTrips.slice(0,100)));
-  tripState.amount = amt; tripState.phase = 'done';
-  submitToSheets(trip);
-  renderLog();
+  localTrips.unshift(trip);save('fs_trips',localTrips.slice(0,200));
+  tripState.amount=amt;tripState.phase='done';
+  submitToSheets(trip);renderLog();
+}
+function newTrip(){
+  const prev=tripState.toStation;
+  tripState.phase='idle';tripState.fromStation=prev;tripState.toStation=null;
+  tripState.amount='';tripState.tripStart=null;tripState.tripEnd=null;
+  getGPS();renderLog();toast('READY FOR NEXT TRIP');
 }
 
-function newTrip() {
-  const prevTo = tripState.toStation;
-  tripState.phase = 'idle'; tripState.fromStation = prevTo;
-  tripState.toStation = null; tripState.amount = '';
-  tripState.tripStart = null; tripState.tripEnd = null;
-  getGPS(); renderLog(); showToast('READY FOR NEXT TRIP');
+// ════════════════════════════════════════════
+// SHEETS SUBMIT
+// ════════════════════════════════════════════
+async function submitToSheets(trip){
+  if(!appConfig.appsScriptUrl){toast('⚠ SAVED LOCALLY — SET UP APPS SCRIPT IN SETTINGS');return;}
+  try{
+    const params=new URLSearchParams({date:trip.date,time:trip.time,fromStation:trip.fromStation,toStation:trip.toStation,driver:trip.driver,carPlate:trip.carPlate,amount:trip.amount,duration:trip.duration});
+    await fetch(appConfig.appsScriptUrl+'?'+params.toString(),{method:'GET',mode:'no-cors'});
+    toast('✅ SYNCED TO GOOGLE SHEETS');
+  }catch(e){toast('💾 SAVED LOCALLY');}
 }
 
-// ══════════════════════════════════════════
-// GOOGLE SHEETS SUBMIT (Apps Script)
-// ══════════════════════════════════════════
-async function submitToSheets(trip) {
-  if (!appConfig.appsScriptUrl) {
-    showToast('⚠ NOT CONNECTED — SAVED LOCALLY');
-    return;
-  }
-  try {
-    const params = new URLSearchParams({
-      date: trip.date, time: trip.time,
-      fromStation: trip.fromStation, toStation: trip.toStation,
-      driver: trip.driver, carPlate: trip.carPlate,
-      amount: trip.amount, duration: trip.duration,
-    });
-    await fetch(appConfig.appsScriptUrl+'?'+params.toString(), {method:'GET', mode:'no-cors'});
-    showToast('✅ SYNCED TO GOOGLE SHEETS');
-  } catch(e) {
-    showToast('⚠ SAVED LOCALLY');
-  }
+// ════════════════════════════════════════════
+// LOAD SHEET DATA
+// ════════════════════════════════════════════
+async function loadSheetData(){
+  if(!appConfig.sheetCsvUrl){toast('NO CSV URL IN SETTINGS');return;}
+  document.getElementById('page-reports').innerHTML='<div class="spinner"></div>';
+  try{
+    let text=null;
+    try{const r=await fetch(appConfig.sheetCsvUrl);if(r.ok)text=await r.text();}catch(_){}
+    if(!text){const r2=await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(appConfig.sheetCsvUrl)}`);text=(await r2.json()).contents;}
+    sheetTrips=parseCSV(text);
+    toast('✅ '+sheetTrips.length+' RECORDS LOADED');renderReports();
+  }catch(e){toast('⚠ COULD NOT LOAD DATA');renderReports();}
 }
 
-// ══════════════════════════════════════════
-// PULL REPORTS FROM SHEET
-// ══════════════════════════════════════════
-async function loadSheetData() {
-  const url = appConfig.sheetCsvUrl;
-  if (!url) { showToast('NO SHEET URL CONFIGURED'); return; }
-  document.getElementById('page-reports').innerHTML = '<div class="spinner"></div>';
-  try {
-    let text = null;
-    try { const r = await fetch(url); if(r.ok) text = await r.text(); } catch(_){}
-    if (!text) {
-      const proxy = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
-      const r2 = await fetch(proxy);
-      text = (await r2.json()).contents;
-    }
-    sheetTrips = parseSheetCSV(text);
-    showToast('✅ '+sheetTrips.length+' RECORDS LOADED');
-    renderReports();
-  } catch(e) {
-    showToast('⚠ COULD NOT LOAD SHEET DATA');
-    renderReports();
-  }
-}
-
-function parseSheetCSV(text) {
-  const lines = text.trim().split('\n');
-  const headers = lines[0].split(',').map(h=>h.trim().toLowerCase().replace(/[^a-z]/g,''));
-  return lines.slice(1).map(line => {
-    const cols = line.split(',').map(c=>c.trim().replace(/^"|"$/g,''));
-    const row = {};
-    headers.forEach((h,i) => row[h] = cols[i]||'');
-    return {
-      date: row['date']||row['dateofduty']||row['timestamp']||'',
-      time: row['time']||'',
-      fromStation: row['fromstation']||row['from']||'',
-      toStation: row['tostation']||row['to']||'',
-      driver: row['drivername']||row['driversname']||row['driver']||'',
-      carPlate: row['carplate']||row['plate']||row['car']||'',
-      amount: parseFloat((row['amountcollectedinkes']||row['amount']||'0').replace(/[^0-9.]/g,''))||0,
-      duration: parseInt(row['duration']||'0')||0,
+function parseCSV(text){
+  const lines=text.trim().split('\n');
+  const hdrs=lines[0].split(',').map(h=>h.trim().toLowerCase().replace(/[^a-z]/g,''));
+  return lines.slice(1).map(line=>{
+    const cols=line.split(',').map(c=>c.trim().replace(/^"|"$/g,''));
+    const row={};hdrs.forEach((h,i)=>row[h]=cols[i]||'');
+    return{
+      date:row['date']||row['dateofduty']||row['timestamp']||'',
+      time:row['time']||'',
+      fromStation:row['fromstation']||row['from']||row['fromstation']||'',
+      toStation:row['tostation']||row['to']||'',
+      driver:row['drivername']||row['driversname']||row['driver']||'',
+      carPlate:row['carplate']||row['carplate']||row['plate']||row['car']||'',
+      amount:parseFloat((row['amountcollectedinkes']||row['amount']||'0').replace(/[^0-9.]/g,''))||0,
+      duration:parseInt(row['duration']||'0')||0,
     };
   }).filter(r=>r.driver||r.carPlate);
 }
 
-// ══════════════════════════════════════════
-// FILTER TRIPS
-// ══════════════════════════════════════════
-function getFilteredTrips(trips) {
-  const now = new Date();
-  const today = new Date(now.getFullYear(),now.getMonth(),now.getDate());
-  return trips.filter(t => {
-    if (reportFilter==='all') return true;
-    const d = parseDate(t.date);
-    if (!d) return false;
-    if (reportFilter==='today') return d>=today;
-    if (reportFilter==='week') { const ws=new Date(today); ws.setDate(today.getDate()-today.getDay()); return d>=ws; }
-    if (reportFilter==='month') return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+function parseDate(str){
+  if(!str)return null;let d=new Date(str);if(!isNaN(d))return d;
+  const m=str.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
+  if(m){const yr=m[3].length===2?'20'+m[3]:m[3];return new Date(`${yr}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`);}
+  return null;
+}
+
+function filterTrips(trips){
+  const now=new Date(),today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  return trips.filter(t=>{
+    if(reportFilter==='all')return true;
+    const d=parseDate(t.date);if(!d)return false;
+    if(reportFilter==='today')return d>=today;
+    if(reportFilter==='week'){const ws=new Date(today);ws.setDate(today.getDate()-today.getDay());return d>=ws;}
+    if(reportFilter==='month')return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
     return true;
   });
 }
 
-function parseDate(str) {
-  if (!str) return null;
-  let d = new Date(str); if (!isNaN(d)) return d;
-  const m = str.match(/(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{2,4})/);
-  if (m) { const yr=m[3].length===2?'20'+m[3]:m[3]; return new Date(`${yr}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`); }
-  return null;
-}
-
-// ══════════════════════════════════════════
-// PDF EXPORT
-// ══════════════════════════════════════════
-function exportPDF() {
-  const { jsPDF } = window.jspdf;
-  const allData = [...sheetTrips, ...localTrips];
-  const filtered = getFilteredTrips(allData);
-  const total = filtered.reduce((s,t)=>s+(t.amount||0),0);
-
-  const doc = new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
-  const W=210, M=18;
-  let y=M;
-
-  doc.setFillColor(26,122,60); doc.rect(0,0,W,38,'F');
-  doc.setTextColor(255,255,255); doc.setFontSize(20); doc.setFont('helvetica','bold');
-  doc.text('FELISHA SACCO', M, 16);
-  doc.setFontSize(8); doc.setFont('helvetica','normal');
-  doc.text('TRIP REPORT — '+reportFilter.toUpperCase(), M, 24);
-  doc.text('Generated: '+new Date().toLocaleString(), M, 31);
-  doc.setTextColor(240,165,0); doc.text('Total Records: '+filtered.length+' | Total Revenue: KES '+total.toLocaleString(), W-M, 31, {align:'right'});
-
+// ════════════════════════════════════════════
+// PDF
+// ════════════════════════════════════════════
+function exportPDF(){
+  const {jsPDF}=window.jspdf;
+  const all=[...sheetTrips,...localTrips];
+  const filtered=filterTrips(all);
+  const total=filtered.reduce((s,t)=>s+(t.amount||0),0);
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const W=210,M=18;let y=M;
+  doc.setFillColor(26,122,60);doc.rect(0,0,W,38,'F');
+  doc.setTextColor(255,255,255);doc.setFontSize(20);doc.setFont('helvetica','bold');doc.text('FELISHA SACCO',M,16);
+  doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text('TRIP REPORT — '+reportFilter.toUpperCase(),M,24);doc.text('Generated: '+new Date().toLocaleString(),M,31);
   y=46;
   const bw=(W-M*2-9)/4;
-  const boxes=[
-    {l:'TOTAL TRIPS', v:filtered.length.toString()},
-    {l:'TOTAL REVENUE', v:'KES '+total.toLocaleString()},
-    {l:'AVG/TRIP', v:filtered.length?'KES '+Math.round(total/filtered.length).toLocaleString():'—'},
-    {l:'UNIQUE CARS', v:[...new Set(filtered.map(t=>t.carPlate))].length.toString()},
-  ];
-  boxes.forEach((b,i) => {
+  [{l:'TOTAL TRIPS',v:String(filtered.length)},{l:'TOTAL REVENUE',v:'KES '+total.toLocaleString()},{l:'AVG/TRIP',v:filtered.length?'KES '+Math.round(total/filtered.length).toLocaleString():'—'},{l:'UNIQUE CARS',v:String([...new Set(filtered.map(t=>t.carPlate))].length)}].forEach((b,i)=>{
     const bx=M+i*(bw+3);
-    doc.setFillColor(245,250,245); doc.rect(bx,y,bw,20,'F');
-    doc.setFillColor(26,122,60); doc.rect(bx,y,bw,1.5,'F');
-    doc.setTextColor(130,130,130); doc.setFontSize(6); doc.setFont('helvetica','normal');
-    doc.text(b.l,bx+3,y+8);
-    doc.setTextColor(20,20,20); doc.setFontSize(10); doc.setFont('helvetica','bold');
-    doc.text(b.v,bx+3,y+17);
+    doc.setFillColor(245,250,245);doc.rect(bx,y,bw,20,'F');doc.setFillColor(26,122,60);doc.rect(bx,y,bw,1.5,'F');
+    doc.setTextColor(130,130,130);doc.setFontSize(6);doc.setFont('helvetica','normal');doc.text(b.l,bx+3,y+8);
+    doc.setTextColor(20,20,20);doc.setFontSize(10);doc.setFont('helvetica','bold');doc.text(b.v,bx+3,y+17);
   });
   y+=28;
-
-  doc.setFillColor(26,46,26); doc.rect(M,y,W-M*2,7,'F');
-  doc.setTextColor(240,165,0); doc.setFontSize(6.5); doc.setFont('helvetica','bold');
-  doc.text('#',M+2,y+5); doc.text('DATE',M+10,y+5); doc.text('ROUTE',M+36,y+5);
-  doc.text('DRIVER',M+90,y+5); doc.text('CAR',M+130,y+5); doc.text('KES',W-M-2,y+5,{align:'right'});
-  y+=7;
-
-  filtered.forEach(([t,i]) => {
-    if (y>272) { doc.addPage(); y=M; }
-    const bg=i%2===0?[250,253,250]:[244,248,244];
-    doc.setFillColor(...bg); doc.rect(M,y,W-M*2,7,'F');
-    doc.setTextColor(80,80,80); doc.setFontSize(6.5); doc.setFont('helvetica','normal');
-    doc.text(String(i+1),M+2,y+5);
-    doc.text((t.date||'').slice(0,10),M+10,y+5);
-    doc.setTextColor(26,122,60); doc.setFont('helvetica','bold');
-    doc.text((t.fromStation||'').slice(0,12)+'→'+(t.toStation||'').slice(0,12),M+36,y+5);
-    doc.setTextColor(60,60,60); doc.setFont('helvetica','normal');
-    doc.text((t.driver||'').slice(0,18),M+90,y+5);
-    doc.text((t.carPlate||''),M+130,y+5);
-    doc.setTextColor(20,100,60); doc.setFont('helvetica','bold');
-    doc.text((t.amount||0).toLocaleString(),W-M-2,y+5,{align:'right'});
-    y+=7;
-  });
-
-  const pg=doc.internal.getNumberOfPages();
-  for(let i=1;i<=pg;i++) {
-    doc.setPage(i); doc.setFontSize(6); doc.setTextColor(150,150,150); doc.setFont('helvetica','normal');
-    doc.text('FELISHA SACCO — CONFIDENTIAL',M,292);
-    doc.text('Page '+i+' of '+pg,W-M,292,{align:'right'});
-  }
-  doc.save('felisha-sacco-report-'+reportFilter+'.pdf');
-}
-
-// ══════════════════════════════════════════
-// RENDER LOG PAGE
-// ══════════════════════════════════════════
-function renderLog() {
-  const el = document.getElementById('page-log');
-  if (currentPage!=='log') return;
-
-  // Update driver badge
-  if (tripState.driver) document.getElementById('driverBadge').textContent = tripState.driver.split(' ')[0]+' · '+tripState.carPlate;
-  else document.getElementById('driverBadge').textContent = '— TAP TO LOGIN —';
-
-  const gpsBar = tripState.gpsStatus==='detecting'
-    ? `<div class="gps-bar"><span>📡</span>DETECTING LOCATION...</div>`
-    : tripState.gpsStatus==='ok'&&tripState.nearestStation
-    ? `<div class="gps-bar"><span>📍</span>NEAREST: ${tripState.nearestStation.name} (${tripState.nearestStation.dist.toFixed(1)} KM)</div>`
-    : tripState.gpsStatus==='error'
-    ? `<div class="gps-bar error"><span>⚠</span>GPS UNAVAILABLE — SELECT MANUALLY <span onclick="getGPS()" style="cursor:pointer;text-decoration:underline;margin-left:8px">RETRY</span></div>`
-    : `<div class="gps-bar"><span>📡</span><span onclick="getGPS()" style="cursor:pointer;text-decoration:underline">TAP TO DETECT LOCATION</span></div>`;
-
-  if (tripState.phase==='setup') {
-    el.innerHTML = `
-      <div class="card" style="border-left:4px solid var(--accent2)">
-        <div class="card-title">DRIVER LOGIN</div>
-        <div class="field">
-          <label>Select Driver</label>
-          <select id="selDriver">
-            <option value="">— Choose Driver —</option>
-            ${DRIVERS.map(d=>`<option value="${d}" ${d===tripState.driver?'selected':''}>${d}</option>`).join('')}
-          </select>
-        </div>
-        <div class="field">
-          <label>Car Plate</label>
-          <select id="selPlate">
-            <option value="">— Choose Car —</option>
-            ${CAR_PLATES.map(p=>`<option value="${p}" ${p===tripState.carPlate?'selected':''}>${p}</option>`).join('')}
-          </select>
-        </div>
-        <button class="btn-block btn-start" onclick="saveDriver()">BEGIN SHIFT</button>
-      </div>
-      ${renderTodayHistory()}`;
-    return;
-  }
-
-  if (tripState.phase==='idle') {
-    el.innerHTML = `
-      <div class="card">
-        <div class="card-title">START TRIP</div>
-        <div class="card-sub">// SELECT YOUR STARTING STATION</div>
-        ${gpsBar}
-        <div class="field"><label>FROM STATION</label></div>
-        <div class="station-grid">
-          ${STATIONS.map(s => {
-            const d=distKm(s), isN=tripState.nearestStation?.name===s.name;
-            return `<div class="station-btn ${tripState.fromStation?.name===s.name?'selected':''}" onclick="selectFrom('${s.name}')">
-              ${s.name}${isN?' 📍':''}
-              ${d!==null?`<span class="dist">${d.toFixed(1)} km</span>`:''}
-            </div>`;
-          }).join('')}
-        </div>
-        <button class="btn-block btn-start" onclick="startTrip()" ${!tripState.fromStation?'disabled':''}>🚌 START TRIP</button>
-        <button class="btn-outline" onclick="goSetup()">CHANGE DRIVER</button>
-      </div>
-      ${renderTodayHistory()}`;
-    if (tripState.nearestStation&&!tripState.fromStation) setTimeout(()=>selectFrom(tripState.nearestStation.name),100);
-    return;
-  }
-
-  if (tripState.phase==='active') {
-    const secs=tripState.tripStart?Math.floor((Date.now()-tripState.tripStart)/1000):0;
-    el.innerHTML = `
-      <div class="card">
-        <div class="card-title">TRIP IN PROGRESS</div>
-        <div class="card-sub">// DRIVE TO DESTINATION THEN TAP ARRIVE</div>
-        <div class="route-display">
-          <div class="route-station"><div class="role">FROM</div><div class="name">${tripState.fromStation.name}</div></div>
-          <div class="route-arrow">→</div>
-          <div class="route-station"><div class="role">TO</div><div class="name" style="color:var(--muted)">DESTINATION</div></div>
-        </div>
-        <div class="timer-display">
-          <div class="timer-label">TRIP DURATION</div>
-          <div class="timer-value" id="timerVal">${String(Math.floor(secs/3600)).padStart(2,'0')}:${String(Math.floor((secs%3600)/60)).padStart(2,'0')}:${String(secs%60).padStart(2,'0')}</div>
-        </div>
-        <div class="locked-section">
-          <div class="locked-icon">🔒</div>
-          <div class="locked-text">DESTINATION LOCKED<br>ARRIVE AT STATION FIRST</div>
-        </div>
-        <button class="btn-block btn-arrive" onclick="arriveAtStation()">📍 I HAVE ARRIVED</button>
-        <button class="btn-outline" onclick="if(confirm('Cancel this trip?')){tripState.phase='idle';clearInterval(timerInterval);renderLog();}">CANCEL TRIP</button>
-      </div>`;
-    startTimer(); return;
-  }
-
-  if (tripState.phase==='arrived') {
-    el.innerHTML = `
-      <div class="card">
-        <div class="card-title">END TRIP</div>
-        <div class="card-sub">// SELECT DESTINATION & ENTER AMOUNT</div>
-        ${gpsBar}
-        <div class="route-display">
-          <div class="route-station"><div class="role">FROM</div><div class="name">${tripState.fromStation.name}</div></div>
-          <div class="route-arrow">→</div>
-          <div class="route-station"><div class="role">TO</div><div class="name">${tripState.toStation?tripState.toStation.name:'???'}</div></div>
-        </div>
-        <div class="field"><label>TO STATION (WHERE YOU ARRIVED)</label></div>
-        <div class="station-grid">
-          ${STATIONS.map(s => {
-            const d=distKm(s), isN=tripState.nearestStation?.name===s.name, same=s.name===tripState.fromStation?.name;
-            return `<div class="station-btn ${tripState.toStation?.name===s.name?'selected':''} ${same?'disabled':''}" onclick="selectTo('${s.name}')">
-              ${s.name}${isN?' 📍':''}
-              ${d!==null?`<span class="dist">${d.toFixed(1)} km</span>`:''}
-            </div>`;
-          }).join('')}
-        </div>
-        <div class="field"><label>AMOUNT COLLECTED IN KES</label></div>
-        <div class="amount-wrap">
-          <span class="amount-prefix">KES</span>
-          <input type="number" class="amount-input" id="amountInput" placeholder="0" min="0" value="${tripState.amount||''}">
-        </div>
-        <button class="btn-block btn-end" onclick="endTrip()" ${!tripState.toStation?'disabled':''}>✅ SUBMIT TRIP</button>
-      </div>`;
-    if (tripState.nearestStation&&!tripState.toStation&&tripState.nearestStation.name!==tripState.fromStation?.name) setTimeout(()=>selectTo(tripState.nearestStation.name),100);
-    return;
-  }
-
-  if (tripState.phase==='done') {
-    const last = localTrips[0];
-    el.innerHTML = `
-      <div class="success-card">
-        <div class="success-icon">✅</div>
-        <div class="success-title">TRIP LOGGED!</div>
-        <div class="success-details">
-          <div class="detail-row"><span>DRIVER</span><span>${last.driver}</span></div>
-          <div class="detail-row"><span>CAR</span><span>${last.carPlate}</span></div>
-          <div class="detail-row"><span>ROUTE</span><span>${last.fromStation} → ${last.toStation}</span></div>
-          <div class="detail-row"><span>DURATION</span><span>${last.duration} MIN</span></div>
-          <div class="detail-row"><span>AMOUNT</span><span>KES ${Number(last.amount).toLocaleString()}</span></div>
-          <div class="detail-row"><span>TIME</span><span>${last.time}</span></div>
-        </div>
-        <div class="success-sub">${appConfig.appsScriptUrl?'✅ SYNCED TO GOOGLE SHEETS':'💾 SAVED LOCALLY'}</div>
-      </div>
-      <button class="btn-block btn-start" onclick="newTrip()">🚌 START NEXT TRIP</button>
-      <button class="btn-outline" onclick="goSetup()">END SHIFT</button>
-      ${renderTodayHistory()}`;
-    return;
-  }
-}
-
-function renderTodayHistory() {
-  const today = new Date().toLocaleDateString('en-GB');
-  const todayTrips = localTrips.filter(t=>t.date===today);
-  if (!todayTrips.length) return '';
-  const todayTotal = todayTrips.reduce((s,t)=>s+t.amount,0);
-  return `
-    <div class="history-section">
-      <div class="section-title">TODAY'S TRIPS (${todayTrips.length}) · KES ${todayTotal.toLocaleString()}</div>
-      ${todayTrips.slice(0,8).map(t=>`
-        <div class="history-item">
-          <div class="history-top">
-            <span class="history-route">${t.fromStation} → ${t.toStation}</span>
-            <span class="history-amount">KES ${Number(t.amount).toLocaleString()}</span>
-          </div>
-          <div class="history-bottom">
-            <span>${t.driver} · ${t.carPlate}</span>
-            <span class="history-time">${t.time}</span>
-          </div>
-        </div>`).join('')}
-    </div>`;
-}
-
-// ══════════════════════════════════════════
-// RENDER REPORTS PAGE
-// ══════════════════════════════════════════
-function renderReports() {
-  const el = document.getElementById('page-reports');
-  const allData = [...sheetTrips, ...localTrips.filter(lt=>!sheetTrips.find(st=>st.time===lt.time&&st.driver===lt.driver))];
-  const filtered = getFilteredTrips(allData);
-  const total = filtered.reduce((s,t)=>s+(t.amount||0),0);
-  const avg = filtered.length ? Math.round(total/filtered.length) : 0;
-  const cars = [...new Set(filtered.map(t=>t.carPlate))];
-  const today = new Date(); today.setHours(0,0,0,0);
-  const todayTrips = allData.filter(t=>{const d=parseDate(t.date); return d&&d>=today;});
-
-  el.innerHTML = `
-    <div class="export-row">
-      <button class="btn-sm btn-green" onclick="loadSheetData()">⟳ SYNC FROM SHEET</button>
-      <button class="btn-sm btn-yellow" onclick="exportPDF()">⬇ EXPORT PDF</button>
-    </div>
-
-    <div class="stat-grid">
-      <div class="stat-box"><div class="lbl">TOTAL TRIPS</div><div class="val green">${filtered.length}</div></div>
-      <div class="stat-box"><div class="lbl">TOTAL REVENUE</div><div class="val green" style="font-size:1.3rem">KES ${total.toLocaleString()}</div></div>
-      <div class="stat-box"><div class="lbl">AVG / TRIP</div><div class="val yellow" style="font-size:1.3rem">KES ${avg.toLocaleString()}</div></div>
-      <div class="stat-box"><div class="lbl">TODAY'S TRIPS</div><div class="val">${todayTrips.length}</div></div>
-    </div>
-
-    <div class="report-filters">
-      ${['all','today','week','month'].map(f=>`<div class="filter-chip ${reportFilter===f?'active':''}" onclick="reportFilter='${f}';renderReports()">${f==='all'?'ALL TIME':f.toUpperCase()}</div>`).join('')}
-    </div>
-
-    ${filtered.length===0?'<div class="empty-msg">NO DATA YET<br>TAP SYNC FROM SHEET OR LOG A TRIP</div>': `
-    <div class="report-table">
-      <div class="table-header">
-        <span>ROUTE</span><span>DRIVER</span><span>TIME</span><span>AMOUNT</span>
-      </div>
-      ${filtered.slice(0,50).map(t=>`
-        <div class="table-row">
-          <div><div class="table-route">${(t.fromStation||'').slice(0,8)}→${(t.toStation||'').slice(0,8)}</div><div style="font-family:var(--font-mono);font-size:0.52rem;color:var(--muted)">${t.date||''}</div></div>
-          <div><div class="table-driver">${(t.driver||'').split(' ')[0]}</div><div style="font-family:var(--font-mono);font-size:0.52rem;color:var(--muted)">${t.carPlate||''}</div></div>
-          <div class="table-time">${(t.time||'').slice(0,5)}</div>
-          <div class="table-amount">KES ${Number(t.amount||0).toLocaleString()}</div>
-        </div>`).join('')}
-    </div>`}
-
-    ${cars.length?`
-    <div class="section-title" style="margin-bottom:10px">REVENUE BY CAR</div>
-    ${cars.map(car=>{
-      const carTrips=filtered.filter(t=>t.carPlate===car);
-      const carTotal=carTrips.reduce((s,t)=>s+t.amount,0);
-      const pct=Math.round((carTotal/total)*100)||0;
-      return `<div class="history-item" style="margin-bottom:8px">
-        <div class="history-top"><span class="history-route">${car}</span><span class="history-amount">KES ${carTotal.toLocaleString()}</span></div>
-        <div style="height:5px;background:var(--border);border-radius:3px;margin-top:6px;overflow:hidden"><div style="height:100%;width:${pct}%;background:var(--accent);border-radius:3px"></div></div>
-        <div class="history-bottom" style="margin-top:4px"><span>${carTrips.length} trips</span><span>${pct}% of revenue</span></div>
-      </div>`;
-    }).join('')}`:''}`;
-}
-
-// ══════════════════════════════════════════
-// RENDER SETTINGS PAGE
-// ══════════════════════════════════════════
-function renderSettings() {
-  const el = document.getElementById('page-settings');
-  el.innerHTML = `
-    <div class="card">
-      <div class="card-title">SHEET CONNECTION</div>
-      <div class="card-sub">// CONNECT TO YOUR GOOGLE SHEET</div>
-
-      <div class="setup-section">
-        <div class="section-title">STEP 1 — APPS SCRIPT (SEND DATA)</div>
-        <p style="font-size:0.78rem;color:var(--muted);margin-bottom:10px;line-height:1.6">Paste your Google Apps Script Web App URL to send trip data directly to your sheet.</p>
-        ${appConfig.appsScriptUrl?`<div class="connected-badge"><div class="dot-green"></div>CONNECTED</div><div class="url-display">${appConfig.appsScriptUrl}</div>`:''}
-        <div class="input-row">
-          <div class="field"><label>Apps Script Web App URL</label><input type="text" id="scriptUrl" placeholder="https://script.google.com/macros/s/.../exec" value="${appConfig.appsScriptUrl||''}"></div>
-          <button class="btn-sm btn-green" onclick="saveScriptUrl()">SAVE</button>
-        </div>
-        <div class="steps-list" style="margin-top:12px">
-          <div class="step">Open your Google Sheet → <code>Extensions</code> → <code>Apps Script</code></div>
-          <div class="step">Delete existing code, paste the <strong>apps-script.js</strong> code provided</div>
-          <div class="step">Click <code>Deploy</code> → <code>New deployment</code> → Select <code>Web app</code></div>
-          <div class="step">Set <code>Execute as: Me</code> and <code>Who has access: Anyone</code> → Deploy → Authorize</div>
-          <div class="step">Copy the Web App URL and paste it above</div>
-        </div>
-      </div>
-
-      <div class="setup-section">
-        <div class="section-title">STEP 2 — CSV URL (PULL REPORTS)</div>
-        <p style="font-size:0.78rem;color:var(--muted);margin-bottom:10px;line-height:1.6">This URL pulls data from your sheet into the Reports tab.</p>
-        ${appConfig.sheetCsvUrl?`<div class="connected-badge"><div class="dot-green"></div>SHEET URL SET</div>`:''}
-        <div class="input-row">
-          <div class="field"><label>Google Sheet CSV URL</label><input type="text" id="csvUrl" value="${appConfig.sheetCsvUrl||''}" placeholder="https://docs.google.com/spreadsheets/.../pub?output=csv"></div>
-          <button class="btn-sm btn-green" onclick="saveCsvUrl()">SAVE</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">SHEET DETAILS</div>
-      <div class="card-sub">// YOUR FELISHA SACCO GOOGLE SHEET</div>
-      <div class="url-display">https://docs.google.com/spreadsheets/d/162XUZwBJcpIc9m_011hzaBdbJY_I7Bf772aeJt7oQIs/edit</div>
-      <p style="font-size:0.75rem;color:var(--muted);line-height:1.7">
-        To publish as CSV: Open sheet → <strong>File → Share → Publish to web</strong> → Select your sheet → Choose <strong>CSV</strong> → Publish → Copy URL → Paste above.
-      </p>
-    </div>
-
-    <div class="card">
-      <div class="card-title">LOCAL DATA</div>
-      <div class="card-sub">// ${localTrips.length} TRIPS STORED ON THIS DEVICE</div>
-      <button class="btn-outline" onclick="if(confirm('Clear all local trip data?')){localStorage.removeItem('felishaTrips');localTrips=[];showToast('LOCAL DATA CLEARED');renderSettings();}">CLEAR LOCAL TRIP DATA</button>
-    </div>`;
-}
-
-function saveScriptUrl() {
-  const url = document.getElementById('scriptUrl')?.value.trim();
-  appConfig.appsScriptUrl = url;
-  localStorage.setItem('felishaConfig', JSON.stringify(appConfig));
-  showToast(url?'✅ APPS SCRIPT URL SAVED':'URL CLEARED');
-  renderSettings();
-}
-
-function saveCsvUrl() {
-  const url = document.getElementById('csvUrl')?.value.trim();
-  appConfig.sheetCsvUrl = url;
-  localStorage.setItem('felishaConfig', JSON.stringify(appConfig));
-  showToast(url?'✅ CSV URL SAVED':'URL CLEARED');
-  renderSettings();
-}
-
-// Fix exportPDF to use indexed data correctly
-const _origExportPDF = exportPDF;
-window.exportPDF = function() {
-  const { jsPDF } = window.jspdf;
-  const allData = [...sheetTrips, ...localTrips];
-  const filtered = getFilteredTrips(allData);
-  const total = filtered.reduce((s,t)=>s+(t.amount||0),0);
-  const doc = new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
-  const W=210, M=18; let y=M;
-  doc.setFillColor(26,122,60); doc.rect(0,0,W,38,'F');
-  doc.setTextColor(255,255,255); doc.setFontSize(20); doc.setFont('helvetica','bold');
-  doc.text('FELISHA SACCO', M, 16);
-  doc.setFontSize(8); doc.setFont('helvetica','normal');
-  doc.text('TRIP REPORT — '+reportFilter.toUpperCase(), M, 24);
-  doc.text('Generated: '+new Date().toLocaleString(), M, 31);
-  y=46;
-  const bw=(W-M*2-9)/4;
-  [{l:'TOTAL TRIPS',v:filtered.length.toString()},{l:'TOTAL REVENUE',v:'KES '+total.toLocaleString()},{l:'AVG/TRIP',v:filtered.length?'KES '+Math.round(total/filtered.length).toLocaleString():'—'},{l:'UNIQUE CARS',v:[...new Set(filtered.map(t=>t.carPlate))].length.toString()}].forEach((b,i)=>{
-    const bx=M+i*(bw+3);
-    doc.setFillColor(245,250,245); doc.rect(bx,y,bw,20,'F');
-    doc.setFillColor(26,122,60); doc.rect(bx,y,bw,1.5,'F');
-    doc.setTextColor(130,130,130); doc.setFontSize(6); doc.setFont('helvetica','normal'); doc.text(b.l,bx+3,y+8);
-    doc.setTextColor(20,20,20); doc.setFontSize(10); doc.setFont('helvetica','bold'); doc.text(b.v,bx+3,y+17);
-  });
-  y+=28;
-  doc.setFillColor(26,46,26); doc.rect(M,y,W-M*2,7,'F');
-  doc.setTextColor(240,165,0); doc.setFontSize(6.5); doc.setFont('helvetica','bold');
-  doc.text('#',M+2,y+5); doc.text('DATE',M+10,y+5); doc.text('ROUTE',M+36,y+5); doc.text('DRIVER',M+90,y+5); doc.text('CAR',M+130,y+5); doc.text('KES',W-M-2,y+5,{align:'right'});
+  doc.setFillColor(26,46,26);doc.rect(M,y,W-M*2,7,'F');
+  doc.setTextColor(240,165,0);doc.setFontSize(6.5);doc.setFont('helvetica','bold');
+  doc.text('#',M+2,y+5);doc.text('DATE',M+10,y+5);doc.text('ROUTE',M+36,y+5);doc.text('DRIVER',M+90,y+5);doc.text('CAR',M+130,y+5);doc.text('KES',W-M-2,y+5,{align:'right'});
   y+=7;
   filtered.forEach((t,i)=>{
     if(y>272){doc.addPage();y=M;}
-    doc.setFillColor(...(i%2===0?[250,253,250]:[244,248,244])); doc.rect(M,y,W-M*2,7,'F');
-    doc.setTextColor(80,80,80); doc.setFontSize(6.5); doc.setFont('helvetica','normal');
-    doc.text(String(i+1),M+2,y+5); doc.text((t.date||'').slice(0,10),M+10,y+5);
-    doc.setTextColor(26,122,60); doc.setFont('helvetica','bold');
-    doc.text((t.fromStation||'').slice(0,10)+'→'+(t.toStation||'').slice(0,10),M+36,y+5);
-    doc.setTextColor(60,60,60); doc.setFont('helvetica','normal');
-    doc.text((t.driver||'').slice(0,18),M+90,y+5); doc.text((t.carPlate||''),M+130,y+5);
-    doc.setTextColor(20,100,60); doc.setFont('helvetica','bold');
-    doc.text(Number(t.amount||0).toLocaleString(),W-M-2,y+5,{align:'right'});
+    doc.setFillColor(...(i%2===0?[250,253,250]:[244,248,244]));doc.rect(M,y,W-M*2,7,'F');
+    doc.setTextColor(80,80,80);doc.setFontSize(6.5);doc.setFont('helvetica','normal');doc.text(String(i+1),M+2,y+5);doc.text((t.date||'').slice(0,10),M+10,y+5);
+    doc.setTextColor(26,122,60);doc.setFont('helvetica','bold');doc.text((t.fromStation||'').slice(0,9)+'→'+(t.toStation||'').slice(0,9),M+36,y+5);
+    doc.setTextColor(60,60,60);doc.setFont('helvetica','normal');doc.text((t.driver||'').slice(0,18),M+90,y+5);doc.text(t.carPlate||'',M+130,y+5);
+    doc.setTextColor(20,100,60);doc.setFont('helvetica','bold');doc.text(Number(t.amount||0).toLocaleString(),W-M-2,y+5,{align:'right'});
     y+=7;
   });
   const pg=doc.internal.getNumberOfPages();
   for(let i=1;i<=pg;i++){doc.setPage(i);doc.setFontSize(6);doc.setTextColor(150,150,150);doc.setFont('helvetica','normal');doc.text('FELISHA SACCO — CONFIDENTIAL',M,292);doc.text('Page '+i+' of '+pg,W-M,292,{align:'right'});}
-  doc.save('felisha-sacco-report-'+reportFilter+'.pdf');
-};
+  doc.save('felisha-report-'+reportFilter+'-'+new Date().toISOString().slice(0,10)+'.pdf');
+}
 
-// ── INIT ──
-if (tripState.driver) document.getElementById('driverBadge').textContent = tripState.driver.split(' ')[0]+' · '+tripState.carPlate;
+// ════════════════════════════════════════════
+// RENDER LOG
+// ════════════════════════════════════════════
+function renderLog(){
+  const el=document.getElementById('page-log');
+  if(currentPage!=='log')return;
+  if(tripState.driver)document.getElementById('driverBadge').textContent=tripState.driver.split(' ')[0]+' · '+tripState.carPlate;
+  else document.getElementById('driverBadge').textContent='— TAP TO LOGIN —';
+
+  const gbar=tripState.gpsStatus==='detecting'
+    ?`<div class="gbar"><span>📡</span>DETECTING LOCATION...</div>`
+    :tripState.gpsStatus==='ok'&&tripState.nearestStation
+    ?`<div class="gbar"><span>📍</span>NEAREST: ${tripState.nearestStation.name} (${tripState.nearestStation.dist.toFixed(1)} KM)</div>`
+    :tripState.gpsStatus==='error'
+    ?`<div class="gbar err"><span>⚠</span>GPS UNAVAILABLE — MANUAL SELECT &nbsp;<span onclick="getGPS()" style="cursor:pointer;text-decoration:underline">RETRY</span></div>`
+    :`<div class="gbar"><span>📡</span><span onclick="getGPS()" style="cursor:pointer;text-decoration:underline">TAP TO DETECT LOCATION</span></div>`;
+
+  if(tripState.phase==='setup'){
+    el.innerHTML=`
+      <div class="card" style="border-left:4px solid var(--accent2)">
+        <div class="ctitle">DRIVER LOGIN</div>
+        <div class="field"><label>Select Driver</label>
+          <select id="selD"><option value="">— Choose Driver —</option>
+          ${DRIVERS.map(d=>`<option value="${d}" ${d===tripState.driver?'selected':''}>${d}</option>`).join('')}</select>
+        </div>
+        <div class="field"><label>Car Plate</label>
+          <select id="selP"><option value="">— Choose Car —</option>
+          ${CARS.map(c=>`<option value="${c}" ${c===tripState.carPlate?'selected':''}>${c}</option>`).join('')}</select>
+        </div>
+        <button class="bb bstart" onclick="saveDriver()">BEGIN SHIFT</button>
+      </div>
+      ${renderTodayHistory()}`;
+    return;
+  }
+
+  if(tripState.phase==='idle'){
+    el.innerHTML=`
+      <div class="card">
+        <div class="ctitle">START TRIP</div>
+        <div class="csub">// SELECT YOUR STARTING STATION</div>
+        ${gbar}
+        <div class="field"><label>FROM STATION</label></div>
+        <div class="sgrid">${STATIONS.map(s=>{
+          const d=distKm(s),isN=tripState.nearestStation?.name===s.name;
+          return`<div class="sbtn ${tripState.fromStation?.name===s.name?'sel':''}" onclick="selFrom('${s.name}')">
+            ${s.name}${isN?' 📍':''}
+            ${d!==null?`<span class="dist">${d.toFixed(1)} km</span>`:''}
+          </div>`;
+        }).join('')}</div>
+        <button class="bb bstart" onclick="startTrip()" ${!tripState.fromStation?'disabled':''}>🚌 START TRIP</button>
+        <button class="bout" onclick="goSetup()">CHANGE DRIVER / CAR</button>
+      </div>
+      ${renderTodayHistory()}`;
+    if(tripState.nearestStation&&!tripState.fromStation)setTimeout(()=>selFrom(tripState.nearestStation.name),100);
+    return;
+  }
+
+  if(tripState.phase==='active'){
+    const secs=tripState.tripStart?Math.floor((Date.now()-tripState.tripStart)/1000):0;
+    el.innerHTML=`
+      <div class="card">
+        <div class="ctitle">TRIP IN PROGRESS</div>
+        <div class="csub">// DRIVE TO DESTINATION THEN TAP ARRIVE</div>
+        <div class="rdisp">
+          <div class="rs"><div class="rl">FROM</div><div class="rn">${tripState.fromStation.name}</div></div>
+          <div class="rarr">→</div>
+          <div class="rs"><div class="rl">TO</div><div class="rn" style="color:var(--muted)">DESTINATION</div></div>
+        </div>
+        <div class="tdisp">
+          <div class="tl">TRIP DURATION</div>
+          <div class="tv" id="timerVal">${String(Math.floor(secs/3600)).padStart(2,'0')}:${String(Math.floor((secs%3600)/60)).padStart(2,'0')}:${String(secs%60).padStart(2,'0')}</div>
+        </div>
+        <div class="lock"><div class="lico">🔒</div><div class="ltxt">DESTINATION LOCKED<br>ARRIVE AT STATION FIRST</div></div>
+        <button class="bb barrive" onclick="arrive()">📍 I HAVE ARRIVED</button>
+        <button class="bout" onclick="if(confirm('Cancel this trip?')){tripState.phase='idle';clearInterval(timerInterval);renderLog();}">CANCEL TRIP</button>
+      </div>`;
+    startTimer();return;
+  }
+
+  if(tripState.phase==='arrived'){
+    el.innerHTML=`
+      <div class="card">
+        <div class="ctitle">END TRIP</div>
+        <div class="csub">// SELECT WHERE YOU ARRIVED & ENTER AMOUNT</div>
+        ${gbar}
+        <div class="rdisp">
+          <div class="rs"><div class="rl">FROM</div><div class="rn">${tripState.fromStation.name}</div></div>
+          <div class="rarr">→</div>
+          <div class="rs"><div class="rl">TO</div><div class="rn">${tripState.toStation?tripState.toStation.name:'???'}</div></div>
+        </div>
+        <div class="field"><label>TO STATION (WHERE YOU ARRIVED)</label></div>
+        <div class="sgrid">${STATIONS.map(s=>{
+          const d=distKm(s),isN=tripState.nearestStation?.name===s.name,same=s.name===tripState.fromStation?.name;
+          return`<div class="sbtn ${tripState.toStation?.name===s.name?'sel':''} ${same?'dis':''}" onclick="selTo('${s.name}')">
+            ${s.name}${isN?' 📍':''}
+            ${d!==null?`<span class="dist">${d.toFixed(1)} km</span>`:''}
+          </div>`;
+        }).join('')}</div>
+        <div class="field"><label>AMOUNT COLLECTED IN KES</label></div>
+        <div class="awrap">
+          <span class="apfx">KES</span>
+          <input type="number" class="ainput" id="amtIn" placeholder="0" min="0" value="${tripState.amount||''}">
+        </div>
+        <button class="bb bend" onclick="endTrip()" ${!tripState.toStation?'disabled':''}>✅ SUBMIT TRIP</button>
+      </div>`;
+    if(tripState.nearestStation&&!tripState.toStation&&tripState.nearestStation.name!==tripState.fromStation?.name)setTimeout(()=>selTo(tripState.nearestStation.name),100);
+    return;
+  }
+
+  if(tripState.phase==='done'){
+    const last=localTrips[0];
+    el.innerHTML=`
+      <div class="scard">
+        <div class="sico">✅</div>
+        <div class="stitle">TRIP LOGGED!</div>
+        <div class="sdetails">
+          <div class="drow"><span>DRIVER</span><span>${last.driver}</span></div>
+          <div class="drow"><span>CAR</span><span>${last.carPlate}</span></div>
+          <div class="drow"><span>ROUTE</span><span>${last.fromStation} → ${last.toStation}</span></div>
+          <div class="drow"><span>DURATION</span><span>${last.duration} MIN</span></div>
+          <div class="drow"><span>AMOUNT</span><span>KES ${Number(last.amount).toLocaleString()}</span></div>
+          <div class="drow"><span>TIME</span><span>${last.time}</span></div>
+        </div>
+        <div class="ssub">${appConfig.appsScriptUrl?'✅ SYNCED TO GOOGLE SHEETS':'💾 SAVED LOCALLY'}</div>
+      </div>
+      <button class="bb bstart" onclick="newTrip()">🚌 START NEXT TRIP</button>
+      <button class="bout" onclick="goSetup()">END SHIFT</button>
+      ${renderTodayHistory()}`;
+    return;
+  }
+}
+
+function renderTodayHistory(){
+  const today=new Date().toLocaleDateString('en-GB');
+  const tt=localTrips.filter(t=>t.date===today);
+  if(!tt.length)return'';
+  const tot=tt.reduce((s,t)=>s+t.amount,0);
+  return`<div class="hsect">
+    <div class="stitle2">TODAY'S TRIPS (${tt.length}) · KES ${tot.toLocaleString()}</div>
+    ${tt.slice(0,8).map(t=>`<div class="hitem">
+      <div class="htop"><span class="hroute">${t.fromStation} → ${t.toStation}</span><span class="hamt">KES ${Number(t.amount).toLocaleString()}</span></div>
+      <div class="hbot"><span>${t.driver} · ${t.carPlate}</span><span class="htime">${t.time}</span></div>
+    </div>`).join('')}
+  </div>`;
+}
+
+// ════════════════════════════════════════════
+// RENDER REPORTS
+// ════════════════════════════════════════════
+function renderReports(){
+  const el=document.getElementById('page-reports');
+  const all=[...sheetTrips,...localTrips.filter(lt=>!sheetTrips.find(st=>st.time===lt.time&&st.driver===lt.driver))];
+  const filtered=filterTrips(all);
+  const total=filtered.reduce((s,t)=>s+(t.amount||0),0);
+  const avg=filtered.length?Math.round(total/filtered.length):0;
+  const cars=[...new Set(filtered.map(t=>t.carPlate))];
+  const now=new Date();now.setHours(0,0,0,0);
+  const todayT=all.filter(t=>{const d=parseDate(t.date);return d&&d>=now;});
+
+  el.innerHTML=`
+    <div class="exprow">
+      <button class="bsm bg" onclick="loadSheetData()">⟳ SYNC FROM SHEET</button>
+      <button class="bsm by" onclick="exportPDF()">⬇ EXPORT PDF</button>
+    </div>
+    <div class="sgrid2">
+      <div class="sbox"><div class="sl">TOTAL TRIPS</div><div class="sv green">${filtered.length}</div></div>
+      <div class="sbox"><div class="sl">TOTAL REVENUE</div><div class="sv green" style="font-size:1.2rem">KES ${total.toLocaleString()}</div></div>
+      <div class="sbox"><div class="sl">AVG / TRIP</div><div class="sv yellow" style="font-size:1.2rem">KES ${avg.toLocaleString()}</div></div>
+      <div class="sbox"><div class="sl">TODAY'S TRIPS</div><div class="sv">${todayT.length}</div></div>
+    </div>
+    <div class="fchips">
+      ${['all','today','week','month'].map(f=>`<div class="fchip ${reportFilter===f?'active':''}" onclick="reportFilter='${f}';renderReports()">${f==='all'?'ALL TIME':f.toUpperCase()}</div>`).join('')}
+    </div>
+    ${filtered.length===0?'<div class="empty">NO DATA YET<br>TAP ⟳ SYNC FROM SHEET</div>':`
+    <div class="rtable">
+      <div class="rth"><span>ROUTE</span><span>DRIVER</span><span>TIME</span><span>AMOUNT</span></div>
+      ${filtered.slice(0,60).map(t=>`<div class="rtr">
+        <div><div class="trroute">${(t.fromStation||'').slice(0,8)}→${(t.toStation||'').slice(0,8)}</div><div style="font-family:var(--font-m);font-size:.48rem;color:var(--muted)">${t.date||''}</div></div>
+        <div><div class="trdrv">${(t.driver||'').split(' ')[0]}</div><div style="font-family:var(--font-m);font-size:.48rem;color:var(--muted)">${t.carPlate||''}</div></div>
+        <div class="trtm">${(t.time||'').slice(0,5)}</div>
+        <div class="tramt">KES ${Number(t.amount||0).toLocaleString()}</div>
+      </div>`).join('')}
+    </div>`}
+    ${cars.length?`<div class="stitle2" style="margin-bottom:9px">REVENUE BY CAR</div>
+    ${cars.map(car=>{
+      const ct=filtered.filter(t=>t.carPlate===car),cr=ct.reduce((s,t)=>s+t.amount,0),pct=total?Math.round((cr/total)*100):0;
+      return`<div class="hitem" style="margin-bottom:7px">
+        <div class="htop"><span class="hroute">${car}</span><span class="hamt">KES ${cr.toLocaleString()}</span></div>
+        <div style="height:5px;background:var(--border);border-radius:3px;margin-top:6px;overflow:hidden"><div style="height:100%;width:${pct}%;background:var(--accent);border-radius:3px"></div></div>
+        <div class="hbot" style="margin-top:4px"><span>${ct.length} trips</span><span>${pct}% of revenue</span></div>
+      </div>`;
+    }).join('')}`:''}`;
+}
+
+// ════════════════════════════════════════════
+// RENDER ADMIN
+// ════════════════════════════════════════════
+function renderAdmin(){
+  const el=document.getElementById('page-admin');
+  if(!adminUnlocked){
+    el.innerHTML=`
+      <div class="apinbox">
+        <div class="apintitle">ADMIN ACCESS</div>
+        <div class="apinsub">ENTER PIN TO MANAGE DRIVERS, CARS & STATIONS</div>
+        <input type="password" class="pininput" id="pinIn" maxlength="6" placeholder="••••" onkeydown="if(event.key==='Enter')checkPin()">
+        <button class="bb bstart" style="max-width:200px;margin:0 auto;display:block" onclick="checkPin()">UNLOCK</button>
+      </div>`;
+    return;
+  }
+
+  el.innerHTML=`
+    <div class="card" style="border-left:4px solid var(--accent2);margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div class="ctitle" style="margin:0">ADMIN PANEL</div>
+        <button class="bghost" onclick="adminUnlocked=false;renderAdmin()">🔒 LOCK</button>
+      </div>
+    </div>
+    <div class="atabs">
+      <button class="atab ${adminTab==='drivers'?'active':''}" onclick="adminTab='drivers';renderAdmin()">DRIVERS</button>
+      <button class="atab ${adminTab==='cars'?'active':''}" onclick="adminTab='cars';renderAdmin()">CARS</button>
+      <button class="atab ${adminTab==='stations'?'active':''}" onclick="adminTab='stations';renderAdmin()">STATIONS</button>
+      <button class="atab ${adminTab==='config'?'active':''}" onclick="adminTab='config';renderAdmin()">CONFIG</button>
+    </div>
+
+    <div id="asect-drivers" class="asect ${adminTab==='drivers'?'active':''}">
+      <div class="card">
+        <div class="ctitle">MANAGE DRIVERS <span class="pill">${DRIVERS.length}</span></div>
+        <div class="alist">
+          ${DRIVERS.map((d,i)=>`<div class="aitem">
+            <div><div class="aitem-name">${d}</div><div class="aitem-sub">DRIVER #${i+1}</div></div>
+            <button class="adel" onclick="removeDriver(${i})" title="Remove">✕</button>
+          </div>`).join('')}
+        </div>
+        <div class="divline"></div>
+        <div class="addrow">
+          <div class="field"><label>New Driver Name</label><input type="text" id="newDriver" placeholder="FULL NAME IN CAPS"></div>
+          <button class="bsm bg" onclick="addDriver()">ADD</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="asect-cars" class="asect ${adminTab==='cars'?'active':''}">
+      <div class="card">
+        <div class="ctitle">MANAGE CARS <span class="pill">${CARS.length}</span></div>
+        <div class="alist">
+          ${CARS.map((c,i)=>`<div class="aitem">
+            <div><div class="aitem-name">${c}</div><div class="aitem-sub">CAR #${i+1}</div></div>
+            <button class="adel" onclick="removeCar(${i})">✕</button>
+          </div>`).join('')}
+        </div>
+        <div class="divline"></div>
+        <div class="addrow">
+          <div class="field"><label>New Car Plate</label><input type="text" id="newCar" placeholder="e.g. KCA 123A"></div>
+          <button class="bsm bg" onclick="addCar()">ADD</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="asect-stations" class="asect ${adminTab==='stations'?'active':''}">
+      <div class="card">
+        <div class="ctitle">MANAGE STATIONS <span class="pill">${STATIONS.length}</span></div>
+        <div class="alist">
+          ${STATIONS.map((s,i)=>`<div class="aitem">
+            <div><div class="aitem-name">${s.name}</div><div class="aitem-sub">${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}</div></div>
+            <button class="adel" onclick="removeStation(${i})">✕</button>
+          </div>`).join('')}
+        </div>
+        <div class="divline"></div>
+        <div class="field"><label>Station Name</label><input type="text" id="newStn" placeholder="STATION NAME IN CAPS"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px">
+          <div class="field" style="margin:0"><label>Latitude</label><input type="number" id="newLat" placeholder="-1.2833" step="any"></div>
+          <div class="field" style="margin:0"><label>Longitude</label><input type="number" id="newLng" placeholder="36.8167" step="any"></div>
+        </div>
+        <button class="bsm bg" style="width:100%;padding:10px" onclick="addStation()">ADD STATION</button>
+      </div>
+    </div>
+
+    <div id="asect-config" class="asect ${adminTab==='config'?'active':''}">
+      <div class="card">
+        <div class="ctitle">SYSTEM CONFIG</div>
+        <div class="csub">// CHANGE ADMIN PIN</div>
+        <div class="addrow">
+          <div class="field"><label>New PIN (4-6 digits)</label><input type="password" id="newPin" placeholder="New PIN" maxlength="6"></div>
+          <button class="bsm bg" onclick="changePin()">SAVE</button>
+        </div>
+        <div class="divline"></div>
+        <div class="csub" style="margin-top:0">// RESET TO DEFAULTS</div>
+        <button class="bout" onclick="resetToDefaults()">RESET ALL DATA TO DEFAULTS</button>
+        <div class="divline"></div>
+        <div class="csub" style="margin-top:0">// LOCAL TRIP DATA</div>
+        <p style="font-size:.75rem;color:var(--muted);margin-bottom:9px">${localTrips.length} trips stored on this device.</p>
+        <button class="bout" onclick="if(confirm('Clear all local trip data?')){localTrips=[];save('fs_trips',[]);toast('CLEARED');renderAdmin();}">CLEAR LOCAL TRIP DATA</button>
+      </div>
+    </div>`;
+}
+
+function checkPin(){
+  const pin=document.getElementById('pinIn')?.value;
+  const storedPin=localStorage.getItem('fs_pin')||ADMIN_PIN;
+  if(pin===storedPin){adminUnlocked=true;renderAdmin();}
+  else{toast('WRONG PIN');}
+}
+
+function addDriver(){
+  const n=(document.getElementById('newDriver')?.value||'').trim().toUpperCase();
+  if(!n){toast('ENTER DRIVER NAME');return;}
+  if(DRIVERS.includes(n)){toast('DRIVER ALREADY EXISTS');return;}
+  DRIVERS.push(n);save('fs_drivers',DRIVERS);toast('DRIVER ADDED ✅');renderAdmin();
+}
+function removeDriver(i){
+  if(!confirm('Remove '+DRIVERS[i]+'?'))return;
+  DRIVERS.splice(i,1);save('fs_drivers',DRIVERS);renderAdmin();
+}
+function addCar(){
+  const n=(document.getElementById('newCar')?.value||'').trim().toUpperCase();
+  if(!n){toast('ENTER CAR PLATE');return;}
+  if(CARS.includes(n)){toast('CAR ALREADY EXISTS');return;}
+  CARS.push(n);save('fs_cars',CARS);toast('CAR ADDED ✅');renderAdmin();
+}
+function removeCar(i){
+  if(!confirm('Remove '+CARS[i]+'?'))return;
+  CARS.splice(i,1);save('fs_cars',CARS);renderAdmin();
+}
+function addStation(){
+  const n=(document.getElementById('newStn')?.value||'').trim().toUpperCase();
+  const lat=parseFloat(document.getElementById('newLat')?.value||'');
+  const lng=parseFloat(document.getElementById('newLng')?.value||'');
+  if(!n){toast('ENTER STATION NAME');return;}
+  if(isNaN(lat)||isNaN(lng)){toast('ENTER VALID COORDINATES');return;}
+  STATIONS.push({name:n,lat,lng});save('fs_stations',STATIONS);toast('STATION ADDED ✅');renderAdmin();
+}
+function removeStation(i){
+  if(!confirm('Remove '+STATIONS[i].name+'?'))return;
+  STATIONS.splice(i,1);save('fs_stations',STATIONS);renderAdmin();
+}
+function changePin(){
+  const p=document.getElementById('newPin')?.value||'';
+  if(p.length<4){toast('PIN MUST BE AT LEAST 4 DIGITS');return;}
+  localStorage.setItem('fs_pin',p);toast('PIN UPDATED ✅');
+}
+function resetToDefaults(){
+  if(!confirm('Reset ALL data to defaults? This cannot be undone.'))return;
+  DRIVERS=[...DEFAULT_DRIVERS];CARS=[...DEFAULT_CARS];STATIONS=[...DEFAULT_STATIONS];
+  save('fs_drivers',DRIVERS);save('fs_cars',CARS);save('fs_stations',STATIONS);
+  toast('RESET COMPLETE');renderAdmin();
+}
+
+// ════════════════════════════════════════════
+// RENDER SETTINGS
+// ════════════════════════════════════════════
+function renderSettings(){
+  const el=document.getElementById('page-settings');
+  el.innerHTML=`
+    <div class="card">
+      <div class="ctitle">SHEET CONNECTION</div>
+      <div class="csub">// CONNECT TO YOUR GOOGLE SHEET</div>
+      <div style="margin-bottom:14px">
+        <div class="stitle2">APPS SCRIPT URL (SEND DATA TO SHEET)</div>
+        ${appConfig.appsScriptUrl?`<div class="conn-badge"><div class="dg"></div>CONNECTED</div><div class="urlbox">${appConfig.appsScriptUrl}</div>`:''}
+        <div class="irow">
+          <div class="field"><label>Web App URL</label><input type="text" id="scrUrl" placeholder="https://script.google.com/macros/s/.../exec" value="${appConfig.appsScriptUrl||''}"></div>
+          <button class="bsm bg" onclick="saveScriptUrl()">SAVE</button>
+        </div>
+      </div>
+      <div class="divline"></div>
+      <div>
+        <div class="stitle2">CSV URL (PULL REPORTS FROM SHEET)</div>
+        ${appConfig.sheetCsvUrl?`<div class="conn-badge"><div class="dg"></div>URL SET</div>`:''}
+        <div class="irow">
+          <div class="field"><label>Published CSV URL</label><input type="text" id="csvUrl" value="${appConfig.sheetCsvUrl||''}" placeholder="...pub?output=csv"></div>
+          <button class="bsm bg" onclick="saveCsvUrl()">SAVE</button>
+        </div>
+        <p style="font-size:.7rem;color:var(--muted);margin-top:8px;line-height:1.7">In Google Sheets → <strong>File → Share → Publish to web</strong> → Select sheet → Choose <strong>CSV</strong> → Copy URL → Paste above.</p>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="ctitle">SETUP GUIDE</div>
+      <div class="steps">
+        <div class="step">Open your Google Sheet → click <code>Extensions</code> → <code>Apps Script</code></div>
+        <div class="step">Delete all code → paste the <strong>apps-script.js</strong> code → Save (💾)</div>
+        <div class="step">Click <code>Deploy</code> → <code>New deployment</code> → Select <code>Web app</code></div>
+        <div class="step">Execute as: <code>Me</code> | Who has access: <code>Anyone</code> → Deploy → Authorize</div>
+        <div class="step">Copy the Web App URL → paste in Apps Script URL above → SAVE</div>
+        <div class="step">In Google Sheets → <code>File → Share → Publish to web</code> → Select sheet → CSV → Copy URL → paste in CSV URL above → SAVE</div>
+      </div>
+    </div>`;
+}
+
+function saveScriptUrl(){
+  appConfig.appsScriptUrl=(document.getElementById('scrUrl')?.value||'').trim();
+  save('fs_config',appConfig);toast(appConfig.appsScriptUrl?'✅ APPS SCRIPT URL SAVED':'URL CLEARED');renderSettings();
+}
+function saveCsvUrl(){
+  appConfig.sheetCsvUrl=(document.getElementById('csvUrl')?.value||'').trim();
+  save('fs_config',appConfig);toast(appConfig.sheetCsvUrl?'✅ CSV URL SAVED':'URL CLEARED');renderSettings();
+}
+
+// ══ INIT ══
+if(tripState.driver)document.getElementById('driverBadge').textContent=tripState.driver.split(' ')[0]+' · '+tripState.carPlate;
 renderLog();
-if (tripState.phase==='idle') getGPS();
+if(tripState.phase==='idle')getGPS();
 </script>
 </body>
 </html>
