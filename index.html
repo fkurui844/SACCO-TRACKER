@@ -970,5 +970,58 @@ window.addEventListener('DOMContentLoaded', () => {
   loadData();
 });
 </script>
+  async function connect() {
+    const url = document.getElementById('sheetUrl').value || DEFAULT_URL;
+    const banner = document.getElementById('banner');
+    
+    try {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Network response was not ok');
+        const csvData = await response.text();
+        const rows = parseCSV(csvData);
+        
+        // Remove header row and detect indices
+        const rawHeaders = rows.shift();
+        headers = detectHeaders(rawHeaders);
+        allRows = rows;
+        
+        banner.className = "banner success";
+        banner.textContent = "CONNECTED SUCCESSFULLY: " + allRows.length + " RECORDS FOUND";
+        document.getElementById('lastUpdated').textContent = "UPDATED: " + new Date().toLocaleTimeString();
+        
+        render();
+    } catch (err) {
+        banner.className = "banner error";
+        banner.textContent = "CONNECTION ERROR: PLEASE CHECK YOUR URL AND PERMISSIONS";
+        console.error(err);
+    }
+}
+
+function openPdfModal() {
+    document.getElementById('pdfModal').classList.add('open');
+}
+
+function closePdfModal() {
+    document.getElementById('pdfModal').classList.remove('open');
+}
+
+// Simple PDF Generator using jspdf
+function exportPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+    const type = document.getElementById('pdfType').value;
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("ONBOARD SACCO - OPERATIONS REPORT", 14, 20);
+    doc.setFontSize(10);
+    doc.text(`Generated on: ${new Date().toLocaleString()}`, 14, 30);
+    
+    // In a production app, you'd use autoTable here
+    doc.text("Report Type: " + type.toUpperCase(), 14, 40);
+    doc.text("Total Trips Processed: " + allRows.length, 14, 50);
+    
+    doc.save(`Onboard_Sacco_Report_${Date.now()}.pdf`);
+    closePdfModal();
+}
 </body>
 </html>
