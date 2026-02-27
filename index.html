@@ -174,7 +174,7 @@ main{padding:13px 13px 74px}
 .sumlbl{font-family:var(--font-m);font-size:.54rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
 .sumval{font-family:var(--font-d);font-size:1.3rem;color:var(--accent)}
 
-/* REPORTS */
+/* DASHBOARD */
 .sgrid2{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px}
 .sbox{background:var(--card);border:1px solid var(--border);padding:13px;box-shadow:var(--shadow);transition:background .3s}
 .sbox .sl{font-family:var(--font-m);font-size:.46rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px}
@@ -298,7 +298,7 @@ main{padding:13px 13px 74px}
   body{background:#fff!important;color:#000!important;max-width:100%!important}
   main{padding:0!important}
   .page{display:block!important}
-  #page-reports .rsect:not(#rsect-overview){display:none!important}
+  #page-DASHBOARD .rsect:not(#rsect-overview){display:none!important}
 }
 </style>
 </head>
@@ -327,7 +327,7 @@ main{padding:13px 13px 74px}
 
 <main>
   <div id="page-log" class="page active"></div>
-  <div id="page-reports" class="page"></div>
+  <div id="page-DASHBOARD" class="page"></div>
   <div id="page-admin" class="page"></div>
 </main>
 
@@ -335,8 +335,8 @@ main{padding:13px 13px 74px}
   <button class="nbtn active" id="nav-log" onclick="switchPage('log')">
     <span class="ni">🚌</span><span class="nl">LOG TRIP</span>
   </button>
-  <button class="nbtn" id="nav-reports" onclick="switchPage('reports')">
-    <span class="ni">📊</span><span class="nl">REPORTS</span>
+  <button class="nbtn" id="nav-DASHBOARD" onclick="switchPage('DASHBOARD')">
+    <span class="ni">📊</span><span class="nl">DASHBOARD</span>
   </button>
   <button class="nbtn" id="nav-admin" onclick="switchPage('admin')">
     <span class="ni">👑</span><span class="nl">ADMIN</span>
@@ -476,7 +476,7 @@ function toggleDark(){
   darkMode=!darkMode; save('fs_dark',darkMode);
   document.documentElement.setAttribute('data-theme',darkMode?'dark':'light');
   document.getElementById('darkBtn').textContent=darkMode?'☀️':'🌙';
-  if(currentPage==='reports'&&reportTab==='charts')setTimeout(renderCharts,100);
+  if(currentPage==='DASHBOARD'&&reportTab==='charts')setTimeout(renderCharts,100);
 }
 
 // ══════════════════════════════════════════════
@@ -573,7 +573,7 @@ function switchPage(p){
   document.getElementById('page-'+p).classList.add('active');
   document.getElementById('nav-'+p).classList.add('active');
   if(p==='log')renderLog();
-  if(p==='reports')renderReports();
+  if(p==='DASHBOARD')renderDASHBOARD();
   if(p==='admin')renderAdmin();
 }
 function goSetup(){
@@ -661,7 +661,7 @@ function startAutoSync(){
     if(syncCountdown<=0){
       syncCountdown=300;
       if(isOnline())flushQueue();
-      if(currentPage==='reports'&&isOnline())loadFirebaseData(true);
+      if(currentPage==='DASHBOARD'&&isOnline())loadFirebaseData(true);
     }
   },1000);
 }
@@ -1014,10 +1014,10 @@ async function loadFirebaseData(silent=false){
     const snap=await q.get();
     firestoreTrips=snap.docs.map(d=>({...d.data(),_fbId:d.id}));
     if(!silent)toast('✅ '+firestoreTrips.length+' RECORDS LOADED');
-    if(currentPage==='reports')renderReports();
+    if(currentPage==='DASHBOARD')renderDASHBOARD();
   }catch(e){
     if(!silent)toast('⚠ LOAD ERROR: '+e.message);
-    if(currentPage==='reports')renderReports();
+    if(currentPage==='DASHBOARD')renderDASHBOARD();
   }
 }
 
@@ -1052,7 +1052,7 @@ function filterTrips(trips){
     return true;
   });
 }
-function clearFilters(){filterCar='';filterDriver='';filterFrom='';filterTo='';reportFilter='all';renderReports();}
+function clearFilters(){filterCar='';filterDriver='';filterFrom='';filterTo='';reportFilter='all';renderDASHBOARD();}
 
 // ══════════════════════════════════════════════
 // EXPORTS
@@ -1314,10 +1314,10 @@ function renderTodayHistory(){
 }
 
 // ══════════════════════════════════════════════
-// RENDER REPORTS
+// RENDER DASHBOARD
 // ══════════════════════════════════════════════
-function renderReports(){
-  const el=document.getElementById('page-reports');
+function renderDASHBOARD(){
+  const el=document.getElementById('page-DASHBOARD');
   const all=allData();
   const filtered=filterTrips(all);
   const total=filtered.reduce((s,t)=>s+(t.amount||0),0);
@@ -1328,11 +1328,11 @@ function renderReports(){
   const allDrivers=[...new Set(all.map(t=>t.driver).filter(Boolean))].sort();
   const allStations=[...new Set([...all.map(t=>t.fromStation),...all.map(t=>t.toStation)].filter(Boolean))].sort();
   const activeTags=[];
-  if(filterCar)activeTags.push({l:'CAR: '+filterCar,c:"filterCar='';renderReports()"});
-  if(filterDriver)activeTags.push({l:'DRV: '+filterDriver.split(' ')[0],c:"filterDriver='';renderReports()"});
-  if(filterFrom)activeTags.push({l:'FROM: '+filterFrom,c:"filterFrom='';renderReports()"});
-  if(filterTo)activeTags.push({l:'TO: '+filterTo,c:"filterTo='';renderReports()"});
-  if(reportFilter!=='all')activeTags.push({l:reportFilter.toUpperCase(),c:"reportFilter='all';renderReports()"});
+  if(filterCar)activeTags.push({l:'CAR: '+filterCar,c:"filterCar='';renderDASHBOARD()"});
+  if(filterDriver)activeTags.push({l:'DRV: '+filterDriver.split(' ')[0],c:"filterDriver='';renderDASHBOARD()"});
+  if(filterFrom)activeTags.push({l:'FROM: '+filterFrom,c:"filterFrom='';renderDASHBOARD()"});
+  if(filterTo)activeTags.push({l:'TO: '+filterTo,c:"filterTo='';renderDASHBOARD()"});
+  if(reportFilter!=='all')activeTags.push({l:reportFilter.toUpperCase(),c:"reportFilter='all';renderDASHBOARD()"});
 
   el.innerHTML=`
     <div class="exprow">
@@ -1349,29 +1349,29 @@ function renderReports(){
       <div class="sbox"><div class="sl">TODAY'S TRIPS</div><div class="sv">${todayT.length}</div></div>
     </div>
     <div class="rtabs">
-      <button class="rtab ${reportTab==='overview'?'active':''}" onclick="reportTab='overview';renderReports()">OVERVIEW</button>
-      <button class="rtab ${reportTab==='charts'?'active':''}" onclick="reportTab='charts';renderReports();setTimeout(renderCharts,80)">CHARTS</button>
-      <button class="rtab ${reportTab==='leaderboard'?'active':''}" onclick="reportTab='leaderboard';renderReports()">LEADERBOARD</button>
-      <button class="rtab ${reportTab==='performance'?'active':''}" onclick="reportTab='performance';renderReports()">PERFORMANCE</button>
+      <button class="rtab ${reportTab==='overview'?'active':''}" onclick="reportTab='overview';renderDASHBOARD()">OVERVIEW</button>
+      <button class="rtab ${reportTab==='charts'?'active':''}" onclick="reportTab='charts';renderDASHBOARD();setTimeout(renderCharts,80)">CHARTS</button>
+      <button class="rtab ${reportTab==='leaderboard'?'active':''}" onclick="reportTab='leaderboard';renderDASHBOARD()">LEADERBOARD</button>
+      <button class="rtab ${reportTab==='performance'?'active':''}" onclick="reportTab='performance';renderDASHBOARD()">PERFORMANCE</button>
     </div>
     <div id="rsect-overview" class="rsect ${reportTab==='overview'?'active':''}">
       <div class="card" style="padding:13px;margin-bottom:11px">
-        <div class="stitle2" style="margin-bottom:9px">🔍 FILTER REPORTS</div>
-        <div class="fchips">${['all','today','week','month'].map(f=>`<div class="fchip ${reportFilter===f?'active':''}" onclick="reportFilter='${f}';renderReports()">${f==='all'?'ALL TIME':f.toUpperCase()}</div>`).join('')}</div>
+        <div class="stitle2" style="margin-bottom:9px">🔍 FILTER DASHBOARD</div>
+        <div class="fchips">${['all','today','week','month'].map(f=>`<div class="fchip ${reportFilter===f?'active':''}" onclick="reportFilter='${f}';renderDASHBOARD()">${f==='all'?'ALL TIME':f.toUpperCase()}</div>`).join('')}</div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px">
           <div><div style="font-family:var(--font-m);font-size:.48rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">BY CAR</div>
-            <select style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 9px;font-family:var(--font-b);font-size:.8rem;outline:none;appearance:none" onchange="filterCar=this.value;renderReports()">
+            <select style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 9px;font-family:var(--font-b);font-size:.8rem;outline:none;appearance:none" onchange="filterCar=this.value;renderDASHBOARD()">
               <option value="">All Cars</option>${allCars.map(c=>`<option value="${c}" ${filterCar===c?'selected':''}>${c}</option>`).join('')}</select></div>
           <div><div style="font-family:var(--font-m);font-size:.48rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">BY DRIVER</div>
-            <select style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 9px;font-family:var(--font-b);font-size:.8rem;outline:none;appearance:none" onchange="filterDriver=this.value;renderReports()">
+            <select style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 9px;font-family:var(--font-b);font-size:.8rem;outline:none;appearance:none" onchange="filterDriver=this.value;renderDASHBOARD()">
               <option value="">All Drivers</option>${allDrivers.map(d=>`<option value="${d}" ${filterDriver===d?'selected':''}>${d.split(' ')[0]}</option>`).join('')}</select></div>
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
           <div><div style="font-family:var(--font-m);font-size:.48rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">FROM</div>
-            <select style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 9px;font-family:var(--font-b);font-size:.8rem;outline:none;appearance:none" onchange="filterFrom=this.value;renderReports()">
+            <select style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 9px;font-family:var(--font-b);font-size:.8rem;outline:none;appearance:none" onchange="filterFrom=this.value;renderDASHBOARD()">
               <option value="">Any</option>${allStations.map(s=>`<option value="${s}" ${filterFrom===s?'selected':''}>${s}</option>`).join('')}</select></div>
           <div><div style="font-family:var(--font-m);font-size:.48rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">TO</div>
-            <select style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 9px;font-family:var(--font-b);font-size:.8rem;outline:none;appearance:none" onchange="filterTo=this.value;renderReports()">
+            <select style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 9px;font-family:var(--font-b);font-size:.8rem;outline:none;appearance:none" onchange="filterTo=this.value;renderDASHBOARD()">
               <option value="">Any</option>${allStations.map(s=>`<option value="${s}" ${filterTo===s?'selected':''}>${s}</option>`).join('')}</select></div>
         </div>
         ${activeTags.length?`<div style="margin-top:9px;display:flex;flex-wrap:wrap;gap:4px">${activeTags.map(t=>`<div class="tag-active">${t.l} <span onclick="${t.c}">✕</span></div>`).join('')}</div>`:''}
@@ -1408,7 +1408,7 @@ function renderCarBars(filtered,total){
     const ct=filtered.filter(t=>t.carPlate===car),cr=ct.reduce((s,t)=>s+t.amount,0),pct=total?Math.round((cr/total)*100):0;
     const todayRev=localTrips.filter(t=>t.carPlate===car&&t.date===today).reduce((s,t)=>s+t.amount,0);
     const target=carTargets[car],tpct=target?Math.min(100,Math.round((todayRev/target)*100)):null;
-    return`<div class="hitem" style="margin-bottom:7px;cursor:pointer" onclick="filterCar=filterCar==='${car}'?'':'${car}';renderReports()">
+    return`<div class="hitem" style="margin-bottom:7px;cursor:pointer" onclick="filterCar=filterCar==='${car}'?'':'${car}';renderDASHBOARD()">
       <div class="htop"><span class="hroute">${car}${shifts[car]?.open===false?' <span style=\\"background:var(--red);color:#fff;font-size:.42rem;padding:1px 5px\\">CLOSED</span>':''}</span><span class="hamt">KES ${cr.toLocaleString()}</span></div>
       <div class="bar-mini"><div class="bar-fill" style="width:${pct}%"></div></div>
       <div class="hbot" style="margin-top:4px"><span>${ct.length} trips · ${pct}% of total</span>${target?`<span style="color:${tpct>=100?'#22c55e':tpct>=50?'var(--accent2)':'var(--red)'}">TODAY ${tpct}%</span>`:''}</div>
