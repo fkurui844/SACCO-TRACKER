@@ -3,11 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>FESTUS SACCO</title>
+<title>FESTUS SACCO v7</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<!-- Firebase v9 compat -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -418,14 +421,13 @@ let DRIVERS    = load('fs_drivers', DEFAULT_DRIVERS);
 let CARS       = load('fs_cars', DEFAULT_CARS);
 let STATIONS   = load('fs_stations', DEFAULT_STATIONS);
 let localTrips = load('fs_trips', []);
-let offlineQ   = load('fs_queue', []);
-let driverPins = load('fs_dpins', {});
-let carTargets = load('fs_targets', {});
-let shifts     = load('fs_shifts', {});
-let sheetTrips = [];
-let appConfig  = load('fs_config', {
-  appsScriptUrl:'',
-  sheetCsvUrl:'https://docs.google.com/spreadsheets/d/162XUZwBJcpIc9m_011hzaBdbJY_I7Bf772aeJt7oQIs/pub?gid=0&single=true&output=csv'
+let offlineQ      = load('fs_queue', []);
+let driverPins    = load('fs_dpins', {});
+let carTargets    = load('fs_targets', {});
+let shifts        = load('fs_shifts', {});
+let firestoreTrips = [];   // trips fetched from Firebase
+let appConfig     = load('fs_config', {
+  apiKey:'', authDomain:'', projectId:'', appId:''
 });
 
 // PIN lockout state (in-memory only — resets on page reload, intentional)
@@ -457,6 +459,7 @@ let adminUnlocked      = false;
 let timerInterval      = null;
 let syncInterval       = null;
 let syncCountdown      = 300;
+let db                 = null;   // Firestore instance
 let sessionSecondsLeft = SESSION_TIMEOUT;
 let sessionInterval    = null;
 let showingTimeout     = false;
@@ -631,14 +634,14 @@ window.addEventListener('online',()=>{updateOfflineBadge();if(offlineQ.length)fl
 window.addEventListener('offline',()=>updateOfflineBadge());
 
 async function flushQueue(){
-  if(!offlineQ.length||!appConfig.appsScriptUrl)return;
+  if(!offlineQ.length)return;
+  if(!initFirebase()){toast('⚠ CONFIGURE FIREBASE IN ADMIN FIRST');return;}
+  if(!isOnline()){toast('STILL OFFLINE — WILL SYNC WHEN CONNECTED');return;}
   toast('SYNCING '+offlineQ.length+' QUEUED TRIPS...');
   const remaining=[];
   for(const trip of offlineQ){
-    try{
-      const p=new URLSearchParams({date:trip.date,time:trip.time,fromStation:trip.fromStation,toStation:trip.toStation,driver:trip.driver,carPlate:trip.carPlate,amount:trip.amount,duration:trip.duration,notes:trip.notes||''});
-      await fetch(appConfig.appsScriptUrl+'?'+p.toString(),{method:'GET',mode:'no-cors'});
-    }catch(e){remaining.push(trip);}
+    try{await db.collection('trips').add(trip);}
+    catch(e){remaining.push(trip);}
   }
   offlineQ=remaining; save('fs_queue',offlineQ);
   toast(remaining.length===0?'✅ ALL TRIPS SYNCED':'⚠ '+remaining.length+' STILL QUEUED');
@@ -646,7 +649,7 @@ async function flushQueue(){
 }
 
 // ══════════════════════════════════════════════
-// AUTO-SYNC
+// AUTO-SYNC — refresh Firebase every 5 min
 // ══════════════════════════════════════════════
 function startAutoSync(){
   clearInterval(syncInterval);
@@ -654,8 +657,12 @@ function startAutoSync(){
   syncInterval=setInterval(()=>{
     syncCountdown--;
     const el=document.getElementById('syncTimer');
-    if(el)el.textContent=`AUTO-SYNC ${Math.floor(syncCountdown/60)}:${String(syncCountdown%60).padStart(2,'0')}`;
-    if(syncCountdown<=0){syncCountdown=300;if(appConfig.sheetCsvUrl&&isOnline())loadSheetData(true);}
+    if(el)el.textContent='SYNC '+Math.floor(syncCountdown/60)+':'+String(syncCountdown%60).padStart(2,'0');
+    if(syncCountdown<=0){
+      syncCountdown=300;
+      if(isOnline())flushQueue();
+      if(currentPage==='reports'&&isOnline())loadFirebaseData(true);
+    }
   },1000);
 }
 
@@ -891,16 +898,18 @@ function confirmAndSubmit(){
     (Date.now()-new Date(t.timestamp).getTime())<tenMin
   );
   if(dup&&!confirm('⚠ SIMILAR TRIP LOGGED WITHIN 10 MINUTES — SUBMIT ANYWAY?'))return;
+  const _now=new Date();
   const trip={
     id:Date.now(),driver:tripState.driver,carPlate:tripState.carPlate,
     fromStation:tripState.fromStation.name,toStation:tripState.toStation.name,
     amount:tripState.amount,duration:Math.floor((tripState.tripEnd-tripState.tripStart)/60000),
-    notes:tripState.notes,date:new Date().toLocaleDateString('en-GB'),
-    time:new Date().toLocaleTimeString(),timestamp:new Date().toISOString(),
+    notes:tripState.notes,date:_now.toLocaleDateString('en-GB'),
+    time:_now.toLocaleTimeString(),timestamp:_now.toISOString(),
+    dateMs:_now.getTime(),  // used for Firestore range queries
   };
   localTrips.unshift(trip); save('fs_trips',localTrips.slice(0,200));
   tripState.phase='done';
-  submitToSheets(trip);
+  submitToFirebase(trip);
   renderLog();
 }
 
@@ -920,17 +929,16 @@ function newTrip(){
 // ══════════════════════════════════════════════
 // SUBMIT
 // ══════════════════════════════════════════════
-async function submitToSheets(trip){
-  if(!appConfig.appsScriptUrl){
+async function submitToFirebase(trip){
+  if(!initFirebase()){
     if(!isOnline()){offlineQ.push(trip);save('fs_queue',offlineQ);updateOfflineBadge();toast('📦 SAVED TO OFFLINE QUEUE');}
-    else toast('💾 SAVED LOCALLY — CONFIGURE SHEETS IN ADMIN');
+    else toast('💾 SAVED LOCALLY — CONFIGURE FIREBASE IN ADMIN');
     return;
   }
   if(!isOnline()){offlineQ.push(trip);save('fs_queue',offlineQ);updateOfflineBadge();toast('📦 OFFLINE — QUEUED');return;}
   try{
-    const p=new URLSearchParams({date:trip.date,time:trip.time,fromStation:trip.fromStation,toStation:trip.toStation,driver:trip.driver,carPlate:trip.carPlate,amount:trip.amount,duration:trip.duration,notes:trip.notes||''});
-    await fetch(appConfig.appsScriptUrl+'?'+p.toString(),{method:'GET',mode:'no-cors'});
-    toast('✅ SYNCED TO GOOGLE SHEETS');
+    await db.collection('trips').add(trip);
+    toast('✅ SYNCED TO FIREBASE');
   }catch(e){offlineQ.push(trip);save('fs_queue',offlineQ);updateOfflineBadge();toast('⚠ QUEUED FOR RETRY');}
 }
 
@@ -965,29 +973,58 @@ function generateWhatsAppSummary(){
 }
 
 // ══════════════════════════════════════════════
-// SHEET DATA
 // ══════════════════════════════════════════════
-async function loadSheetData(silent=false){
-  if(!appConfig.sheetCsvUrl){if(!silent)toast('NO CSV URL — CONFIGURE IN ADMIN');return;}
-  if(!silent){const el=document.getElementById('page-reports');if(el)el.innerHTML='<div class="spinner"></div>';}
+// FIREBASE — init + data layer
+// ══════════════════════════════════════════════
+function initFirebase(){
+  if(!appConfig.projectId){return false;}
+  if(db)return true;  // already initialised
   try{
-    let text=null;
-    try{const r=await fetch(appConfig.sheetCsvUrl+'&_='+Date.now());if(r.ok)text=await r.text();}catch(_){}
-    if(!text){const r2=await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(appConfig.sheetCsvUrl)}`);text=(await r2.json()).contents;}
-    sheetTrips=parseCSV(text);
-    if(!silent)toast('✅ '+sheetTrips.length+' RECORDS LOADED');
-    if(currentPage==='reports')renderReports();
-  }catch(e){if(!silent)toast('⚠ COULD NOT LOAD SHEET');if(currentPage==='reports')renderReports();}
+    if(!firebase.apps.length){
+      firebase.initializeApp({
+        apiKey:appConfig.apiKey,
+        authDomain:appConfig.authDomain,
+        projectId:appConfig.projectId,
+        appId:appConfig.appId
+      });
+    }
+    db=firebase.firestore();
+    // Offline persistence — survives network drops
+    db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
+    return true;
+  }catch(e){console.error('Firebase init error:',e);return false;}
 }
 
-function parseCSV(text){
-  const lines=text.trim().split('\n');
-  const hdrs=lines[0].split(',').map(h=>h.trim().toLowerCase().replace(/[^a-z]/g,''));
-  return lines.slice(1).map(line=>{
-    const cols=line.split(',').map(c=>c.trim().replace(/^"|"$/g,''));
-    const r={};hdrs.forEach((h,i)=>r[h]=cols[i]||'');
-    return{date:r.date||r.dateofduty||'',time:r.time||'',fromStation:r.fromstation||r.from||'',toStation:r.tostation||r.to||'',driver:r.drivername||r.driversname||r.driver||'',carPlate:r.carplate||r.plate||r.car||'',amount:parseFloat((r.amountcollectedinkes||r.amount||'0').replace(/[^0-9.]/g,''))||0,duration:parseInt(r.duration||'0')||0,notes:r.notes||''};
-  }).filter(r=>r.driver||r.carPlate);
+async function loadFirebaseData(silent=false){
+  if(!initFirebase()){if(!silent)toast('⚠ CONFIGURE FIREBASE IN ADMIN');return;}
+  if(!isOnline()&&!silent){toast('OFFLINE — SHOWING CACHED DATA');return;}
+  try{
+    // Build date range based on current filter
+    const now=new Date(); now.setHours(23,59,59,999);
+    let startMs=0;
+    if(reportFilter==='today'){const s=new Date();s.setHours(0,0,0,0);startMs=s.getTime();}
+    else if(reportFilter==='week'){const s=new Date();s.setDate(s.getDate()-s.getDay());s.setHours(0,0,0,0);startMs=s.getTime();}
+    else if(reportFilter==='month'){const s=new Date(now.getFullYear(),now.getMonth(),1);startMs=s.getTime();}
+    else{// 'all' — load last 90 days to keep query fast
+      const s=new Date();s.setDate(s.getDate()-90);s.setHours(0,0,0,0);startMs=s.getTime();}
+
+    let q=db.collection('trips').where('dateMs','>=',startMs).orderBy('dateMs','desc');
+    // Extra car/driver filters pushed to Firestore where possible
+    if(filterCar)q=q.where('carPlate','==',filterCar);
+    const snap=await q.get();
+    firestoreTrips=snap.docs.map(d=>({...d.data(),_fbId:d.id}));
+    if(!silent)toast('✅ '+firestoreTrips.length+' RECORDS LOADED');
+    if(currentPage==='reports')renderReports();
+  }catch(e){
+    if(!silent)toast('⚠ LOAD ERROR: '+e.message);
+    if(currentPage==='reports')renderReports();
+  }
+}
+
+function allData(){
+  // Merge Firebase trips with local trips (local takes priority for dedup)
+  const fbFiltered=firestoreTrips.filter(ft=>!localTrips.find(lt=>lt.timestamp===ft.timestamp&&lt.driver===ft.driver));
+  return[...localTrips,...fbFiltered];
 }
 
 function parseDate(str){
@@ -1244,7 +1281,7 @@ function renderLog(){
           <div class="drow"><span>AMOUNT</span><span>KES ${Number(last.amount).toLocaleString()}</span></div>
           ${last.notes?`<div class="drow"><span>NOTES</span><span style="max-width:60%;text-align:right">${last.notes}</span></div>`:''}
         </div>
-        <div class="ssub">${appConfig.appsScriptUrl&&isOnline()?'✅ SYNCED TO GOOGLE SHEETS':offlineQ.length?'📦 QUEUED FOR SYNC':'💾 SAVED LOCALLY'}</div>
+        <div class="ssub">${db&&isOnline()?'✅ SYNCED TO FIREBASE':offlineQ.length?'📦 QUEUED FOR SYNC':'💾 SAVED LOCALLY — CONFIGURE FIREBASE IN ADMIN'}</div>
       </div>
       <div class="card" style="border-left:4px solid var(--accent2)">
         <div class="ctitle" style="margin-bottom:12px">MY SHIFT TODAY</div>
@@ -1299,7 +1336,7 @@ function renderReports(){
 
   el.innerHTML=`
     <div class="exprow">
-      <button class="bsm bg" onclick="loadSheetData()">⟳</button>
+      <button class="bsm bg" onclick="loadFirebaseData()">⟳</button>
       <button class="bsm by" onclick="exportPDF()">PDF</button>
       <button class="bsm" style="background:#217346;color:#fff" onclick="exportExcel()">XLS</button>
       <button class="bsm bwa" onclick="generateWhatsAppSummary()">📱 WA</button>
@@ -1380,7 +1417,7 @@ function renderCarBars(filtered,total){
 }
 
 function renderLeaderboard(filtered){
-  if(!filtered.length)return'<div class="empty">NO DATA<br>SYNC FROM SHEET OR LOG TRIPS</div>';
+  if(!filtered.length)return'<div class="empty">NO DATA<br>SYNC FROM FIREBASE OR LOG TRIPS</div>';
   const dm={};filtered.forEach(t=>{const d=t.driver||'?';if(!dm[d])dm[d]={trips:0,revenue:0};dm[d].trips++;dm[d].revenue+=t.amount||0;});
   const dr=Object.entries(dm).sort((a,b)=>b[1].revenue-a[1].revenue);
   const mr=dr[0]?.[1].revenue||1;
@@ -1404,7 +1441,7 @@ function renderLeaderboard(filtered){
 }
 
 function renderPerformance(all){
-  if(!all.length)return'<div class="empty">NO DATA<br>SYNC FROM SHEET OR LOG TRIPS</div>';
+  if(!all.length)return'<div class="empty">NO DATA<br>SYNC FROM FIREBASE OR LOG TRIPS</div>';
   const drivers=[...new Set(all.map(t=>t.driver).filter(Boolean))];
   const allAvgs=drivers.map(d=>{const dt=all.filter(t=>t.driver===d);return dt.length?dt.reduce((s,t)=>s+t.amount,0)/dt.length:0;});
   const maxAvg=Math.max(...allAvgs)||1;
@@ -1603,40 +1640,39 @@ function renderAdmin(){
         </div>
         <div class="divline"></div>
         <div class="csub" style="margin-top:0">// LOCAL DATA</div>
-        <p style="font-size:.74rem;color:var(--muted);margin-bottom:9px">${localTrips.length} trips stored · ${offlineQ.length} queued for sync</p>
-        ${offlineQ.length?`<button class="bsm by" style="width:100%;padding:10px;margin-bottom:8px" onclick="flushQueue()">SYNC ${offlineQ.length} QUEUED TRIPS NOW</button>`:''}
+        <p style="font-size:.74rem;color:var(--muted);margin-bottom:9px">${localTrips.length} trips stored locally · ${offlineQ.length} queued for Firebase sync</p>
+        ${offlineQ.length?`<button class="bsm by" style="width:100%;padding:10px;margin-bottom:8px" onclick="flushQueue()">SYNC ${offlineQ.length} QUEUED TRIPS TO FIREBASE</button>`:''}
         <button class="bout" onclick="if(confirm('Reset all lists to defaults?')){resetToDefaults();}">RESET LISTS TO DEFAULTS</button>
         <button class="bout" onclick="if(confirm('Clear all local trips? This cannot be undone.')){localTrips=[];save('fs_trips',[]);toast('CLEARED');renderAdmin();}">CLEAR LOCAL TRIP DATA</button>
       </div>
     </div>
 
-    <!-- DEVELOPER SETTINGS -->
+    <!-- FIREBASE CONFIG -->
     <div class="asect ${adminTab==='settings'?'active':''}">
       <div class="card">
-        <div class="ctitle">SHEET CONNECTION</div>
-        <div class="csub">// DEVELOPER ACCESS</div>
-        ${appConfig.appsScriptUrl?`<div class="conn-badge"><div class="dg"></div>APPS SCRIPT CONNECTED</div><div class="urlbox">${appConfig.appsScriptUrl}</div>`:''}
-        <div class="irow">
-          <div class="field"><label>Apps Script Web App URL</label><input type="text" id="scrUrl" placeholder="https://script.google.com/macros/s/.../exec" value="${appConfig.appsScriptUrl||''}"></div>
-          <button class="bsm bg" onclick="saveScriptUrl()">SAVE</button>
-        </div>
-        <div class="divline"></div>
-        ${appConfig.sheetCsvUrl?`<div class="conn-badge"><div class="dg"></div>CSV URL SET</div>`:''}
-        <div class="irow">
-          <div class="field"><label>Published CSV URL</label><input type="text" id="csvUrl" value="${appConfig.sheetCsvUrl||''}" placeholder="...pub?output=csv"></div>
-          <button class="bsm bg" onclick="saveCsvUrl()">SAVE</button>
-        </div>
-        <p style="font-size:.68rem;color:var(--muted);margin-top:8px;line-height:1.7">Google Sheets → <strong>File → Share → Publish to web</strong> → Sheet → CSV → Copy URL</p>
+        <div class="ctitle">FIREBASE CONFIG</div>
+        <div class="csub">// CONNECT TO FIREBASE FIRESTORE</div>
+        ${db?'<div class="conn-badge"><div class="dg"></div>FIREBASE CONNECTED</div>':''}
+        <div class="field"><label>API KEY</label>
+          <input type="text" id="fbApiKey" value="${appConfig.apiKey||''}" placeholder="AIzaSy..."></div>
+        <div class="field"><label>AUTH DOMAIN</label>
+          <input type="text" id="fbAuthDomain" value="${appConfig.authDomain||''}" placeholder="your-app.firebaseapp.com"></div>
+        <div class="field"><label>PROJECT ID</label>
+          <input type="text" id="fbProjectId" value="${appConfig.projectId||''}" placeholder="your-project-id"></div>
+        <div class="field"><label>APP ID</label>
+          <input type="text" id="fbAppId" value="${appConfig.appId||''}" placeholder="1:123456:web:abc..."></div>
+        <button class="bb bstart" style="margin-top:4px" onclick="saveFirebaseConfig()">SAVE & CONNECT</button>
+        <button class="bout" onclick="testFirebaseConnection()">TEST CONNECTION</button>
       </div>
       <div class="card">
         <div class="ctitle">SETUP GUIDE</div>
         <div class="steps">
-          <div class="step">Open your Google Sheet → <code>Extensions</code> → <code>Apps Script</code></div>
-          <div class="step">Delete all code → paste the <code>apps-script.js</code> → Save</div>
-          <div class="step"><code>Deploy</code> → <code>New deployment</code> → <code>Web app</code></div>
-          <div class="step">Execute as: <code>Me</code> | Access: <code>Anyone</code> → Deploy → Authorize</div>
-          <div class="step">Copy Web App URL → paste in Apps Script URL above → SAVE</div>
-          <div class="step">In Sheet → <code>File → Share → Publish to web</code> → CSV → Copy → paste in CSV URL → SAVE</div>
+          <div class="step">Go to <code>console.firebase.google.com</code> → Create project → Disable Google Analytics</div>
+          <div class="step">Click <code>Firestore Database</code> → <code>Create database</code> → Start in <strong>test mode</strong> → Choose region</div>
+          <div class="step">Click <code>Project settings</code> (⚙) → <code>Your apps</code> → <code>&lt;/&gt; Web</code> → Register app → Copy the config values above</div>
+          <div class="step">In Firestore → <code>Rules</code> tab → Paste:<br><code>allow read, write: if true;</code> → Publish</div>
+          <div class="step">Paste all 4 config values above → <strong>SAVE & CONNECT</strong></div>
+          <div class="step">Done! All trips from all 50 cars now sync instantly to Firebase. No limits.</div>
         </div>
       </div>
     </div>`;
@@ -1759,8 +1795,24 @@ function saveEditTrip(){
 }
 function deleteTrip(id){if(!confirm('Delete this trip?'))return;localTrips=localTrips.filter(t=>t.id!==id);save('fs_trips',localTrips);toast('DELETED');renderAdmin();}
 
-function saveScriptUrl(){appConfig.appsScriptUrl=(document.getElementById('scrUrl')?.value||'').trim();save('fs_config',appConfig);toast(appConfig.appsScriptUrl?'✅ SAVED':'CLEARED');renderAdmin();}
-function saveCsvUrl(){appConfig.sheetCsvUrl=(document.getElementById('csvUrl')?.value||'').trim();save('fs_config',appConfig);toast(appConfig.sheetCsvUrl?'✅ SAVED':'CLEARED');renderAdmin();}
+function saveFirebaseConfig(){
+  appConfig.apiKey      =(document.getElementById('fbApiKey')?.value||'').trim();
+  appConfig.authDomain  =(document.getElementById('fbAuthDomain')?.value||'').trim();
+  appConfig.projectId   =(document.getElementById('fbProjectId')?.value||'').trim();
+  appConfig.appId       =(document.getElementById('fbAppId')?.value||'').trim();
+  save('fs_config',appConfig);
+  db=null; // force re-init with new config
+  if(appConfig.projectId&&initFirebase()){toast('✅ FIREBASE CONNECTED!');}
+  else{toast(appConfig.projectId?'⚠ CHECK CONFIG VALUES':'CONFIG SAVED — ENTER ALL 4 VALUES');}
+  renderAdmin();
+}
+async function testFirebaseConnection(){
+  if(!initFirebase()){toast('⚠ SAVE CONFIG FIRST');return;}
+  try{
+    await db.collection('_test').limit(1).get();
+    toast('✅ FIREBASE CONNECTION OK!');
+  }catch(e){toast('⚠ CONNECTION FAILED: '+e.message);}
+}
 
 // ══════════════════════════════════════════════
 // INIT
@@ -1769,8 +1821,9 @@ if(tripState.driver)document.getElementById('driverBadge').textContent=tripState
 if(tripState.phase!=='setup'){startSessionTimer();startGpsWatch();}
 updateOfflineBadge();
 startAutoSync();
+initFirebase();  // connect to Firebase on load if config exists
 renderLog();
-if(appConfig.sheetCsvUrl)loadSheetData(true);
+if(appConfig.projectId&&isOnline())loadFirebaseData(true);
 </script>
 </body>
 </html>
