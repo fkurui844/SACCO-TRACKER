@@ -322,6 +322,13 @@ main{padding:13px 13px 74px}
 .listener-status.on{color:#22c55e;border-color:#22c55e;background:rgba(34,197,94,.08)}
 .listener-status.off{color:var(--muted);border-color:var(--border)}
 
+/* DEV ACCESS OVERLAY */
+.dev-pin-overlay{position:fixed;inset:0;background:rgba(0,0,0,.88);z-index:250;display:none;align-items:center;justify-content:center;padding:20px}
+.dev-pin-overlay.open{display:flex;animation:fadeUp .25s ease}
+.dev-pin-box{background:var(--card);border:3px solid var(--red);padding:30px 24px;text-align:center;max-width:320px;width:100%;animation:fadeUp .3s ease}
+.dev-pin-title{font-family:var(--font-d);font-size:1.8rem;color:var(--red);letter-spacing:3px;margin-bottom:5px}
+.dev-pin-sub{font-family:var(--font-m);font-size:.54rem;color:var(--muted);letter-spacing:1px;line-height:1.8;margin-bottom:16px}
+
 /* TARGET ALERT OVERLAY */
 .target-overlay{position:fixed;inset:0;background:rgba(26,122,60,.97);z-index:400;display:none;flex-direction:column;align-items:center;justify-content:center;padding:30px;text-align:center}
 .target-overlay.open{display:flex;animation:fadeUp .4s ease}
@@ -425,6 +432,19 @@ main{padding:13px 13px 74px}
   </div>
 </div>
 
+<!-- DEV ACCESS OVERLAY -->
+<div class="dev-pin-overlay" id="devPinOverlay">
+  <div class="dev-pin-box">
+    <div class="dev-pin-title">🔧 DEV ACCESS</div>
+    <div class="dev-pin-sub">THIS AREA IS RESTRICTED<br>TO AUTHORISED DEVELOPERS ONLY<br><br>ENTER DEVELOPER PIN TO CONTINUE</div>
+    <div id="devPinLockMsg"></div>
+    <input type="password" class="pininput" id="devPinIn" maxlength="6" placeholder="••••"
+      onkeydown="if(event.key==='Enter')checkDevPin()">
+    <button class="bb bend" style="margin-top:10px;margin-bottom:6px" onclick="checkDevPin()">UNLOCK DEV ACCESS</button>
+    <button class="bghost" style="width:100%" onclick="closeDevPinOverlay()">CANCEL</button>
+  </div>
+</div>
+
 <!-- TARGET ALERT OVERLAY -->
 <div class="target-overlay" id="targetOverlay">
   <div class="target-trophy" id="targetTrophy">🏆</div>
@@ -507,6 +527,8 @@ const DEFAULT_STATIONS = [
   {name:'LIMURU',      lat:-1.1095, lng:36.6431},
 ];
 const ADMIN_PIN_KEY     = 'fs_pin';
+const DEV_PIN_KEY       = 'fs_devpin';
+const DEFAULT_DEV_PIN   = '9999';
 const DEFAULT_ADMIN_PIN = '1234';
 const SESSION_TIMEOUT   = 30 * 60;  // 30 min
 const SESSION_WARN_SHOW = 5 * 60;   // show bar at 5 min remaining
@@ -562,6 +584,7 @@ let filterCar='', filterDriver='', filterFrom='', filterTo='';
 let adminTab           = 'shifts';
 let reportTab          = 'overview';
 let adminUnlocked      = false;
+let devUnlocked        = false;
 let timerInterval      = null;
 let syncInterval       = null;
 let syncCountdown      = 300;
@@ -1695,7 +1718,7 @@ function renderAdmin(){
     <div class="card" style="border-left:4px solid var(--accent2);margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div class="ctitle" style="margin:0">ADMIN PANEL</div>
-        <button class="bghost" onclick="adminUnlocked=false;renderAdmin()">🔒 LOCK</button>
+        <button class="bghost" onclick="adminUnlocked=false;devUnlocked=false;adminTab='shifts';renderAdmin()">🔒 LOCK</button>
       </div>
     </div>
     <div class="atabs">
@@ -1704,8 +1727,14 @@ function renderAdmin(){
       <button class="atab ${adminTab==='cars'?'active':''}" onclick="adminTab='cars';renderAdmin()">CARS</button>
       <button class="atab ${adminTab==='stations'?'active':''}" onclick="adminTab='stations';renderAdmin()">STATIONS</button>
       <button class="atab ${adminTab==='trips'?'active':''}" onclick="adminTab='trips';renderAdmin()">TRIPS</button>
-      <button class="atab ${adminTab==='config'?'active':''}" onclick="adminTab='config';renderAdmin()">CONFIG</button>
-      <button class="atab ${adminTab==='settings'?'active':''}" onclick="adminTab='settings';renderAdmin()">⚙ DEV</button>
+      <button class="atab ${adminTab==='config'?'active':''}" onclick="openDevTab('config')"
+        style="${adminTab==='config'?'':''}">
+        CONFIG <span style="font-size:.38rem;opacity:.6">🔒</span>
+      </button>
+      <button class="atab ${adminTab==='settings'?'active':''}" onclick="openDevTab('settings')"
+        style="${adminTab==='settings'?'color:var(--red);border-bottom-color:var(--red)':'color:var(--red);opacity:.7'}">
+        ⚙ DEV <span style="font-size:.38rem;opacity:.6">🔒</span>
+      </button>
     </div>
 
     <!-- SHIFTS -->
@@ -1840,12 +1869,22 @@ function renderAdmin(){
 
     <!-- CONFIG -->
     <div class="asect ${adminTab==='config'?'active':''}">
+      ${!devUnlocked?devLockedHtml('CONFIG'):`
       <div class="card">
-        <div class="ctitle">SYSTEM CONFIG</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div class="ctitle" style="margin:0">SYSTEM CONFIG</div>
+          <button class="bghost" style="color:var(--red);border-color:var(--red)" onclick="lockDev()">🔒 LOCK DEV</button>
+        </div>
         <div class="csub">// CHANGE ADMIN PIN</div>
         <div class="irow">
           <div class="field"><label>New Admin PIN (4-6 digits)</label><input type="password" id="newPin" placeholder="New PIN" maxlength="6"></div>
           <button class="bsm bg" onclick="changePin()">SAVE</button>
+        </div>
+        <div class="divline"></div>
+        <div class="csub" style="margin-top:0">// CHANGE DEV PIN</div>
+        <div class="irow">
+          <div class="field"><label>New Developer PIN (4-6 digits)</label><input type="password" id="newDevPin" placeholder="New Dev PIN" maxlength="6"></div>
+          <button class="bsm br" onclick="changeDevPin()">SAVE</button>
         </div>
         <div class="divline"></div>
         <div class="csub" style="margin-top:0">// SECURITY SETTINGS</div>
@@ -1861,13 +1900,17 @@ function renderAdmin(){
         ${offlineQ.length?`<button class="bsm by" style="width:100%;padding:10px;margin-bottom:8px" onclick="flushQueue()">SYNC ${offlineQ.length} QUEUED TRIPS TO FIREBASE</button>`:''}
         <button class="bout" onclick="if(confirm('Reset all lists to defaults?')){resetToDefaults();}">RESET LISTS TO DEFAULTS</button>
         <button class="bout" onclick="if(confirm('Clear all local trips? This cannot be undone.')){localTrips=[];save('fs_trips',[]);toast('CLEARED');renderAdmin();}">CLEAR LOCAL TRIP DATA</button>
-      </div>
+      </div>`}
     </div>
 
     <!-- FIREBASE CONFIG -->
     <div class="asect ${adminTab==='settings'?'active':''}">
+      ${!devUnlocked?devLockedHtml('DEV'):`
       <div class="card">
-        <div class="ctitle">FIREBASE CONFIG</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div class="ctitle" style="margin:0;color:var(--red)">FIREBASE CONFIG</div>
+          <button class="bghost" style="color:var(--red);border-color:var(--red)" onclick="lockDev()">🔒 LOCK DEV</button>
+        </div>
         <div class="csub">// CONNECT TO FIREBASE FIRESTORE</div>
         ${db?'<div class="conn-badge"><div class="dg"></div>FIREBASE CONNECTED</div>':''}
         <div class="field"><label>API KEY</label>
@@ -1891,9 +1934,10 @@ function renderAdmin(){
           <div class="step">Paste all 4 config values above → <strong>SAVE & CONNECT</strong></div>
           <div class="step">Done! All trips from all 50 cars now sync instantly to Firebase. No limits.</div>
         </div>
-      </div>
+      </div>`}
     </div>`;
 }
+
 
 // ══════════════════════════════════════════════
 // ADMIN ACTIONS
@@ -2223,6 +2267,110 @@ function runReportWA(filtered,label){
   const encoded=encodeURIComponent(msg);
   if(navigator.clipboard){navigator.clipboard.writeText(msg).then(()=>toast('📋 COPIED! OPENING WHATSAPP...')).catch(()=>{});}
   setTimeout(()=>window.open(`https://wa.me/?text=${encoded}`,'_blank'),500);
+}
+
+// ══════════════════════════════════════════════
+// DEV PIN SYSTEM
+// ══════════════════════════════════════════════
+let devPinFailures = 0;
+let devLockedUntil = 0;
+
+function isDevLocked(){ return devLockedUntil > Date.now(); }
+function devLockSecsLeft(){ return Math.ceil((devLockedUntil - Date.now()) / 1000); }
+
+function recordDevFailure(){
+  devPinFailures++;
+  if(devPinFailures >= MAX_PIN_ATTEMPTS){
+    devLockedUntil = Date.now() + PIN_LOCKOUT_SECS * 1000;
+    devPinFailures = 0;
+    toast('🔒 TOO MANY ATTEMPTS — DEV ACCESS LOCKED FOR 5 MINUTES');
+    closeDevPinOverlay();
+    renderAdmin();
+  } else {
+    const left = MAX_PIN_ATTEMPTS - devPinFailures;
+    const lockEl = document.getElementById('devPinLockMsg');
+    if(lockEl) lockEl.innerHTML = `<div class="pin-locked" style="margin-bottom:10px">WRONG PIN — ${left} ATTEMPT${left===1?'':'S'} LEFT</div>`;
+    const inp = document.getElementById('devPinIn');
+    if(inp){ inp.value=''; inp.focus(); inp.style.borderColor='var(--red)'; setTimeout(()=>inp.style.borderColor='',600); }
+  }
+}
+
+function checkDevPin(){
+  if(isDevLocked()){
+    toast(`🔒 DEV ACCESS LOCKED — TRY IN ${devLockSecsLeft()}s`);
+    return;
+  }
+  const pin = (document.getElementById('devPinIn')?.value || '').trim();
+  const correct = localStorage.getItem(DEV_PIN_KEY) || DEFAULT_DEV_PIN;
+  if(pin === correct){
+    devPinFailures = 0;
+    devUnlocked = true;
+    adminTab = pendingDevTab || 'settings';
+    closeDevPinOverlay();
+    renderAdmin();
+    toast('🔧 DEV ACCESS GRANTED');
+  } else {
+    recordDevFailure();
+  }
+}
+
+function openDevTab(tab){
+  if(devUnlocked){
+    adminTab = tab;
+    renderAdmin();
+    return;
+  }
+  // Show the dev PIN overlay, remember which tab was requested
+  pendingDevTab = tab;
+  const lockEl = document.getElementById('devPinLockMsg');
+  if(lockEl) lockEl.innerHTML = '';
+  const inp = document.getElementById('devPinIn');
+  if(inp){ inp.value=''; inp.style.borderColor=''; }
+  if(isDevLocked()){
+    // Show lock message directly without opening overlay
+    toast(`🔒 DEV ACCESS LOCKED — TRY IN ${devLockSecsLeft()}s`);
+    return;
+  }
+  document.getElementById('devPinOverlay').classList.add('open');
+  setTimeout(()=>document.getElementById('devPinIn')?.focus(), 100);
+}
+
+// Store which tab was requested when overlay was opened
+let pendingDevTab = 'settings';
+
+function closeDevPinOverlay(){
+  document.getElementById('devPinOverlay').classList.remove('open');
+}
+
+function lockDev(){
+  devUnlocked = false;
+  adminTab = 'shifts';
+  renderAdmin();
+  toast('🔒 DEV ACCESS LOCKED');
+}
+
+function devLockedHtml(area){
+  if(isDevLocked()){
+    return `<div class="card" style="border:2px solid var(--red);text-align:center;padding:30px 20px">
+      <div style="font-size:2rem;margin-bottom:8px">🔒</div>
+      <div style="font-family:var(--font-d);font-size:1.2rem;color:var(--red);letter-spacing:2px;margin-bottom:6px">DEV ACCESS LOCKED</div>
+      <div style="font-family:var(--font-m);font-size:.56rem;color:var(--muted);letter-spacing:1px;line-height:1.8">TOO MANY FAILED ATTEMPTS<br>TRY AGAIN IN ${devLockSecsLeft()}s</div>
+    </div>`;
+  }
+  return `<div class="card" style="border:2px solid var(--red);text-align:center;padding:30px 20px">
+    <div style="font-size:2rem;margin-bottom:8px">🔧</div>
+    <div style="font-family:var(--font-d);font-size:1.2rem;color:var(--red);letter-spacing:2px;margin-bottom:6px">${area} — DEV ONLY</div>
+    <div style="font-family:var(--font-m);font-size:.56rem;color:var(--muted);letter-spacing:1px;line-height:1.8;margin-bottom:16px">THIS SECTION IS RESTRICTED<br>TO AUTHORISED DEVELOPERS ONLY</div>
+    <button class="bb bend" style="margin:0;max-width:220px" onclick="openDevTab('${area.toLowerCase()==='dev'?'settings':'config'}')">🔧 ENTER DEV PIN</button>
+  </div>`;
+}
+
+function changeDevPin(){
+  const p = (document.getElementById('newDevPin')?.value || '').trim();
+  if(p.length < 4){ toast('DEV PIN MUST BE AT LEAST 4 DIGITS'); return; }
+  localStorage.setItem(DEV_PIN_KEY, p);
+  toast('🔧 DEV PIN UPDATED ✅');
+  document.getElementById('newDevPin').value = '';
 }
 
 // ══════════════════════════════════════════════
