@@ -23,7 +23,7 @@ header{background:var(--accent);padding:14px 18px 10px;position:sticky;top:0;z-i
 .hsub{font-family:var(--font-m);font-size:.52rem;color:rgba(255,255,255,.6);letter-spacing:2px}
 .dbadge{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);padding:4px 10px;font-family:var(--font-m);font-size:.55rem;color:#fff;letter-spacing:1px;cursor:pointer;transition:background .2s}
 .dbadge:hover{background:rgba(255,255,255,.25)}
-.bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:2px solid var(--border);display:grid;grid-template-columns:1fr 1fr 1fr 1fr;z-index:100}
+.bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:2px solid var(--border);display:grid;grid-template-columns:1fr 1fr 1fr;z-index:100}
 .nbtn{padding:10px 4px;text-align:center;cursor:pointer;border:none;background:transparent;transition:background .15s}
 .nbtn.active{background:var(--alight)}
 .nbtn .ni{font-size:1.2rem;display:block;margin-bottom:1px}
@@ -188,7 +188,7 @@ main{padding:14px 14px 76px}
   <div id="page-log" class="page active"></div>
   <div id="page-reports" class="page"></div>
   <div id="page-admin" class="page"></div>
-  <div id="page-settings" class="page"></div>
+
 </main>
 
 <nav class="bnav">
@@ -201,9 +201,7 @@ main{padding:14px 14px 76px}
   <button class="nbtn" id="nav-admin" onclick="switchPage('admin')">
     <span class="ni">👑</span><span class="nl">ADMIN</span>
   </button>
-  <button class="nbtn" id="nav-settings" onclick="switchPage('settings')">
-    <span class="ni">⚙️</span><span class="nl">SETTINGS</span>
-  </button>
+
 </nav>
 
 <div class="toast" id="toast"></div>
@@ -270,7 +268,7 @@ function switchPage(p) {
   if(p==='log') renderLog();
   if(p==='reports') renderReports();
   if(p==='admin') renderAdmin();
-  if(p==='settings') renderSettings();
+
 }
 function goSetup() { tripState.phase='setup'; switchPage('log'); }
 
@@ -683,6 +681,7 @@ function renderAdmin(){
       <button class="atab ${adminTab==='cars'?'active':''}" onclick="adminTab='cars';renderAdmin()">CARS</button>
       <button class="atab ${adminTab==='stations'?'active':''}" onclick="adminTab='stations';renderAdmin()">STATIONS</button>
       <button class="atab ${adminTab==='config'?'active':''}" onclick="adminTab='config';renderAdmin()">CONFIG</button>
+      <button class="atab ${adminTab==='settings'?'active':''}" onclick="adminTab='settings';renderAdmin()">SETTINGS</button>
     </div>
 
     <div id="asect-drivers" class="asect ${adminTab==='drivers'?'active':''}">
@@ -754,6 +753,43 @@ function renderAdmin(){
         <p style="font-size:.75rem;color:var(--muted);margin-bottom:9px">${localTrips.length} trips stored on this device.</p>
         <button class="bout" onclick="if(confirm('Clear all local trip data?')){localTrips=[];save('fs_trips',[]);toast('CLEARED');renderAdmin();}">CLEAR LOCAL TRIP DATA</button>
       </div>
+
+    <div id="asect-settings" class="asect ${adminTab==='settings'?'active':''}">
+      <div class="card">
+        <div class="ctitle">SHEET CONNECTION</div>
+        <div class="csub">// DEVELOPER ONLY — CONNECT TO GOOGLE SHEET</div>
+        <div style="margin-bottom:14px">
+          <div class="stitle2">APPS SCRIPT URL (SEND DATA TO SHEET)</div>
+          ${appConfig.appsScriptUrl?`<div class="conn-badge"><div class="dg"></div>CONNECTED</div><div class="urlbox">${appConfig.appsScriptUrl}</div>`:''}
+          <div class="irow">
+            <div class="field"><label>Web App URL</label><input type="text" id="scrUrl" placeholder="https://script.google.com/macros/s/.../exec" value="${appConfig.appsScriptUrl||''}"></div>
+            <button class="bsm bg" onclick="saveScriptUrl()">SAVE</button>
+          </div>
+        </div>
+        <div class="divline"></div>
+        <div>
+          <div class="stitle2">CSV URL (PULL REPORTS FROM SHEET)</div>
+          ${appConfig.sheetCsvUrl?`<div class="conn-badge"><div class="dg"></div>URL SET</div>`:''}
+          <div class="irow">
+            <div class="field"><label>Published CSV URL</label><input type="text" id="csvUrl" value="${appConfig.sheetCsvUrl||''}" placeholder="...pub?output=csv"></div>
+            <button class="bsm bg" onclick="saveCsvUrl()">SAVE</button>
+          </div>
+          <p style="font-size:.7rem;color:var(--muted);margin-top:8px;line-height:1.7">In Google Sheets → <strong>File → Share → Publish to web</strong> → Select sheet → Choose <strong>CSV</strong> → Copy URL → Paste above.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="ctitle">SETUP GUIDE</div>
+        <div class="steps">
+          <div class="step">Open your Google Sheet → click <code>Extensions</code> → <code>Apps Script</code></div>
+          <div class="step">Delete all code → paste the <strong>apps-script.js</strong> code → Save (💾)</div>
+          <div class="step">Click <code>Deploy</code> → <code>New deployment</code> → Select <code>Web app</code></div>
+          <div class="step">Execute as: <code>Me</code> | Who has access: <code>Anyone</code> → Deploy → Authorize</div>
+          <div class="step">Copy the Web App URL → paste in Apps Script URL above → SAVE</div>
+          <div class="step">In Google Sheets → <code>File → Share → Publish to web</code> → CSV → Copy URL → paste in CSV URL → SAVE</div>
+        </div>
+      </div>
+    </div>
+
     </div>`;
 }
 
@@ -812,6 +848,8 @@ function resetToDefaults(){
 // RENDER SETTINGS
 // ════════════════════════════════════════════
 function renderSettings(){
+  // Settings are now rendered inside Admin panel
+  return;
   const el=document.getElementById('page-settings');
   el.innerHTML=`
     <div class="card">
