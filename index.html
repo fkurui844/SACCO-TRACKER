@@ -676,25 +676,51 @@ function findNearest(lat,lng){
 
 function startGpsWatch(){
   stopGpsWatch();
-  if(!navigator.geolocation){tripState.gpsStatus='unsupported';renderLog();return;}
+  if(!navigator.geolocation){tripState.gpsStatus='unsupported';return;}
   tripState.gpsStatus='detecting';
   tripState.gpsWatchId=navigator.geolocation.watchPosition(
     pos=>{
+      const prevNearest=tripState.nearestStation?.name;
       tripState.gpsLat=pos.coords.latitude;
       tripState.gpsLng=pos.coords.longitude;
       tripState.gpsStatus='ok';
-      // Speed in m/s — may be null on some devices
       tripState.speed=(pos.coords.speed!=null&&pos.coords.speed>=0)?pos.coords.speed:null;
       tripState.nearestStation=findNearest(tripState.gpsLat,tripState.gpsLng);
-      // Passive: if we're in idle and nearest station found, auto-suggest
+
+      // Auto-suggest nearest station on idle (only once, when first found)
       if(tripState.phase==='idle'&&tripState.nearestStation&&!tripState.fromStation){
         tripState.fromStation=STATIONS.find(s=>s.name===tripState.nearestStation.name)||null;
+        renderLog(); // full re-render only when station changes
+        return;
       }
-      renderLog();
+      // Auto-suggest destination on arrival (only once)
+      if(tripState.phase==='arrived'&&tripState.nearestStation&&!tripState.toStation&&tripState.nearestStation.name!==tripState.fromStation?.name){
+        tripState.toStation=STATIONS.find(s=>s.name===tripState.nearestStation.name)||null;
+        renderLog(); // full re-render only when station changes
+        return;
+      }
+
+      // Otherwise just patch the DOM elements in-place — no full re-render
+      updateGpsElements();
     },
-    err=>{tripState.gpsStatus='error';tripState.speed=null;renderLog();},
+    err=>{tripState.gpsStatus='error';tripState.speed=null;updateGpsElements();},
     {enableHighAccuracy:true,maximumAge:5000,timeout:15000}
   );
+}
+
+// Patch only the GPS bar and speed badge without touching the rest of the page
+function updateGpsElements(){
+  const gbarEl=document.getElementById('gpsBar');
+  if(gbarEl)gbarEl.outerHTML=gpsBarHtml().replace('<div','<div id="gpsBar"');
+  // Re-insert with id so we can find it next time
+  const gbarNew=document.querySelector('.gbar');
+  if(gbarNew&&!gbarNew.id)gbarNew.id='gpsBar';
+
+  const speedEl=document.getElementById('speedBadge');
+  if(speedEl){
+    const html=speedBadgeHtml();
+    speedEl.outerHTML=html?html.replace('<div','<div id="speedBadge"'):'<div id="speedBadge" style="display:none"></div>';
+  }
 }
 
 function stopGpsWatch(){
@@ -707,19 +733,19 @@ function stopGpsWatch(){
 
 function gpsBarHtml(){
   if(tripState.gpsStatus==='detecting')
-    return`<div class="gbar detecting"><span>📡</span>DETECTING LOCATION...</div>`;
+    return`<div id="gpsBar" class="gbar detecting"><span>📡</span>DETECTING LOCATION...</div>`;
   if(tripState.gpsStatus==='ok'&&tripState.nearestStation)
-    return`<div class="gbar"><span>📍</span>NEAREST: ${tripState.nearestStation.name} (${tripState.nearestStation.dist.toFixed(1)} KM)</div>`;
+    return`<div id="gpsBar" class="gbar"><span>📍</span>NEAREST: ${tripState.nearestStation.name} (${tripState.nearestStation.dist.toFixed(1)} KM)</div>`;
   if(tripState.gpsStatus==='error')
-    return`<div class="gbar err"><span>⚠</span>GPS UNAVAILABLE</div>`;
-  return`<div class="gbar detecting"><span>📡</span>WAITING FOR GPS...</div>`;
+    return`<div id="gpsBar" class="gbar err"><span>⚠</span>GPS UNAVAILABLE</div>`;
+  return`<div id="gpsBar" class="gbar detecting"><span>📡</span>WAITING FOR GPS...</div>`;
 }
 
 function speedBadgeHtml(){
-  if(tripState.speed===null)return'';
+  if(tripState.speed===null)return'<div id="speedBadge" style="display:none"></div>';
   const kmh=(tripState.speed*3.6).toFixed(0);
   const moving=tripState.speed>2;
-  return`<div class="speed-badge">
+  return`<div id="speedBadge" class="speed-badge">
     <div class="speed-dot ${moving?'moving':''}"></div>
     ${moving?`MOVING — ${kmh} KM/H`:`STATIONARY — ${kmh} KM/H`}
   </div>`;
@@ -1180,10 +1206,6 @@ function renderLog(){
         </div>
         <button class="bb bend" onclick="reviewTrip()" ${!tripState.toStation?'disabled':''}>REVIEW & CONFIRM →</button>
       </div>`;
-    // Auto-suggest nearest on arrival
-    if(!tripState.toStation&&tripState.nearestStation&&tripState.nearestStation.name!==tripState.fromStation.name){
-      setTimeout(()=>selTo(tripState.nearestStation.name),150);
-    }
     return;
   }
 
