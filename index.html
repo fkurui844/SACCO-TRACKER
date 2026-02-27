@@ -687,13 +687,7 @@ function startGpsWatch(){
       tripState.speed=(pos.coords.speed!=null&&pos.coords.speed>=0)?pos.coords.speed:null;
       tripState.nearestStation=findNearest(tripState.gpsLat,tripState.gpsLng);
 
-      // Auto-suggest nearest station on idle (only once, when first found)
-      if(tripState.phase==='idle'&&tripState.nearestStation&&!tripState.fromStation){
-        tripState.fromStation=STATIONS.find(s=>s.name===tripState.nearestStation.name)||null;
-        renderLog(); // full re-render only when station changes
-        return;
-      }
-      // Otherwise just patch the DOM elements in-place — no full re-render
+      // Driver picks stations manually — GPS is reference only
       updateGpsElements();
     },
     err=>{tripState.gpsStatus='error';tripState.speed=null;updateGpsElements();},
@@ -835,14 +829,14 @@ function selTo(n){
   renderLog();
 }
 
-function stationGridHtml(selected, disabledName=null){
+function stationGridHtml(selected, disabledName=null, mode='from'){
   return STATIONS.map(s=>{
     const d=tripState.gpsLat?hav(tripState.gpsLat,tripState.gpsLng,s.lat,s.lng):null;
     const nearest=tripState.nearestStation?.name===s.name;
     const isSel=selected===s.name;
     const isDis=s.name===disabledName;
     return`<div class="sbtn ${isSel?'sel':''} ${isDis?'dis':''} ${nearest&&!isSel?'nearest':''}"
-      onclick="${isDis?'':`sel${selected===null?'From':'To'}('${s.name.replace(/'/g,"\\'")}')` }"
+      onclick="${isDis?'':`sel${mode==='from'?'From':'To'}('${s.name.replace(/'/g,"\\'")}')` }"
       title="${nearest?'Nearest to you':''}">
       ${s.name}${nearest&&!isSel?' 📍':''}
       ${d!==null?`<span class="dist">${d.toFixed(1)} km</span>`:''}
@@ -869,21 +863,12 @@ function arrive(){
   tripState.phase='arrived';
   tripState.tripEnd=Date.now();
   clearInterval(timerInterval);
-  // Auto-capture GPS nearest station as toStation
-  if(tripState.nearestStation&&tripState.nearestStation.name!==tripState.fromStation?.name){
-    tripState.toStation=STATIONS.find(s=>s.name===tripState.nearestStation.name)||null;
-  } else {
-    tripState.toStation=null;
-  }
-  tripState.showOverride=false;
+  tripState.toStation=null;
   renderLog();
-  toast(tripState.toStation?'DESTINATION CAPTURED: '+tripState.toStation.name:'ARRIVED — SELECT DESTINATION');
+  toast('ARRIVED — SELECT YOUR DESTINATION');
 }
 
-function toggleOverride(){
-  tripState.showOverride=!tripState.showOverride;
-  renderLog();
-}
+
 
 function reviewTrip(){
   const amt=parseFloat(document.getElementById('amtIn')?.value||'0');
@@ -1154,13 +1139,7 @@ function renderLog(){
         ${gpsBarHtml()}
         ${speedBadgeHtml()}
         <div class="field"><label>FROM STATION</label></div>
-        ${tripState.fromStation
-          ? `<div style="background:var(--alight);border:2px solid var(--accent);padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
-              <span style="font-family:var(--font-m);font-size:.8rem;font-weight:700;color:var(--accent);letter-spacing:1px">${tripState.fromStation.name}</span>
-              <span style="font-family:var(--font-m);font-size:.46rem;color:var(--muted);cursor:pointer;border:1px solid var(--border);padding:3px 7px" onclick="tripState.fromStation=null;renderLog()">CHANGE</span>
-            </div>`
-          : `<div class="sgrid">${stationGridHtml(null)}</div>`
-        }
+        <div class="sgrid">${stationGridHtml(tripState.fromStation?.name||null, null, 'from')}</div>
         <button class="bb bstart" onclick="startTrip()" ${!tripState.fromStation?'disabled':''}>🚌 START TRIP</button>
         <button class="bout" onclick="goSetup()">CHANGE DRIVER / CAR</button>
       </div>
@@ -1206,13 +1185,7 @@ function renderLog(){
           <div class="rs"><div class="rl">TO</div><div class="rn">${tripState.toStation?tripState.toStation.name:'???'}</div></div>
         </div>
         <div class="field"><label>TO STATION</label></div>
-        ${tripState.toStation&&!tripState.showOverride
-          ? `<div style="background:var(--alight);border:2px solid var(--accent);padding:12px 14px;margin-bottom:12px;display:flex;align-items:center;justify-content:space-between">
-              <span style="font-family:var(--font-m);font-size:.8rem;font-weight:700;color:var(--accent);letter-spacing:1px">${tripState.toStation.name}</span>
-              <span style="font-family:var(--font-m);font-size:.46rem;color:var(--muted);cursor:pointer;border:1px solid var(--border);padding:3px 7px" onclick="toggleOverride()">WRONG?</span>
-            </div>`
-          : `<div class="sgrid">${stationGridHtml(tripState.toStation?.name||null, tripState.fromStation.name)}</div>`
-        }
+        <div class="sgrid">${stationGridHtml(tripState.toStation?.name||null, tripState.fromStation.name, 'to')}</div>
         <div class="field"><label>AMOUNT COLLECTED IN KES</label></div>
         <div class="awrap">
           <span class="apfx">KES</span>
