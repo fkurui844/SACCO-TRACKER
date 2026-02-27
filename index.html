@@ -1,177 +1,294 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>FELISHA SACCO — Trip Logger</title>
+<title>FELISHA SACCO</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#f5f7f5;--card:#fff;--border:#dde8dd;
+  --bg:#f5f7f5;--card:#fff;--surface:#eef2ee;--border:#dde8dd;
   --accent:#1a7a3c;--alight:#e8f5ed;--accent2:#f0a500;
   --red:#e53935;--rlight:#fdecea;--text:#1a2e1a;--muted:#6a8a6a;
+  --shadow:0 2px 16px rgba(26,122,60,.10);--shlg:0 8px 32px rgba(26,122,60,.15);
   --font-d:'Bebas Neue',sans-serif;--font-m:'Space Mono',monospace;--font-b:'DM Sans',sans-serif;
-  --sh:0 2px 16px rgba(26,122,60,.10);--shlg:0 8px 32px rgba(26,122,60,.15);
 }
-body{background:var(--bg);color:var(--text);font-family:var(--font-b);min-height:100vh;max-width:480px;margin:0 auto}
-header{background:var(--accent);padding:14px 18px 10px;position:sticky;top:0;z-index:100}
+[data-theme="dark"]{
+  --bg:#0d1410;--card:#141f18;--surface:#1a2820;--border:#2a3e2e;
+  --accent:#22c55e;--alight:#0d2a1a;--accent2:#f0a500;
+  --red:#ef4444;--rlight:#2a0f0f;--text:#e0f0e4;--muted:#5a8a6a;
+  --shadow:0 2px 16px rgba(0,0,0,.4);--shlg:0 8px 32px rgba(0,0,0,.5);
+}
+body{background:var(--bg);color:var(--text);font-family:var(--font-b);min-height:100vh;max-width:480px;margin:0 auto;transition:background .3s,color .3s}
+
+/* HEADER */
+header{background:var(--accent);padding:13px 16px 10px;position:sticky;top:0;z-index:100}
 .hrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px}
 .logo{font-family:var(--font-d);font-size:1.6rem;letter-spacing:3px;color:#fff}
 .logo span{color:var(--accent2)}
-.hsub{font-family:var(--font-m);font-size:.52rem;color:rgba(255,255,255,.6);letter-spacing:2px}
-.dbadge{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);padding:4px 10px;font-family:var(--font-m);font-size:.55rem;color:#fff;letter-spacing:1px;cursor:pointer;transition:background .2s}
+.hright{display:flex;align-items:center;gap:7px}
+.hsub{font-family:var(--font-m);font-size:.5rem;color:rgba(255,255,255,.6);letter-spacing:2px;display:flex;align-items:center;gap:10px}
+.dbadge{background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.2);padding:4px 9px;font-family:var(--font-m);font-size:.52rem;color:#fff;letter-spacing:1px;cursor:pointer;transition:background .2s;white-space:nowrap}
 .dbadge:hover{background:rgba(255,255,255,.25)}
-.bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:#fff;border-top:2px solid var(--border);display:grid;grid-template-columns:1fr 1fr 1fr;z-index:100}
-.nbtn{padding:10px 4px;text-align:center;cursor:pointer;border:none;background:transparent;transition:background .15s}
+.hico{background:rgba(255,255,255,.15);border:none;color:#fff;width:28px;height:28px;cursor:pointer;font-size:.85rem;display:flex;align-items:center;justify-content:center;transition:background .2s;flex-shrink:0}
+.hico:hover{background:rgba(255,255,255,.3)}
+.offline-badge{background:#ef4444;color:#fff;font-family:var(--font-m);font-size:.46rem;padding:2px 6px;letter-spacing:1px;display:none}
+.offline-badge.show{display:inline-block}
+.sync-timer{font-family:var(--font-m);font-size:.46rem;color:rgba(255,255,255,.55);letter-spacing:1px;white-space:nowrap}
+.session-bar{font-family:var(--font-m);font-size:.46rem;color:rgba(255,220,100,.9);letter-spacing:1px;white-space:nowrap}
+.session-bar.warn{color:#ff6b6b;animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* NAV */
+.bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--card);border-top:2px solid var(--border);display:grid;grid-template-columns:1fr 1fr 1fr;z-index:100;transition:background .3s}
+.nbtn{padding:9px 4px;text-align:center;cursor:pointer;border:none;background:transparent;transition:background .15s}
 .nbtn.active{background:var(--alight)}
-.nbtn .ni{font-size:1.2rem;display:block;margin-bottom:1px}
-.nbtn .nl{font-family:var(--font-m);font-size:.48rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+.nbtn .ni{font-size:1.15rem;display:block;margin-bottom:1px}
+.nbtn .nl{font-family:var(--font-m);font-size:.46rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
 .nbtn.active .nl{color:var(--accent)}
-main{padding:14px 14px 76px}
+
+main{padding:13px 13px 74px}
 .page{display:none}.page.active{display:block}
 
 /* CARD */
-.card{background:var(--card);border:1px solid var(--border);padding:18px;margin-bottom:14px;box-shadow:var(--sh);animation:fadeUp .3s ease}
-.ctitle{font-family:var(--font-d);font-size:1.25rem;color:var(--accent);letter-spacing:2px;margin-bottom:5px}
-.csub{font-family:var(--font-m);font-size:.55rem;color:var(--muted);letter-spacing:1px;margin-bottom:14px}
+.card{background:var(--card);border:1px solid var(--border);padding:16px;margin-bottom:12px;box-shadow:var(--shadow);animation:fadeUp .3s ease;transition:background .3s,border-color .3s}
+.ctitle{font-family:var(--font-d);font-size:1.2rem;color:var(--accent);letter-spacing:2px;margin-bottom:4px}
+.csub{font-family:var(--font-m);font-size:.52rem;color:var(--muted);letter-spacing:1px;margin-bottom:13px}
 
 /* FIELD */
-.field{margin-bottom:11px}
-.field label{display:block;font-family:var(--font-m);font-size:.54rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px}
-.field select,.field input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;font-family:var(--font-b);font-size:.88rem;outline:none;transition:border-color .2s;appearance:none}
-.field select:focus,.field input:focus{border-color:var(--accent)}
+.field{margin-bottom:10px}
+.field label{display:block;font-family:var(--font-m);font-size:.5rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px}
+.field select,.field input,.field textarea{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 11px;font-family:var(--font-b);font-size:.86rem;outline:none;transition:border-color .2s;appearance:none}
+.field textarea{resize:vertical;min-height:66px;font-size:.82rem}
+.field select:focus,.field input:focus,.field textarea:focus{border-color:var(--accent)}
 
 /* STATION GRID */
 .sgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px}
-.sbtn{background:var(--bg);border:2px solid var(--border);padding:11px 8px;text-align:center;cursor:pointer;transition:all .2s;font-family:var(--font-b);font-size:.76rem;color:var(--text);font-weight:500}
+.sbtn{background:var(--bg);border:2px solid var(--border);padding:10px 7px;text-align:center;cursor:pointer;transition:all .2s;font-family:var(--font-b);font-size:.72rem;color:var(--text);font-weight:500}
 .sbtn:hover{border-color:var(--accent);color:var(--accent);background:var(--alight)}
 .sbtn.sel{border-color:var(--accent);background:var(--accent);color:#fff}
-.sbtn.dis{opacity:.25;cursor:not-allowed;pointer-events:none}
-.sbtn .dist{display:block;font-family:var(--font-m);font-size:.48rem;opacity:.7;margin-top:2px}
+.sbtn.dis{opacity:.22;cursor:not-allowed;pointer-events:none}
+.sbtn .dist{display:block;font-family:var(--font-m);font-size:.44rem;opacity:.7;margin-top:2px}
 
-/* GPS */
-.gbar{display:flex;align-items:center;gap:7px;padding:8px 11px;background:var(--alight);border:1px solid var(--border);margin-bottom:12px;font-family:var(--font-m);font-size:.55rem;color:var(--accent);letter-spacing:1px}
+/* ROUTE CARDS */
+.rcards{display:flex;flex-direction:column;gap:7px;margin-bottom:12px}
+.rcard{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;background:var(--bg);border:2px solid var(--border);cursor:pointer;transition:all .2s}
+.rcard:hover{border-color:var(--accent);background:var(--alight)}
+.rcard.sel{border-color:var(--accent);background:var(--accent);color:#fff}
+.rcard.sel .rc-sub{color:rgba(255,255,255,.7)}
+.rc-route{font-family:var(--font-m);font-size:.72rem;font-weight:700;letter-spacing:1px}
+.rc-sub{font-family:var(--font-m);font-size:.48rem;color:var(--muted);letter-spacing:1px;margin-top:2px}
+.rc-arr{font-size:1.4rem;color:var(--accent)}
+.rcard.sel .rc-arr{color:#fff}
+
+/* GPS BAR */
+.gbar{display:flex;align-items:center;gap:7px;padding:8px 10px;background:var(--alight);border:1px solid var(--border);margin-bottom:11px;font-family:var(--font-m);font-size:.52rem;color:var(--accent);letter-spacing:1px}
 .gbar.err{background:var(--rlight);border-color:var(--red);color:var(--red)}
 
-/* ROUTE */
+/* ROUTE DISPLAY */
 .rdisp{display:flex;align-items:center;gap:10px;padding:12px;background:var(--alight);border:1px solid var(--border);margin-bottom:12px}
 .rs{flex:1;text-align:center}
-.rs .rn{font-family:var(--font-m);font-size:.7rem;font-weight:700;color:var(--accent);letter-spacing:1px}
-.rs .rl{font-family:var(--font-m);font-size:.48rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px}
+.rs .rn{font-family:var(--font-m);font-size:.66rem;font-weight:700;color:var(--accent);letter-spacing:1px}
+.rs .rl{font-family:var(--font-m);font-size:.44rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px}
 .rarr{font-size:1.3rem;color:var(--accent)}
 
 /* TIMER */
-.tdisp{text-align:center;padding:13px;background:var(--text);color:#fff;margin-bottom:12px}
-.tl{font-family:var(--font-m);font-size:.5rem;letter-spacing:2px;color:rgba(255,255,255,.5);text-transform:uppercase;margin-bottom:4px}
+.tdisp{text-align:center;padding:13px;background:var(--text);color:var(--bg);margin-bottom:12px;transition:background .3s}
+.tl{font-family:var(--font-m);font-size:.48rem;letter-spacing:2px;color:rgba(128,200,128,.7);text-transform:uppercase;margin-bottom:3px}
 .tv{font-family:var(--font-d);font-size:2.5rem;letter-spacing:3px;color:#22c55e}
 
 /* AMOUNT */
 .awrap{position:relative;margin-bottom:12px}
-.apfx{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-family:var(--font-m);font-size:.75rem;color:var(--muted);font-weight:700}
-.ainput{width:100%;background:var(--bg);border:2px solid var(--border);color:var(--text);padding:12px 12px 12px 50px;font-family:var(--font-m);font-size:1.1rem;font-weight:700;outline:none;transition:border-color .2s;letter-spacing:1px}
+.apfx{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-family:var(--font-m);font-size:.72rem;color:var(--muted);font-weight:700}
+.ainput{width:100%;background:var(--bg);border:2px solid var(--border);color:var(--text);padding:12px 12px 12px 48px;font-family:var(--font-m);font-size:1.1rem;font-weight:700;outline:none;transition:border-color .2s;letter-spacing:1px}
 .ainput:focus{border-color:var(--accent)}
 
-/* LOCKED */
-.lock{padding:16px;background:#f8f8f8;border:2px dashed var(--border);text-align:center;margin-bottom:12px}
-.lico{font-size:1.6rem;margin-bottom:5px;opacity:.3}
-.ltxt{font-family:var(--font-m);font-size:.58rem;color:var(--muted);letter-spacing:1px;line-height:1.8;text-transform:uppercase}
+/* LOCK */
+.lock{padding:15px;background:var(--surface);border:2px dashed var(--border);text-align:center;margin-bottom:12px}
+.lico{font-size:1.6rem;margin-bottom:4px;opacity:.3}
+.ltxt{font-family:var(--font-m);font-size:.54rem;color:var(--muted);letter-spacing:1px;line-height:1.8;text-transform:uppercase}
+
+/* CONFIRM CARD */
+.confirm-card{background:var(--surface);border:2px solid var(--accent);padding:18px;margin-bottom:14px;animation:fadeUp .3s ease}
+.confirm-title{font-family:var(--font-d);font-size:1.6rem;color:var(--accent);letter-spacing:3px;text-align:center;margin-bottom:16px}
+.confirm-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
+.confirm-row:last-child{border-bottom:none}
+.confirm-label{font-family:var(--font-m);font-size:.52rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase}
+.confirm-val{font-family:var(--font-m);font-size:.72rem;color:var(--text);font-weight:700;text-align:right;max-width:60%}
+.confirm-amount{font-family:var(--font-d);font-size:2rem;color:var(--accent);letter-spacing:2px}
+.confirm-warn{background:rgba(240,165,0,.12);border:1px solid var(--accent2);padding:9px 12px;font-family:var(--font-m);font-size:.56rem;color:var(--accent2);letter-spacing:1px;margin-bottom:12px;text-align:center}
+
+/* SHIFT BADGE */
+.shift-open{background:#22c55e;color:#fff;font-family:var(--font-m);font-size:.5rem;padding:2px 8px;letter-spacing:1px;display:inline-block}
+.shift-closed{background:var(--red);color:#fff;font-family:var(--font-m);font-size:.5rem;padding:2px 8px;letter-spacing:1px;display:inline-block}
+.shift-block{background:var(--rlight);border:2px solid var(--red);padding:20px;text-align:center;margin-bottom:12px}
+.shift-block-title{font-family:var(--font-d);font-size:1.4rem;color:var(--red);letter-spacing:2px;margin-bottom:6px}
+.shift-block-sub{font-family:var(--font-m);font-size:.58rem;color:var(--muted);letter-spacing:1px;line-height:1.8}
 
 /* BUTTONS */
 .bb{width:100%;padding:13px;font-family:var(--font-d);font-size:1.1rem;letter-spacing:3px;cursor:pointer;border:none;transition:all .2s;margin-bottom:7px}
 .bstart{background:var(--accent);color:#fff}.bstart:hover{background:#156632}.bstart:disabled{background:var(--muted);cursor:not-allowed}
 .barrive{background:var(--accent2);color:#fff}.barrive:hover{background:#d4920a}
 .bend{background:var(--red);color:#fff}.bend:hover{background:#c0392b}.bend:disabled{background:var(--muted);cursor:not-allowed}
-.bout{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:var(--font-m);font-size:.62rem;letter-spacing:1px;padding:9px;width:100%;cursor:pointer;margin-bottom:7px}
+.bconfirm{background:#22c55e;color:#fff}.bconfirm:hover{background:#16a34a}
+.bout{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:var(--font-m);font-size:.6rem;letter-spacing:1px;padding:9px;width:100%;cursor:pointer;margin-bottom:7px;transition:all .2s}
 .bout:hover{border-color:var(--red);color:var(--red)}
-.bsm{padding:7px 14px;font-family:var(--font-m);font-size:.58rem;letter-spacing:1px;cursor:pointer;border:none;transition:all .2s;border-radius:0}
-.bg{background:var(--accent);color:#fff}.by{background:var(--accent2);color:#fff}.br{background:var(--red);color:#fff}
-.bghost{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:var(--font-m);font-size:.58rem;padding:7px 14px;cursor:pointer}
+.bsm{padding:7px 12px;font-family:var(--font-m);font-size:.54rem;letter-spacing:1px;cursor:pointer;border:none;transition:all .2s}
+.bg{background:var(--accent);color:#fff}.by{background:var(--accent2);color:#fff}.br{background:var(--red);color:#fff}.bgray{background:var(--muted);color:#fff}
+.bwa{background:#25D366;color:#fff}
+.bghost{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:var(--font-m);font-size:.54rem;padding:7px 12px;cursor:pointer;transition:all .2s}
 .bghost:hover{border-color:var(--accent);color:var(--accent)}
 
 /* SUCCESS */
-.scard{background:var(--accent);color:#fff;padding:22px 18px;text-align:center;margin-bottom:14px;box-shadow:var(--shlg);animation:fadeUp .4s ease}
+.scard{background:var(--accent);color:#fff;padding:20px 16px;text-align:center;margin-bottom:12px;box-shadow:var(--shlg);animation:fadeUp .4s ease}
 .sico{font-size:2.2rem;margin-bottom:8px}
 .stitle{font-family:var(--font-d);font-size:1.7rem;letter-spacing:3px;margin-bottom:5px}
-.ssub{font-family:var(--font-m);font-size:.58rem;opacity:.8;letter-spacing:1px;line-height:1.8}
+.ssub{font-family:var(--font-m);font-size:.54rem;opacity:.8;letter-spacing:1px;line-height:1.8}
 .sdetails{background:rgba(255,255,255,.15);padding:11px;margin:12px 0}
-.drow{display:flex;justify-content:space-between;font-family:var(--font-m);font-size:.6rem;margin-bottom:4px}
+.drow{display:flex;justify-content:space-between;font-family:var(--font-m);font-size:.56rem;margin-bottom:4px}
 .drow:last-child{margin-bottom:0}
 
 /* HISTORY */
 .hsect{margin-top:6px}
-.stitle2{font-family:var(--font-m);font-size:.55rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:9px;padding-bottom:6px;border-bottom:1px solid var(--border)}
-.hitem{background:var(--card);border:1px solid var(--border);padding:11px 13px;margin-bottom:7px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
+.stitle2{font-family:var(--font-m);font-size:.52rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--border)}
+.hitem{background:var(--card);border:1px solid var(--border);padding:10px 12px;margin-bottom:7px;box-shadow:0 1px 4px rgba(0,0,0,.04);transition:background .3s}
 .htop{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px}
-.hroute{font-family:var(--font-m);font-size:.68rem;font-weight:700;color:var(--accent);letter-spacing:1px}
-.hamt{font-family:var(--font-m);font-size:.65rem;color:#22c55e;font-weight:700}
-.hbot{display:flex;justify-content:space-between;font-size:.64rem;color:var(--muted)}
-.htime{font-family:var(--font-m);font-size:.52rem}
+.hroute{font-family:var(--font-m);font-size:.64rem;font-weight:700;color:var(--accent);letter-spacing:1px}
+.hamt{font-family:var(--font-m);font-size:.61rem;color:#22c55e;font-weight:700}
+.hbot{display:flex;justify-content:space-between;font-size:.62rem;color:var(--muted)}
+.htime{font-family:var(--font-m);font-size:.5rem}
+
+/* DAILY SUMMARY CARD */
+.sumcard{background:var(--surface);border:1px solid var(--border);padding:14px;margin-bottom:12px}
+.sumrow{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)}
+.sumrow:last-child{border-bottom:none}
+.sumlbl{font-family:var(--font-m);font-size:.54rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
+.sumval{font-family:var(--font-d);font-size:1.3rem;color:var(--accent)}
 
 /* REPORTS */
-.sgrid2{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px}
-.sbox{background:var(--card);border:1px solid var(--border);padding:14px;box-shadow:var(--sh)}
-.sbox .sl{font-family:var(--font-m);font-size:.5rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:5px}
-.sbox .sv{font-family:var(--font-d);font-size:1.7rem;color:var(--text);line-height:1}
+.sgrid2{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px}
+.sbox{background:var(--card);border:1px solid var(--border);padding:13px;box-shadow:var(--shadow);transition:background .3s}
+.sbox .sl{font-family:var(--font-m);font-size:.46rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px}
+.sbox .sv{font-family:var(--font-d);font-size:1.6rem;color:var(--text);line-height:1}
 .sv.green{color:var(--accent)}.sv.yellow{color:var(--accent2)}
-.fchips{display:flex;gap:5px;margin-bottom:12px;flex-wrap:wrap}
-.fchip{background:var(--bg);border:1px solid var(--border);padding:4px 10px;font-family:var(--font-m);font-size:.52rem;letter-spacing:1px;cursor:pointer;color:var(--muted);transition:all .15s;text-transform:uppercase}
+.fchips{display:flex;gap:5px;margin-bottom:10px;flex-wrap:wrap}
+.fchip{background:var(--bg);border:1px solid var(--border);padding:4px 9px;font-family:var(--font-m);font-size:.48rem;letter-spacing:1px;cursor:pointer;color:var(--muted);transition:all .15s;text-transform:uppercase}
 .fchip.active{background:var(--accent);border-color:var(--accent);color:#fff}
-.rtable{background:var(--card);border:1px solid var(--border);overflow:hidden;margin-bottom:12px}
-.rth{display:grid;grid-template-columns:1fr 1fr 55px 75px;padding:7px 11px;background:var(--accent);font-family:var(--font-m);font-size:.48rem;color:#fff;letter-spacing:1px;text-transform:uppercase;gap:5px}
-.rtr{display:grid;grid-template-columns:1fr 1fr 55px 75px;padding:9px 11px;border-bottom:1px solid var(--border);font-size:.7rem;gap:5px;align-items:center;transition:background .1s}
+.rtable{background:var(--card);border:1px solid var(--border);overflow:hidden;margin-bottom:10px;transition:background .3s}
+.rth{display:grid;grid-template-columns:1fr 1fr 55px 72px;padding:7px 10px;background:var(--accent);font-family:var(--font-m);font-size:.44rem;color:#fff;letter-spacing:1px;text-transform:uppercase;gap:4px}
+.rtr{display:grid;grid-template-columns:1fr 1fr 55px 72px;padding:9px 10px;border-bottom:1px solid var(--border);font-size:.66rem;gap:4px;align-items:center;transition:background .1s}
 .rtr:hover{background:var(--alight)}.rtr:last-child{border-bottom:none}
-.trroute{font-family:var(--font-m);font-size:.57rem;color:var(--accent);font-weight:700}
-.trdrv{font-size:.66rem;color:var(--muted)}
-.trtm{font-family:var(--font-m);font-size:.52rem;color:var(--muted)}
-.tramt{font-family:var(--font-m);font-size:.62rem;color:#22c55e;font-weight:700;text-align:right}
-.exprow{display:flex;gap:7px;margin-bottom:12px}
-.exprow button{flex:1}
+.trroute{font-family:var(--font-m);font-size:.53rem;color:var(--accent);font-weight:700}
+.tramt{font-family:var(--font-m);font-size:.58rem;color:#22c55e;font-weight:700;text-align:right}
+.exprow{display:flex;gap:6px;margin-bottom:11px;flex-wrap:wrap}
+.exprow button{flex:1;min-width:55px}
+
+/* REPORT TABS */
+.rtabs{display:flex;gap:0;margin-bottom:12px;border-bottom:2px solid var(--border);overflow-x:auto}
+.rtab{font-family:var(--font-m);font-size:.5rem;letter-spacing:1px;padding:8px 12px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;background:transparent;border-top:none;border-left:none;border-right:none;transition:all .2s;text-transform:uppercase;white-space:nowrap;margin-bottom:-2px}
+.rtab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.rsect{display:none}.rsect.active{display:block}
+
+/* CHARTS */
+.chart-wrap{background:var(--card);border:1px solid var(--border);padding:14px;margin-bottom:12px;box-shadow:var(--shadow)}
+.chart-title{font-family:var(--font-m);font-size:.52rem;color:var(--accent);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px}
+.chart-canvas{height:200px;position:relative}
+
+/* LEADERBOARD */
+.lb-item{display:grid;grid-template-columns:30px 1fr auto;gap:10px;align-items:center;padding:11px 12px;background:var(--card);border:1px solid var(--border);margin-bottom:7px;box-shadow:var(--shadow)}
+.lb-rank{font-family:var(--font-d);font-size:1.4rem;color:var(--muted);text-align:center}
+.lb-rank.g{color:#f0a500}.lb-rank.s{color:#9ca3af}.lb-rank.b{color:#b87333}
+.lb-name{font-family:var(--font-m);font-size:.64rem;font-weight:700;color:var(--text);letter-spacing:1px}
+.lb-sub{font-size:.6rem;color:var(--muted);margin-top:2px}
+.lb-val{font-family:var(--font-d);font-size:1.3rem;color:var(--accent);text-align:right}
+.lb-vsub{font-family:var(--font-m);font-size:.46rem;color:var(--muted);text-align:right;margin-top:2px}
+.bar-mini{height:4px;background:var(--border);border-radius:2px;margin-top:5px;overflow:hidden}
+.bar-fill{height:100%;background:var(--accent);border-radius:2px;transition:width 1s}
+.target-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:5px}
+.target-fill{height:100%;border-radius:3px;transition:width 1s}
+.target-fill.low{background:var(--red)}.target-fill.mid{background:var(--accent2)}.target-fill.high{background:#22c55e}
+
+/* PERF */
+.perf-card{background:var(--card);border:1px solid var(--border);padding:14px;margin-bottom:10px;box-shadow:var(--shadow)}
+.perf-name{font-family:var(--font-d);font-size:1.05rem;color:var(--text);letter-spacing:2px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.score-badge{font-family:var(--font-d);font-size:1rem;padding:2px 9px;letter-spacing:2px}
+.score-a{background:#22c55e;color:#fff}.score-b{background:var(--accent2);color:#fff}.score-c{background:var(--red);color:#fff}
+.perf-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.pstat{text-align:center;padding:9px 6px;background:var(--surface);border:1px solid var(--border)}
+.pstat .pl{font-family:var(--font-m);font-size:.44rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px}
+.pstat .pv{font-family:var(--font-d);font-size:1.15rem;color:var(--accent)}
 
 /* ADMIN */
-.apinbox{text-align:center;padding:40px 20px}
-.apintitle{font-family:var(--font-d);font-size:2rem;color:var(--accent);letter-spacing:3px;margin-bottom:8px}
-.apinsub{font-family:var(--font-m);font-size:.6rem;color:var(--muted);letter-spacing:1px;margin-bottom:20px}
-.pininput{width:200px;text-align:center;font-family:var(--font-m);font-size:1.5rem;letter-spacing:8px;background:var(--bg);border:2px solid var(--border);color:var(--text);padding:14px;outline:none;margin:0 auto 16px;display:block}
+.apinbox{text-align:center;padding:40px 16px}
+.apintitle{font-family:var(--font-d);font-size:2rem;color:var(--accent);letter-spacing:3px;margin-bottom:7px}
+.apinsub{font-family:var(--font-m);font-size:.56rem;color:var(--muted);letter-spacing:1px;margin-bottom:18px;line-height:1.8}
+.pininput{width:180px;text-align:center;font-family:var(--font-m);font-size:1.5rem;letter-spacing:8px;background:var(--bg);border:2px solid var(--border);color:var(--text);padding:13px;outline:none;margin:0 auto 14px;display:block}
 .pininput:focus{border-color:var(--accent)}
-.alist{margin-bottom:6px}
-.aitem{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--card);border:1px solid var(--border);margin-bottom:6px;box-shadow:0 1px 4px rgba(0,0,0,.04)}
-.aitem-name{font-family:var(--font-m);font-size:.72rem;color:var(--text);font-weight:700;letter-spacing:1px}
-.aitem-sub{font-size:.64rem;color:var(--muted);margin-top:2px}
-.adel{background:none;border:none;cursor:pointer;font-size:1rem;color:var(--muted);padding:4px 8px;transition:color .2s}
-.adel:hover{color:var(--red)}
+.atabs{display:flex;gap:0;margin-bottom:12px;border-bottom:2px solid var(--border);overflow-x:auto}
+.atab{font-family:var(--font-m);font-size:.48rem;letter-spacing:1px;padding:8px 10px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;background:transparent;border-top:none;border-left:none;border-right:none;transition:all .2s;text-transform:uppercase;white-space:nowrap;margin-bottom:-2px}
+.atab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.asect{display:none}.asect.active{display:block}
+.aitem{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;background:var(--card);border:1px solid var(--border);margin-bottom:6px;transition:background .3s}
+.aitem-name{font-family:var(--font-m);font-size:.68rem;color:var(--text);font-weight:700;letter-spacing:1px}
+.aitem-sub{font-size:.62rem;color:var(--muted);margin-top:2px}
+.abtn-row{display:flex;gap:5px;flex-shrink:0}
+.adel{background:none;border:1px solid var(--border);cursor:pointer;font-size:.72rem;color:var(--muted);padding:4px 8px;transition:all .2s}
+.adel:hover{color:var(--red);border-color:var(--red)}
+.aedit{background:none;border:1px solid var(--border);cursor:pointer;font-size:.72rem;color:var(--muted);padding:4px 8px;transition:all .2s}
+.aedit:hover{color:var(--accent);border-color:var(--accent)}
 .addrow{display:flex;gap:7px;align-items:end;margin-top:10px}
 .addrow .field{flex:1;margin:0}
-.addrow button{flex-shrink:0;padding:10px 14px}
-.atabs{display:flex;gap:0;margin-bottom:14px;border-bottom:2px solid var(--border)}
-.atab{font-family:var(--font-m);font-size:.58rem;letter-spacing:1px;padding:10px 16px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;background:transparent;border-top:none;border-left:none;border-right:none;transition:all .2s;text-transform:uppercase}
-.atab:hover{color:var(--text)}
-.atab.active{color:var(--accent);border-bottom-color:var(--accent);margin-bottom:-2px}
-.asect{display:none}.asect.active{display:block}
-.atag{display:inline-flex;align-items:center;gap:5px;background:var(--alight);border:1px solid var(--accent);padding:4px 10px;font-family:var(--font-m);font-size:.6rem;color:var(--accent);letter-spacing:1px;margin:0 4px 4px 0}
-.atag .xtag{cursor:pointer;opacity:.6;font-size:.8rem}.atag .xtag:hover{opacity:1;color:var(--red)}
-.conn-badge{display:inline-flex;align-items:center;gap:5px;background:var(--alight);border:1px solid var(--accent);padding:4px 12px;font-family:var(--font-m);font-size:.55rem;color:var(--accent);letter-spacing:1px;margin-bottom:10px}
-.dg{width:7px;height:7px;border-radius:50%;background:#22c55e}
-.urlbox{background:var(--bg);border:1px solid var(--border);padding:9px 11px;font-family:var(--font-m);font-size:.55rem;color:var(--muted);word-break:break-all;line-height:1.6;margin-bottom:8px}
-.steps{counter-reset:s}
-.step{counter-increment:s;padding:9px 11px 9px 34px;border-left:2px solid var(--border);margin-bottom:7px;position:relative;font-size:.76rem;color:var(--text);line-height:1.6}
-.step::before{content:counter(s);position:absolute;left:-13px;top:7px;width:24px;height:24px;background:var(--accent);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-m);font-size:.6rem;font-weight:700}
-.step code{background:var(--alight);padding:1px 5px;font-family:var(--font-m);font-size:.68rem;color:var(--accent)}
 .irow{display:flex;gap:7px;align-items:end}
 .irow .field{flex:1;margin:0}
-.irow button{flex-shrink:0;padding:10px 14px}
+.conn-badge{display:inline-flex;align-items:center;gap:5px;background:var(--alight);border:1px solid var(--accent);padding:4px 10px;font-family:var(--font-m);font-size:.5rem;color:var(--accent);letter-spacing:1px;margin-bottom:8px}
+.dg{width:7px;height:7px;border-radius:50%;background:#22c55e}
+.urlbox{background:var(--bg);border:1px solid var(--border);padding:8px 10px;font-family:var(--font-m);font-size:.5rem;color:var(--muted);word-break:break-all;line-height:1.6;margin-bottom:7px}
+.steps{counter-reset:s}
+.step{counter-increment:s;padding:8px 10px 8px 32px;border-left:2px solid var(--border);margin-bottom:7px;position:relative;font-size:.74rem;color:var(--text);line-height:1.6}
+.step::before{content:counter(s);position:absolute;left:-12px;top:6px;width:22px;height:22px;background:var(--accent);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-m);font-size:.56rem;font-weight:700}
+.step code{background:var(--alight);padding:1px 5px;font-family:var(--font-m);font-size:.64rem;color:var(--accent)}
 
-/* TOAST */
-.toast{position:fixed;bottom:78px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:9px 18px;font-family:var(--font-m);font-size:.6rem;letter-spacing:1px;z-index:999;opacity:0;transition:opacity .3s;max-width:90vw;text-align:center}
+/* SESSION TIMEOUT OVERLAY */
+.timeout-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;display:none;align-items:center;justify-content:center;padding:20px}
+.timeout-overlay.open{display:flex}
+.timeout-box{background:var(--card);border:3px solid var(--accent2);padding:30px 24px;text-align:center;max-width:320px;width:100%;animation:fadeUp .3s ease}
+.timeout-title{font-family:var(--font-d);font-size:2rem;color:var(--accent2);letter-spacing:3px;margin-bottom:8px}
+.timeout-sub{font-family:var(--font-m);font-size:.6rem;color:var(--muted);letter-spacing:1px;line-height:1.8;margin-bottom:18px}
+.timeout-count{font-family:var(--font-d);font-size:3rem;color:var(--red);letter-spacing:3px;margin-bottom:16px}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal{background:var(--card);border:1px solid var(--border);border-top:3px solid var(--accent);padding:22px;width:100%;max-width:380px;animation:fadeUp .3s ease;max-height:90vh;overflow-y:auto}
+.modal-title{font-family:var(--font-d);font-size:1.4rem;color:var(--accent);letter-spacing:2px;margin-bottom:14px}
+.modal-actions{display:flex;gap:8px;margin-top:14px}
+.modal-actions button{flex:1}
+
+/* MISC */
+.toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:9px 16px;font-family:var(--font-m);font-size:.56rem;letter-spacing:1px;z-index:999;opacity:0;transition:opacity .3s;max-width:90vw;text-align:center}
 .toast.show{opacity:1}
 .spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:30px auto}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-.empty{text-align:center;padding:36px 18px;font-family:var(--font-m);font-size:.62rem;color:var(--muted);letter-spacing:1px;line-height:2}
-.divline{height:1px;background:var(--border);margin:14px 0}
-.pill{display:inline-block;background:var(--alight);color:var(--accent);font-family:var(--font-m);font-size:.5rem;padding:2px 7px;letter-spacing:1px;margin-left:6px;vertical-align:middle}
-.pill.red{background:var(--rlight);color:var(--red)}
+.empty{text-align:center;padding:30px 14px;font-family:var(--font-m);font-size:.58rem;color:var(--muted);letter-spacing:1px;line-height:2}
+.divline{height:1px;background:var(--border);margin:12px 0}
+.pill{display:inline-block;background:var(--alight);color:var(--accent);font-family:var(--font-m);font-size:.44rem;padding:2px 6px;letter-spacing:1px;margin-left:5px;vertical-align:middle}
+.tag-active{display:inline-flex;align-items:center;gap:4px;background:var(--accent);color:#fff;padding:3px 8px;font-family:var(--font-m);font-size:.48rem;letter-spacing:1px;margin:0 3px 3px 0}
+.tag-active span{cursor:pointer;opacity:.8}.tag-active span:hover{opacity:1}
+.queue-banner{background:var(--accent2);color:#fff;padding:7px 13px;font-family:var(--font-m);font-size:.56rem;letter-spacing:1px;display:none;align-items:center;justify-content:space-between;cursor:pointer}
+.queue-banner.show{display:flex}
+
+@media print{
+  .bnav,.hico,header .hright,.exprow,.fchips,.rtabs,.queue-banner,.timeout-overlay,.modal-overlay{display:none!important}
+  body{background:#fff!important;color:#000!important;max-width:100%!important}
+  main{padding:0!important}
+  .page{display:block!important}
+  #page-reports .rsect:not(#rsect-overview){display:none!important}
+}
 </style>
 </head>
 <body>
@@ -179,16 +296,28 @@ main{padding:14px 14px 76px}
 <header>
   <div class="hrow">
     <div class="logo">FELISHA<span> SACCO</span></div>
-    <div class="dbadge" id="driverBadge" onclick="goSetup()">— TAP TO LOGIN —</div>
+    <div class="hright">
+      <span class="session-bar" id="sessionBar"></span>
+      <span class="offline-badge" id="offlineBadge">OFFLINE</span>
+      <button class="hico" onclick="toggleDark()" id="darkBtn" title="Toggle dark mode">🌙</button>
+      <div class="dbadge" id="driverBadge" onclick="goSetup()">— LOGIN —</div>
+    </div>
   </div>
-  <div class="hsub">// TRIP LOGGER &amp; REPORTS</div>
+  <div class="hsub">
+    <span>// TRIP LOGGER</span>
+    <span class="sync-timer" id="syncTimer"></span>
+  </div>
 </header>
+
+<div class="queue-banner" id="queueBanner" onclick="flushQueue()">
+  <span id="queueMsg">📦 TRIPS QUEUED OFFLINE — TAP TO SYNC</span>
+  <span>→</span>
+</div>
 
 <main>
   <div id="page-log" class="page active"></div>
   <div id="page-reports" class="page"></div>
   <div id="page-admin" class="page"></div>
-
 </main>
 
 <nav class="bnav">
@@ -201,85 +330,260 @@ main{padding:14px 14px 76px}
   <button class="nbtn" id="nav-admin" onclick="switchPage('admin')">
     <span class="ni">👑</span><span class="nl">ADMIN</span>
   </button>
-
 </nav>
+
+<!-- SESSION TIMEOUT OVERLAY -->
+<div class="timeout-overlay" id="timeoutOverlay">
+  <div class="timeout-box">
+    <div class="timeout-title">⏱ STILL THERE?</div>
+    <div class="timeout-sub">YOU'LL BE LOGGED OUT IN</div>
+    <div class="timeout-count" id="timeoutCount">60</div>
+    <div class="timeout-sub" style="margin-bottom:16px">SECONDS DUE TO INACTIVITY</div>
+    <button class="bb bstart" style="margin:0" onclick="resetSessionTimer()">✋ I'M STILL HERE</button>
+  </div>
+</div>
+
+<!-- EDIT TRIP MODAL -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal">
+    <div class="modal-title">EDIT TRIP</div>
+    <div class="field"><label>Driver</label><input type="text" id="editDriver"></div>
+    <div class="field"><label>Car Plate</label><input type="text" id="editCar"></div>
+    <div class="field"><label>From Station</label><input type="text" id="editFrom"></div>
+    <div class="field"><label>To Station</label><input type="text" id="editTo"></div>
+    <div class="field"><label>Amount (KES)</label><input type="number" id="editAmount"></div>
+    <div class="field"><label>Date</label><input type="text" id="editDate"></div>
+    <div class="modal-actions">
+      <button class="bb bstart" style="margin:0" onclick="saveEditTrip()">SAVE</button>
+      <button class="bb" style="margin:0;background:var(--border);color:var(--text)" onclick="closeEditModal()">CANCEL</button>
+    </div>
+  </div>
+</div>
 
 <div class="toast" id="toast"></div>
 
 <script>
-// ════════════════════════════════════════════
-// DEFAULT DATA (from your Google Form)
-// ════════════════════════════════════════════
-const DEFAULT_DRIVERS = ['FESTUS KIPKURUI','TOM WASIKE','FELIX OTIENO','MUTUA KIRUI','JANETH TIONY','ABIGAEL CHEPKORIR','GRACE WANGECHI'];
-const DEFAULT_CARS = ['KBZ 300','KBY 400','KBU 500','KCA 200','KDY 260W','KYA 520X','KAF 2601'];
+// ══════════════════════════════════════════════
+// DEFAULT DATA
+// ══════════════════════════════════════════════
+const DEFAULT_DRIVERS  = ['FESTUS KIPKURUI','TOM WASIKE','FELIX OTIENO','MUTUA KIRUI','JANETH TIONY','ABIGAEL CHEPKORIR','GRACE WANGECHI'];
+const DEFAULT_CARS     = ['KBZ 300','KBY 400','KBU 500','KCA 200','KDY 260W','KYA 520X','KAF 2601'];
 const DEFAULT_STATIONS = [
-  {name:'NAIROBI CBD',lat:-1.2833,lng:36.8167},
-  {name:'WESTLANDS',lat:-1.2676,lng:36.8112},
-  {name:'KAREN',lat:-1.3197,lng:36.7073},
-  {name:'NGONG',lat:-1.3583,lng:36.6583},
-  {name:'RONGAI',lat:-1.3944,lng:36.7452},
-  {name:"LANG'ATA",lat:-1.3204,lng:36.7571},
-  {name:'KIKUYU',lat:-1.2463,lng:36.6637},
-  {name:'LIMURU',lat:-1.1095,lng:36.6431},
+  {name:'NAIROBI CBD',lat:-1.2833,lng:36.8167},{name:'WESTLANDS',lat:-1.2676,lng:36.8112},
+  {name:'KAREN',lat:-1.3197,lng:36.7073},{name:'NGONG',lat:-1.3583,lng:36.6583},
+  {name:'RONGAI',lat:-1.3944,lng:36.7452},{name:"LANG'ATA",lat:-1.3204,lng:36.7571},
+  {name:'KIKUYU',lat:-1.2463,lng:36.6637},{name:'LIMURU',lat:-1.1095,lng:36.6431},
 ];
-const ADMIN_PIN = '1234'; // Change this!
+// Default routes: common routes for this SACCO
+const DEFAULT_ROUTES = [
+  {from:'NAIROBI CBD',to:'RONGAI',active:true},
+  {from:'RONGAI',to:'NAIROBI CBD',active:true},
+  {from:'NAIROBI CBD',to:'NGONG',active:true},
+  {from:'NGONG',to:'NAIROBI CBD',active:true},
+  {from:"LANG'ATA",to:'NAIROBI CBD',active:true},
+  {from:'NAIROBI CBD',to:"LANG'ATA",active:true},
+  {from:'NAIROBI CBD',to:'KAREN',active:true},
+  {from:'KAREN',to:'NAIROBI CBD',active:true},
+];
+const ADMIN_PIN_KEY     = 'fs_pin';
+const DEFAULT_ADMIN_PIN = '1234';
+const SESSION_TIMEOUT   = 30 * 60; // 30 minutes in seconds
+const SESSION_WARN      = 60;      // warn when 60s left
+const AMOUNT_MIN        = 10;
+const AMOUNT_MAX        = 50000;
 
-// ════════════════════════════════════════════
-// STATE — loaded from localStorage
-// ════════════════════════════════════════════
-function loadCfg(key, def) {
-  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : def; } catch(e) { return def; }
-}
+// ══════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════
+function load(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d;}catch(e){return d;}}
+function save(k,v){localStorage.setItem(k,JSON.stringify(v));}
 
-let DRIVERS   = loadCfg('fs_drivers', DEFAULT_DRIVERS);
-let CARS      = loadCfg('fs_cars', DEFAULT_CARS);
-let STATIONS  = loadCfg('fs_stations', DEFAULT_STATIONS);
-let localTrips = loadCfg('fs_trips', []);
+let DRIVERS    = load('fs_drivers', DEFAULT_DRIVERS);
+let CARS       = load('fs_cars', DEFAULT_CARS);
+let STATIONS   = load('fs_stations', DEFAULT_STATIONS);
+let ROUTES     = load('fs_routes', DEFAULT_ROUTES);
+let localTrips = load('fs_trips', []);
+let offlineQ   = load('fs_queue', []);
+let driverPins = load('fs_dpins', {});
+let carTargets = load('fs_targets', {});
+let shifts     = load('fs_shifts', {}); // {plate: {open:bool, openedAt, openedBy}}
 let sheetTrips = [];
-let appConfig  = loadCfg('fs_config', {appsScriptUrl:'', sheetCsvUrl:'https://docs.google.com/spreadsheets/d/162XUZwBJcpIc9m_011hzaBdbJY_I7Bf772aeJt7oQIs/pub?gid=0&single=true&output=csv'});
+let appConfig  = load('fs_config', {appsScriptUrl:'', sheetCsvUrl:'https://docs.google.com/spreadsheets/d/162XUZwBJcpIc9m_011hzaBdbJY_I7Bf772aeJt7oQIs/pub?gid=0&single=true&output=csv'});
 
 let tripState = {
-  phase: 'setup', driver:'', carPlate:'',
-  fromStation:null, toStation:null, amount:'',
-  tripStart:null, tripEnd:null,
-  gpsLat:null, gpsLng:null, gpsStatus:'unknown', nearestStation:null,
+  phase:'setup',driver:'',carPlate:'',
+  fromStation:null,toStation:null,selectedRoute:null,
+  amount:'',notes:'',tripStart:null,tripEnd:null,
+  gpsLat:null,gpsLng:null,gpsStatus:'unknown',nearestStation:null,
 };
-// Restore logged-in driver
-const sd = loadCfg('fs_driver', null);
-if (sd) { tripState.driver=sd.driver; tripState.carPlate=sd.carPlate; tripState.phase='idle'; }
+const sd = load('fs_driver', null);
+if(sd){tripState.driver=sd.driver;tripState.carPlate=sd.carPlate;tripState.phase='idle';}
 
-let currentPage = 'log';
-let reportFilter = 'all';
-let filterCar = '';
-let filterDriver = '';
-let filterFrom = '';
-let filterTo = '';
-let adminTab = 'drivers';
+let currentPage   = 'log';
+let reportFilter  = 'all';
+let filterCar='',filterDriver='',filterFrom='',filterTo='';
+let adminTab      = 'shifts';
+let reportTab     = 'overview';
 let adminUnlocked = false;
 let timerInterval = null;
+let syncInterval  = null;
+let syncCountdown = 300;
+let sessionSecondsLeft = SESSION_TIMEOUT;
+let sessionInterval    = null;
+let showingTimeout     = false;
+let darkMode    = load('fs_dark', false);
+let useRoutes   = load('fs_useroutes', true); // toggle: route cards vs free station pick
+let charts      = {};
+let editingTripId = null;
 
-function save(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+if(darkMode){document.documentElement.setAttribute('data-theme','dark');document.getElementById('darkBtn').textContent='☀️';}
 
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════
+// DARK MODE
+// ══════════════════════════════════════════════
+function toggleDark(){
+  darkMode=!darkMode;save('fs_dark',darkMode);
+  document.documentElement.setAttribute('data-theme',darkMode?'dark':'light');
+  document.getElementById('darkBtn').textContent=darkMode?'☀️':'🌙';
+  if(currentPage==='reports'&&reportTab==='charts')setTimeout(renderCharts,100);
+}
+
+// ══════════════════════════════════════════════
+// SESSION TIMEOUT
+// ══════════════════════════════════════════════
+function startSessionTimer(){
+  clearInterval(sessionInterval);
+  sessionSecondsLeft=SESSION_TIMEOUT;
+  showingTimeout=false;
+  sessionInterval=setInterval(tickSession,1000);
+  updateSessionBar();
+}
+
+function tickSession(){
+  if(tripState.phase==='setup'||tripState.phase==='done'){clearInterval(sessionInterval);hideTimeoutOverlay();updateSessionBar();return;}
+  sessionSecondsLeft--;
+  updateSessionBar();
+  if(sessionSecondsLeft<=0){
+    clearInterval(sessionInterval);
+    hideTimeoutOverlay();
+    toast('SESSION EXPIRED — PLEASE LOG IN AGAIN');
+    autoLogout();
+    return;
+  }
+  if(sessionSecondsLeft<=SESSION_WARN&&!showingTimeout){
+    showingTimeout=true;
+    document.getElementById('timeoutOverlay').classList.add('open');
+  }
+  if(showingTimeout){
+    document.getElementById('timeoutCount').textContent=sessionSecondsLeft;
+    document.getElementById('sessionBar').textContent='⏱ '+sessionSecondsLeft+'s';
+    document.getElementById('sessionBar').className='session-bar warn';
+  }
+}
+
+function updateSessionBar(){
+  const bar=document.getElementById('sessionBar');
+  if(tripState.phase==='setup'||tripState.phase==='done'){bar.textContent='';return;}
+  if(showingTimeout)return;
+  const m=Math.floor(sessionSecondsLeft/60);
+  const s=sessionSecondsLeft%60;
+  bar.textContent=`⏱ ${m}:${String(s).padStart(2,'0')}`;
+  bar.className='session-bar';
+}
+
+function resetSessionTimer(){
+  sessionSecondsLeft=SESSION_TIMEOUT;
+  showingTimeout=false;
+  hideTimeoutOverlay();
+  updateSessionBar();
+  if(!sessionInterval)startSessionTimer();
+}
+
+function hideTimeoutOverlay(){
+  document.getElementById('timeoutOverlay').classList.remove('open');
+  showingTimeout=false;
+}
+
+function autoLogout(){
+  clearInterval(timerInterval);
+  tripState={...tripState,phase:'setup',driver:'',carPlate:'',fromStation:null,toStation:null,selectedRoute:null,amount:'',notes:'',tripStart:null,tripEnd:null};
+  save('fs_driver',null);
+  document.getElementById('driverBadge').textContent='— LOGIN —';
+  document.getElementById('sessionBar').textContent='';
+  switchPage('log');
+}
+
+// Reset session on any activity
+['click','touchstart','keypress'].forEach(ev=>{
+  document.addEventListener(ev,()=>{
+    if(tripState.phase!=='setup'&&tripState.phase!=='done'&&!showingTimeout)resetSessionTimer();
+  },{passive:true});
+});
+
+// ══════════════════════════════════════════════
 // NAVIGATION
-// ════════════════════════════════════════════
-function switchPage(p) {
-  currentPage = p;
+// ══════════════════════════════════════════════
+function switchPage(p){
+  currentPage=p;
   document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.nbtn').forEach(x=>x.classList.remove('active'));
   document.getElementById('page-'+p).classList.add('active');
   document.getElementById('nav-'+p).classList.add('active');
-  if(p==='log') renderLog();
-  if(p==='reports') renderReports();
-  if(p==='admin') renderAdmin();
-
+  if(p==='log')renderLog();
+  if(p==='reports')renderReports();
+  if(p==='admin')renderAdmin();
 }
-function goSetup() { tripState.phase='setup'; switchPage('log'); }
+function goSetup(){
+  clearInterval(timerInterval);
+  tripState.phase='setup';
+  switchPage('log');
+}
 
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════
+// OFFLINE / QUEUE
+// ══════════════════════════════════════════════
+function isOnline(){return navigator.onLine;}
+function updateOfflineBadge(){
+  document.getElementById('offlineBadge').className='offline-badge'+(isOnline()?'':' show');
+  const banner=document.getElementById('queueBanner');
+  if(offlineQ.length>0){banner.className='queue-banner show';document.getElementById('queueMsg').textContent=`📦 ${offlineQ.length} TRIP${offlineQ.length>1?'S':''} QUEUED — TAP TO SYNC`;}
+  else{banner.className='queue-banner';}
+}
+window.addEventListener('online',()=>{updateOfflineBadge();if(offlineQ.length)flushQueue();});
+window.addEventListener('offline',()=>updateOfflineBadge());
+async function flushQueue(){
+  if(!offlineQ.length||!appConfig.appsScriptUrl)return;
+  toast('SYNCING '+offlineQ.length+' QUEUED TRIPS...');
+  const remaining=[];
+  for(const trip of offlineQ){
+    try{
+      const params=new URLSearchParams({date:trip.date,time:trip.time,fromStation:trip.fromStation,toStation:trip.toStation,driver:trip.driver,carPlate:trip.carPlate,amount:trip.amount,duration:trip.duration,notes:trip.notes||''});
+      await fetch(appConfig.appsScriptUrl+'?'+params.toString(),{method:'GET',mode:'no-cors'});
+    }catch(e){remaining.push(trip);}
+  }
+  offlineQ=remaining;save('fs_queue',offlineQ);
+  toast(remaining.length===0?'✅ ALL TRIPS SYNCED':'⚠ '+remaining.length+' STILL QUEUED');
+  updateOfflineBadge();
+}
+
+// ══════════════════════════════════════════════
+// AUTO-SYNC
+// ══════════════════════════════════════════════
+function startAutoSync(){
+  clearInterval(syncInterval);
+  syncCountdown=300;
+  syncInterval=setInterval(()=>{
+    syncCountdown--;
+    const el=document.getElementById('syncTimer');
+    if(el)el.textContent=`AUTO-SYNC ${Math.floor(syncCountdown/60)}:${String(syncCountdown%60).padStart(2,'0')}`;
+    if(syncCountdown<=0){syncCountdown=300;if(appConfig.sheetCsvUrl&&isOnline())loadSheetData(true);}
+  },1000);
+}
+
+// ══════════════════════════════════════════════
 // GPS
-// ════════════════════════════════════════════
-function getGPS() {
+// ══════════════════════════════════════════════
+function getGPS(){
   tripState.gpsStatus='detecting';
   if(!navigator.geolocation){tripState.gpsStatus='error';renderLog();return;}
   navigator.geolocation.getCurrentPosition(
@@ -292,10 +596,10 @@ function hav(a,b,c,d){const R=6371,dL=(c-a)*Math.PI/180,dO=(d-b)*Math.PI/180,x=M
 function findNearest(lat,lng){let b=null,bd=Infinity;STATIONS.forEach(s=>{const d=hav(lat,lng,s.lat,s.lng);if(d<bd){bd=d;b={...s,dist:d};}});return b;}
 function distKm(s){if(!tripState.gpsLat||!s)return null;return hav(tripState.gpsLat,tripState.gpsLng,s.lat,s.lng);}
 
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════
 // TIMER
-// ════════════════════════════════════════════
-function startTimer(){
+// ══════════════════════════════════════════════
+function startTripTimer(){
   clearInterval(timerInterval);
   timerInterval=setInterval(()=>{
     const el=document.getElementById('timerVal');
@@ -306,83 +610,213 @@ function startTimer(){
   },1000);
 }
 
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════
 // TOAST
-// ════════════════════════════════════════════
-function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+// ══════════════════════════════════════════════
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200);}
 
-// ════════════════════════════════════════════
-// TRIP ACTIONS
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════
+// SHIFT CHECK
+// ══════════════════════════════════════════════
+function isShiftOpen(plate){
+  // If no shifts configured at all, default to open
+  const hasAnyShift=Object.keys(shifts).length>0;
+  if(!hasAnyShift)return true;
+  return shifts[plate]?.open===true;
+}
+
+// ══════════════════════════════════════════════
+// DRIVER LOGIN
+// ══════════════════════════════════════════════
 function saveDriver(){
   const d=document.getElementById('selD')?.value, p=document.getElementById('selP')?.value;
   if(!d||!p){toast('SELECT DRIVER AND CAR PLATE');return;}
+  if(driverPins[d]){
+    document.getElementById('page-log').innerHTML=`
+      <div class="card" style="border-left:4px solid var(--accent2)">
+        <div class="ctitle">DRIVER PIN</div>
+        <div class="csub">// ENTER YOUR PIN TO CONTINUE</div>
+        <div style="text-align:center;margin-bottom:14px">
+          <div style="font-family:var(--font-m);font-size:.58rem;color:var(--muted);margin-bottom:10px">${d} · ${p}</div>
+          <input type="password" id="driverPinIn" maxlength="6" placeholder="••••" class="pininput" onkeydown="if(event.key==='Enter')confirmDriverPin('${d.replace(/'/g,"\\'")}','${p.replace(/'/g,"\\'")}')">
+        </div>
+        <button class="bb bstart" onclick="confirmDriverPin('${d.replace(/'/g,"\\'")}','${p.replace(/'/g,"\\'")}')">CONFIRM</button>
+        <button class="bout" onclick="renderLog()">BACK</button>
+      </div>`;
+    return;
+  }
+  finishLogin(d,p);
+}
+function confirmDriverPin(d,p){
+  const pin=document.getElementById('driverPinIn')?.value;
+  if(pin!==driverPins[d]){toast('WRONG PIN — TRY AGAIN');return;}
+  finishLogin(d,p);
+}
+function finishLogin(d,p){
   tripState.driver=d;tripState.carPlate=p;tripState.phase='idle';
   save('fs_driver',{driver:d,carPlate:p});
   document.getElementById('driverBadge').textContent=d.split(' ')[0]+' · '+p;
+  startSessionTimer();
   getGPS();renderLog();
 }
-function selFrom(n){tripState.fromStation=STATIONS.find(s=>s.name===n);renderLog();}
-function selTo(n){if(tripState.phase!=='arrived')return;tripState.toStation=STATIONS.find(s=>s.name===n);renderLog();}
 
-function startTrip(){
-  if(!tripState.fromStation){toast('SELECT YOUR STARTING STATION');return;}
-  tripState.phase='active';tripState.tripStart=Date.now();tripState.toStation=null;
-  renderLog();startTimer();toast('TRIP STARTED — SAFE JOURNEY! 🚌');
+// ══════════════════════════════════════════════
+// ROUTE / STATION SELECTION
+// ══════════════════════════════════════════════
+function selectRoute(idx){
+  const r=ROUTES.filter(r=>r.active)[idx];
+  tripState.selectedRoute=r;
+  tripState.fromStation=STATIONS.find(s=>s.name===r.from)||{name:r.from,lat:0,lng:0};
+  tripState.toStation=null;
+  renderLog();
 }
+
+function selFrom(n){tripState.fromStation=STATIONS.find(s=>s.name===n)||{name:n,lat:0,lng:0};renderLog();}
+function selTo(n){if(tripState.phase!=='arrived')return;tripState.toStation=STATIONS.find(s=>s.name===n)||{name:n,lat:0,lng:0};renderLog();}
+
+// ══════════════════════════════════════════════
+// TRIP FLOW
+// ══════════════════════════════════════════════
+function startTrip(){
+  if(!tripState.fromStation){toast('SELECT YOUR STARTING STATION / ROUTE');return;}
+  // SHIFT CHECK
+  if(!isShiftOpen(tripState.carPlate)){
+    toast('⛔ SHIFT IS CLOSED FOR '+tripState.carPlate);return;
+  }
+  tripState.phase='active';tripState.tripStart=Date.now();tripState.toStation=null;tripState.notes='';
+  renderLog();startTripTimer();toast('TRIP STARTED — SAFE JOURNEY! 🚌');
+}
+
 function arrive(){
   tripState.phase='arrived';tripState.tripEnd=Date.now();
   clearInterval(timerInterval);getGPS();renderLog();
   toast('ARRIVED — SELECT DESTINATION & ENTER AMOUNT');
 }
-function endTrip(){
+
+function reviewTrip(){
+  // Collect form values then go to confirm phase
   const amt=parseFloat(document.getElementById('amtIn')?.value||'0');
+  const notes=(document.getElementById('notesIn')?.value||'').trim();
   if(!tripState.toStation){toast('SELECT DESTINATION STATION');return;}
   if(!amt||amt<=0){toast('ENTER AMOUNT COLLECTED');return;}
+  if(amt<AMOUNT_MIN){toast(`AMOUNT TOO LOW — MINIMUM KES ${AMOUNT_MIN}`);return;}
+  if(amt>AMOUNT_MAX){toast(`AMOUNT TOO HIGH — MAXIMUM KES ${AMOUNT_MAX.toLocaleString()}`);return;}
   if(tripState.toStation.name===tripState.fromStation.name){toast('TO STATION MUST BE DIFFERENT');return;}
+  tripState.amount=amt;tripState.notes=notes;
+  tripState.phase='confirm';renderLog();
+}
+
+function confirmAndSubmit(){
+  // Duplicate check
+  const tenMin=10*60*1000;
+  const dup=localTrips.find(t=>t.driver===tripState.driver&&t.carPlate===tripState.carPlate&&t.fromStation===tripState.fromStation.name&&t.toStation===tripState.toStation.name&&(Date.now()-new Date(t.timestamp).getTime())<tenMin);
+  if(dup&&!confirm('⚠ SIMILAR TRIP LOGGED WITHIN 10 MINUTES — SUBMIT ANYWAY?'))return;
+
   const trip={
     id:Date.now(),driver:tripState.driver,carPlate:tripState.carPlate,
     fromStation:tripState.fromStation.name,toStation:tripState.toStation.name,
-    amount:amt,duration:Math.floor((tripState.tripEnd-tripState.tripStart)/60000),
-    date:new Date().toLocaleDateString('en-GB'),time:new Date().toLocaleTimeString(),
-    timestamp:new Date().toISOString(),
+    amount:tripState.amount,duration:Math.floor((tripState.tripEnd-tripState.tripStart)/60000),
+    notes:tripState.notes,date:new Date().toLocaleDateString('en-GB'),
+    time:new Date().toLocaleTimeString(),timestamp:new Date().toISOString(),
   };
   localTrips.unshift(trip);save('fs_trips',localTrips.slice(0,200));
-  tripState.amount=amt;tripState.phase='done';
+  tripState.phase='done';
   submitToSheets(trip);renderLog();
 }
+
+function backToEdit(){tripState.phase='arrived';renderLog();}
+
 function newTrip(){
   const prev=tripState.toStation;
-  tripState.phase='idle';tripState.fromStation=prev;tripState.toStation=null;
-  tripState.amount='';tripState.tripStart=null;tripState.tripEnd=null;
+  tripState.phase='idle';
+  tripState.fromStation=prev;
+  tripState.selectedRoute=null;
+  tripState.toStation=null;tripState.amount='';tripState.notes='';tripState.tripStart=null;tripState.tripEnd=null;
+  resetSessionTimer();
   getGPS();renderLog();toast('READY FOR NEXT TRIP');
 }
 
-// ════════════════════════════════════════════
-// SHEETS SUBMIT
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════
+// SUBMIT TO SHEETS
+// ══════════════════════════════════════════════
 async function submitToSheets(trip){
-  if(!appConfig.appsScriptUrl){toast('⚠ SAVED LOCALLY — SET UP APPS SCRIPT IN SETTINGS');return;}
+  if(!appConfig.appsScriptUrl){
+    if(!isOnline()){offlineQ.push(trip);save('fs_queue',offlineQ);updateOfflineBadge();toast('📦 SAVED TO OFFLINE QUEUE');}
+    else toast('💾 SAVED LOCALLY — CONFIGURE SHEETS IN ADMIN');
+    return;
+  }
+  if(!isOnline()){offlineQ.push(trip);save('fs_queue',offlineQ);updateOfflineBadge();toast('📦 OFFLINE — QUEUED');return;}
   try{
-    const params=new URLSearchParams({date:trip.date,time:trip.time,fromStation:trip.fromStation,toStation:trip.toStation,driver:trip.driver,carPlate:trip.carPlate,amount:trip.amount,duration:trip.duration});
+    const params=new URLSearchParams({date:trip.date,time:trip.time,fromStation:trip.fromStation,toStation:trip.toStation,driver:trip.driver,carPlate:trip.carPlate,amount:trip.amount,duration:trip.duration,notes:trip.notes||''});
     await fetch(appConfig.appsScriptUrl+'?'+params.toString(),{method:'GET',mode:'no-cors'});
     toast('✅ SYNCED TO GOOGLE SHEETS');
-  }catch(e){toast('💾 SAVED LOCALLY');}
+  }catch(e){offlineQ.push(trip);save('fs_queue',offlineQ);updateOfflineBadge();toast('⚠ QUEUED FOR RETRY');}
 }
 
-// ════════════════════════════════════════════
-// LOAD SHEET DATA
-// ════════════════════════════════════════════
-async function loadSheetData(){
-  if(!appConfig.sheetCsvUrl){toast('NO CSV URL IN SETTINGS');return;}
-  document.getElementById('page-reports').innerHTML='<div class="spinner"></div>';
+// ══════════════════════════════════════════════
+// WHATSAPP DAILY SUMMARY
+// ══════════════════════════════════════════════
+function generateWhatsAppSummary(){
+  const all=allData();
+  const today=new Date().toLocaleDateString('en-GB');
+  const todayT=all.filter(t=>t.date===today);
+  if(!todayT.length){toast('NO TRIPS TODAY TO SUMMARIZE');return;}
+  const total=todayT.reduce((s,t)=>s+t.amount,0);
+  const avg=Math.round(total/todayT.length);
+
+  // Per car breakdown
+  const cars=[...new Set(todayT.map(t=>t.carPlate).filter(Boolean))];
+  const carLines=cars.map(car=>{
+    const ct=todayT.filter(t=>t.carPlate===car);
+    const cr=ct.reduce((s,t)=>s+t.amount,0);
+    const target=carTargets[car];
+    const pct=target?` (${Math.round((cr/target)*100)}% of target)`:'';
+    return `  🚗 ${car}: ${ct.length} trips · KES ${cr.toLocaleString()}${pct}`;
+  }).join('\n');
+
+  // Per driver breakdown
+  const drivers=[...new Set(todayT.map(t=>t.driver).filter(Boolean))];
+  const driverLines=drivers.map(d=>{
+    const dt=todayT.filter(t=>t.driver===d);
+    const dr=dt.reduce((s,t)=>s+t.amount,0);
+    return `  👤 ${d}: ${dt.length} trips · KES ${dr.toLocaleString()}`;
+  }).join('\n');
+
+  const msg=`🚌 *FELISHA SACCO — DAILY REPORT*\n📅 ${today}\n\n`+
+    `📊 *SUMMARY*\n`+
+    `• Total Trips: ${todayT.length}\n`+
+    `• Total Revenue: KES ${total.toLocaleString()}\n`+
+    `• Average/Trip: KES ${avg.toLocaleString()}\n\n`+
+    `🚗 *BY CAR*\n${carLines}\n\n`+
+    `👤 *BY DRIVER*\n${driverLines}\n\n`+
+    `_Generated by FELISHA SACCO App_`;
+
+  // Try WhatsApp, fallback to clipboard
+  const encoded=encodeURIComponent(msg);
+  const waUrl=`https://wa.me/?text=${encoded}`;
+  // Copy to clipboard first
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(msg).then(()=>{
+      toast('📋 COPIED! OPENING WHATSAPP...');
+    }).catch(()=>{});
+  }
+  setTimeout(()=>window.open(waUrl,'_blank'),500);
+}
+
+// ══════════════════════════════════════════════
+// SHEET DATA
+// ══════════════════════════════════════════════
+async function loadSheetData(silent=false){
+  if(!appConfig.sheetCsvUrl){if(!silent)toast('NO CSV URL — CONFIGURE IN ADMIN');return;}
+  if(!silent){const el=document.getElementById('page-reports');if(el)el.innerHTML='<div class="spinner"></div>';}
   try{
     let text=null;
-    try{const r=await fetch(appConfig.sheetCsvUrl);if(r.ok)text=await r.text();}catch(_){}
+    try{const r=await fetch(appConfig.sheetCsvUrl+'&_='+Date.now());if(r.ok)text=await r.text();}catch(_){}
     if(!text){const r2=await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(appConfig.sheetCsvUrl)}`);text=(await r2.json()).contents;}
     sheetTrips=parseCSV(text);
-    toast('✅ '+sheetTrips.length+' RECORDS LOADED');renderReports();
-  }catch(e){toast('⚠ COULD NOT LOAD DATA');renderReports();}
+    if(!silent)toast('✅ '+sheetTrips.length+' RECORDS LOADED');
+    if(currentPage==='reports')renderReports();
+  }catch(e){if(!silent)toast('⚠ COULD NOT LOAD SHEET');if(currentPage==='reports')renderReports();}
 }
 
 function parseCSV(text){
@@ -390,17 +824,8 @@ function parseCSV(text){
   const hdrs=lines[0].split(',').map(h=>h.trim().toLowerCase().replace(/[^a-z]/g,''));
   return lines.slice(1).map(line=>{
     const cols=line.split(',').map(c=>c.trim().replace(/^"|"$/g,''));
-    const row={};hdrs.forEach((h,i)=>row[h]=cols[i]||'');
-    return{
-      date:row['date']||row['dateofduty']||row['timestamp']||'',
-      time:row['time']||'',
-      fromStation:row['fromstation']||row['from']||row['fromstation']||'',
-      toStation:row['tostation']||row['to']||'',
-      driver:row['drivername']||row['driversname']||row['driver']||'',
-      carPlate:row['carplate']||row['carplate']||row['plate']||row['car']||'',
-      amount:parseFloat((row['amountcollectedinkes']||row['amount']||'0').replace(/[^0-9.]/g,''))||0,
-      duration:parseInt(row['duration']||'0')||0,
-    };
+    const r={};hdrs.forEach((h,i)=>r[h]=cols[i]||'');
+    return{date:r.date||r.dateofduty||'',time:r.time||'',fromStation:r.fromstation||r.from||'',toStation:r.tostation||r.to||'',driver:r.drivername||r.driversname||r.driver||'',carPlate:r.carplate||r.plate||r.car||'',amount:parseFloat((r.amountcollectedinkes||r.amount||'0').replace(/[^0-9.]/g,''))||0,duration:parseInt(r.duration||'0')||0,notes:r.notes||''};
   }).filter(r=>r.driver||r.carPlate);
 }
 
@@ -410,6 +835,8 @@ function parseDate(str){
   if(m){const yr=m[3].length===2?'20'+m[3]:m[3];return new Date(`${yr}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`);}
   return null;
 }
+
+function allData(){return[...sheetTrips,...localTrips.filter(lt=>!sheetTrips.find(st=>st.time===lt.time&&st.driver===lt.driver))];}
 
 function filterTrips(trips){
   const now=new Date(),today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
@@ -427,19 +854,14 @@ function filterTrips(trips){
     return true;
   });
 }
+function clearFilters(){filterCar='';filterDriver='';filterFrom='';filterTo='';reportFilter='all';renderReports();}
 
-function clearFilters(){
-  filterCar='';filterDriver='';filterFrom='';filterTo='';reportFilter='all';
-  renderReports();
-}
-
-// ════════════════════════════════════════════
-// PDF
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════
+// EXPORTS
+// ══════════════════════════════════════════════
 function exportPDF(){
   const {jsPDF}=window.jspdf;
-  const all=[...sheetTrips,...localTrips];
-  const filtered=filterTrips(all);
+  const filtered=filterTrips(allData());
   const total=filtered.reduce((s,t)=>s+(t.amount||0),0);
   const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
   const W=210,M=18;let y=M;
@@ -449,8 +871,7 @@ function exportPDF(){
   y=46;
   const bw=(W-M*2-9)/4;
   [{l:'TOTAL TRIPS',v:String(filtered.length)},{l:'TOTAL REVENUE',v:'KES '+total.toLocaleString()},{l:'AVG/TRIP',v:filtered.length?'KES '+Math.round(total/filtered.length).toLocaleString():'—'},{l:'UNIQUE CARS',v:String([...new Set(filtered.map(t=>t.carPlate))].length)}].forEach((b,i)=>{
-    const bx=M+i*(bw+3);
-    doc.setFillColor(245,250,245);doc.rect(bx,y,bw,20,'F');doc.setFillColor(26,122,60);doc.rect(bx,y,bw,1.5,'F');
+    const bx=M+i*(bw+3);doc.setFillColor(245,250,245);doc.rect(bx,y,bw,20,'F');doc.setFillColor(26,122,60);doc.rect(bx,y,bw,1.5,'F');
     doc.setTextColor(130,130,130);doc.setFontSize(6);doc.setFont('helvetica','normal');doc.text(b.l,bx+3,y+8);
     doc.setTextColor(20,20,20);doc.setFontSize(10);doc.setFont('helvetica','bold');doc.text(b.v,bx+3,y+17);
   });
@@ -470,76 +891,140 @@ function exportPDF(){
   });
   const pg=doc.internal.getNumberOfPages();
   for(let i=1;i<=pg;i++){doc.setPage(i);doc.setFontSize(6);doc.setTextColor(150,150,150);doc.setFont('helvetica','normal');doc.text('FELISHA SACCO — CONFIDENTIAL',M,292);doc.text('Page '+i+' of '+pg,W-M,292,{align:'right'});}
-  doc.save('felisha-report-'+reportFilter+'-'+new Date().toISOString().slice(0,10)+'.pdf');
+  doc.save('felisha-report-'+new Date().toISOString().slice(0,10)+'.pdf');
 }
 
-// ════════════════════════════════════════════
-// RENDER LOG
-// ════════════════════════════════════════════
+function exportExcel(){
+  const filtered=filterTrips(allData());
+  const data=filtered.map(t=>({'DATE':t.date,'TIME':t.time,'FROM':t.fromStation,'TO':t.toStation,'DRIVER':t.driver,'CAR':t.carPlate,'AMOUNT':t.amount,'DURATION(MIN)':t.duration,'NOTES':t.notes||''}));
+  const ws=XLSX.utils.json_to_sheet(data);
+  ws['!cols']=[{wch:12},{wch:10},{wch:14},{wch:14},{wch:20},{wch:10},{wch:10},{wch:12},{wch:20}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Trips');
+  const carRevs=[...new Set(filtered.map(t=>t.carPlate).filter(Boolean))].map(car=>{
+    const ct=filtered.filter(t=>t.carPlate===car);
+    return{'CAR':car,'TRIPS':ct.length,'REVENUE':ct.reduce((s,t)=>s+t.amount,0),'AVG':ct.length?Math.round(ct.reduce((s,t)=>s+t.amount,0)/ct.length):0};
+  });
+  if(carRevs.length)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(carRevs),'By Car');
+  XLSX.writeFile(wb,'felisha-'+new Date().toISOString().slice(0,10)+'.xlsx');
+}
+
+// ══════════════════════════════════════════════
+// CHARTS
+// ══════════════════════════════════════════════
+function renderCharts(){
+  const all=allData();
+  const isDark=darkMode;
+  const tc=isDark?'#5a8a6a':'#6a8a6a',gc=isDark?'#2a3e2e':'#dde8dd';
+  Chart.defaults.color=tc;Chart.defaults.borderColor=gc;
+  Chart.defaults.font.family="'Space Mono',monospace";Chart.defaults.font.size=10;
+  function mk(id,type,labels,datasets,legend=false){
+    if(charts[id])charts[id].destroy();
+    const canvas=document.getElementById(id);if(!canvas)return;
+    charts[id]=new Chart(canvas.getContext('2d'),{type,data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:legend,labels:{color:tc,font:{size:9}}}},scales:type!=='doughnut'?{x:{grid:{color:gc},ticks:{color:tc,maxRotation:45}},y:{grid:{color:gc},ticks:{color:tc},beginAtZero:true}}:undefined}});
+  }
+  const days30=[];
+  for(let i=29;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);d.setHours(0,0,0,0);const n=new Date(d);n.setDate(d.getDate()+1);const dt=all.filter(t=>{const rd=parseDate(t.date);return rd&&rd>=d&&rd<n;});days30.push({label:d.toLocaleDateString('en-GB',{day:'numeric',month:'short'}),trips:dt.length,revenue:dt.reduce((s,t)=>s+t.amount,0)});}
+  const weeks=[];
+  for(let i=7;i>=0;i--){const ws=new Date();ws.setDate(ws.getDate()-ws.getDay()-i*7);ws.setHours(0,0,0,0);const we=new Date(ws);we.setDate(ws.getDate()+7);const wt=all.filter(t=>{const d=parseDate(t.date);return d&&d>=ws&&d<we;});weeks.push({label:'W'+(8-i),revenue:wt.reduce((s,t)=>s+t.amount,0),trips:wt.length});}
+  mk('chartDaily','bar',days30.map(d=>d.label),[{label:'Revenue',data:days30.map(d=>d.revenue),backgroundColor:'rgba(26,122,60,0.7)',borderColor:'#1a7a3c',borderWidth:1,borderRadius:3}]);
+  mk('chartWeekly','bar',weeks.map(w=>w.label),[{label:'Revenue',data:weeks.map(w=>w.revenue),backgroundColor:weeks.map((_,i)=>i===weeks.length-1?'rgba(240,165,0,0.8)':'rgba(26,122,60,0.5)'),borderColor:weeks.map((_,i)=>i===weeks.length-1?'#f0a500':'#1a7a3c'),borderWidth:1,borderRadius:3}]);
+  const cars=[...new Set(all.map(t=>t.carPlate).filter(Boolean))];
+  const colors=['#1a7a3c','#f0a500','#2196a8','#e53935','#6d4fc2','#22c55e','#fb923c'];
+  mk('chartCars','doughnut',cars,[{data:cars.map(c=>all.filter(t=>t.carPlate===c).reduce((s,t)=>s+t.amount,0)),backgroundColor:colors,borderColor:isDark?'#141f18':'#fff',borderWidth:2}],true);
+  mk('chartTrips','line',days30.slice(-14).map(d=>d.label),[{label:'Trips',data:days30.slice(-14).map(d=>d.trips),borderColor:'#f0a500',backgroundColor:'rgba(240,165,0,0.1)',borderWidth:2,fill:true,tension:0.4,pointRadius:3,pointBackgroundColor:'#f0a500'}]);
+}
+
+// ══════════════════════════════════════════════
+// RENDER LOG PAGE
+// ══════════════════════════════════════════════
 function renderLog(){
   const el=document.getElementById('page-log');
   if(currentPage!=='log')return;
   if(tripState.driver)document.getElementById('driverBadge').textContent=tripState.driver.split(' ')[0]+' · '+tripState.carPlate;
-  else document.getElementById('driverBadge').textContent='— TAP TO LOGIN —';
+  else document.getElementById('driverBadge').textContent='— LOGIN —';
 
-  const gbar=tripState.gpsStatus==='detecting'
-    ?`<div class="gbar"><span>📡</span>DETECTING LOCATION...</div>`
-    :tripState.gpsStatus==='ok'&&tripState.nearestStation
-    ?`<div class="gbar"><span>📍</span>NEAREST: ${tripState.nearestStation.name} (${tripState.nearestStation.dist.toFixed(1)} KM)</div>`
-    :tripState.gpsStatus==='error'
-    ?`<div class="gbar err"><span>⚠</span>GPS UNAVAILABLE — MANUAL SELECT &nbsp;<span onclick="getGPS()" style="cursor:pointer;text-decoration:underline">RETRY</span></div>`
+  const gbar=tripState.gpsStatus==='detecting'?`<div class="gbar"><span>📡</span>DETECTING LOCATION...</div>`
+    :tripState.gpsStatus==='ok'&&tripState.nearestStation?`<div class="gbar"><span>📍</span>NEAREST: ${tripState.nearestStation.name} (${tripState.nearestStation.dist.toFixed(1)} KM)</div>`
+    :tripState.gpsStatus==='error'?`<div class="gbar err"><span>⚠</span>GPS UNAVAILABLE <span onclick="getGPS()" style="cursor:pointer;text-decoration:underline;margin-left:8px">RETRY</span></div>`
     :`<div class="gbar"><span>📡</span><span onclick="getGPS()" style="cursor:pointer;text-decoration:underline">TAP TO DETECT LOCATION</span></div>`;
 
+  // ── SETUP
   if(tripState.phase==='setup'){
     el.innerHTML=`
       <div class="card" style="border-left:4px solid var(--accent2)">
         <div class="ctitle">DRIVER LOGIN</div>
         <div class="field"><label>Select Driver</label>
           <select id="selD"><option value="">— Choose Driver —</option>
-          ${DRIVERS.map(d=>`<option value="${d}" ${d===tripState.driver?'selected':''}>${d}</option>`).join('')}</select>
-        </div>
+          ${DRIVERS.map(d=>`<option value="${d}" ${d===tripState.driver?'selected':''}>${d}</option>`).join('')}</select></div>
         <div class="field"><label>Car Plate</label>
           <select id="selP"><option value="">— Choose Car —</option>
-          ${CARS.map(c=>`<option value="${c}" ${c===tripState.carPlate?'selected':''}>${c}</option>`).join('')}</select>
-        </div>
+          ${CARS.map(c=>`<option value="${c}" ${c===tripState.carPlate?'selected':''}>${c}${shifts[c]?.open===false?' 🔴 CLOSED':shifts[c]?.open===true?' 🟢':''}</option>`).join('')}</select></div>
         <button class="bb bstart" onclick="saveDriver()">BEGIN SHIFT</button>
       </div>
       ${renderTodayHistory()}`;
     return;
   }
 
+  // ── IDLE (start trip)
   if(tripState.phase==='idle'){
+    // Check shift
+    if(!isShiftOpen(tripState.carPlate)){
+      el.innerHTML=`
+        <div class="shift-block">
+          <div class="shift-block-title">⛔ SHIFT CLOSED</div>
+          <div class="shift-block-sub">THE SHIFT FOR <strong>${tripState.carPlate}</strong> IS CURRENTLY CLOSED<br>CONTACT YOUR SUPERVISOR TO OPEN THE SHIFT</div>
+        </div>
+        <button class="bout" onclick="goSetup()">CHANGE CAR / DRIVER</button>`;
+      return;
+    }
+    const activeRoutes=ROUTES.filter(r=>r.active);
+    const showRoutePicker=useRoutes&&activeRoutes.length>0;
     el.innerHTML=`
       <div class="card">
         <div class="ctitle">START TRIP</div>
-        <div class="csub">// SELECT YOUR STARTING STATION</div>
+        <div class="csub">// ${showRoutePicker?'SELECT YOUR ROUTE':'SELECT YOUR STARTING STATION'}</div>
         ${gbar}
-        <div class="field"><label>FROM STATION</label></div>
-        <div class="sgrid">${STATIONS.map(s=>{
-          const d=distKm(s),isN=tripState.nearestStation?.name===s.name;
-          return`<div class="sbtn ${tripState.fromStation?.name===s.name?'sel':''}" onclick="selFrom('${s.name}')">
-            ${s.name}${isN?' 📍':''}
-            ${d!==null?`<span class="dist">${d.toFixed(1)} km</span>`:''}
-          </div>`;
-        }).join('')}</div>
+        ${showRoutePicker?`
+          <div class="field"><label>SELECT ROUTE</label></div>
+          <div class="rcards">
+            ${activeRoutes.map((r,i)=>`
+              <div class="rcard ${tripState.selectedRoute&&tripState.selectedRoute.from===r.from&&tripState.selectedRoute.to===r.to?'sel':''}" onclick="selectRoute(${i})">
+                <div>
+                  <div class="rc-route">${r.from} → ${r.to}</div>
+                  <div class="rc-sub">TAP TO SELECT</div>
+                </div>
+                <div class="rc-arr">→</div>
+              </div>`).join('')}
+          </div>
+          <div style="text-align:center;margin-bottom:10px">
+            <span onclick="useRoutes=false;save('fs_useroutes',false);renderLog()" style="font-family:var(--font-m);font-size:.52rem;color:var(--muted);cursor:pointer;text-decoration:underline;letter-spacing:1px">SWITCH TO STATION PICKER</span>
+          </div>`
+        :`
+          <div class="field"><label>FROM STATION</label></div>
+          <div class="sgrid">${STATIONS.map(s=>{const d=distKm(s),isN=tripState.nearestStation?.name===s.name;return`<div class="sbtn ${tripState.fromStation?.name===s.name?'sel':''}" onclick="selFrom('${s.name.replace(/'/g,"\\'")}')">
+            ${s.name}${isN?' 📍':''}${d!==null?`<span class="dist">${d.toFixed(1)} km</span>`:''}
+          </div>`;}).join('')}</div>
+          ${activeRoutes.length?`<div style="text-align:center;margin-bottom:10px"><span onclick="useRoutes=true;save('fs_useroutes',true);renderLog()" style="font-family:var(--font-m);font-size:.52rem;color:var(--muted);cursor:pointer;text-decoration:underline;letter-spacing:1px">SWITCH TO ROUTE PICKER</span></div>`:''}`}
         <button class="bb bstart" onclick="startTrip()" ${!tripState.fromStation?'disabled':''}>🚌 START TRIP</button>
         <button class="bout" onclick="goSetup()">CHANGE DRIVER / CAR</button>
       </div>
       ${renderTodayHistory()}`;
-    if(tripState.nearestStation&&!tripState.fromStation)setTimeout(()=>selFrom(tripState.nearestStation.name),100);
+    if(!showRoutePicker&&tripState.nearestStation&&!tripState.fromStation)setTimeout(()=>selFrom(tripState.nearestStation.name),100);
     return;
   }
 
+  // ── ACTIVE
   if(tripState.phase==='active'){
     const secs=tripState.tripStart?Math.floor((Date.now()-tripState.tripStart)/1000):0;
     el.innerHTML=`
       <div class="card">
         <div class="ctitle">TRIP IN PROGRESS</div>
-        <div class="csub">// DRIVE TO DESTINATION THEN TAP ARRIVE</div>
+        <div class="csub">// DRIVE TO DESTINATION — TAP ARRIVE WHEN THERE</div>
         <div class="rdisp">
           <div class="rs"><div class="rl">FROM</div><div class="rn">${tripState.fromStation.name}</div></div>
           <div class="rarr">→</div>
-          <div class="rs"><div class="rl">TO</div><div class="rn" style="color:var(--muted)">DESTINATION</div></div>
+          <div class="rs"><div class="rl">TO</div><div class="rn" style="color:var(--muted)">${tripState.selectedRoute?tripState.selectedRoute.to:'DESTINATION'}</div></div>
         </div>
         <div class="tdisp">
           <div class="tl">TRIP DURATION</div>
@@ -549,54 +1034,109 @@ function renderLog(){
         <button class="bb barrive" onclick="arrive()">📍 I HAVE ARRIVED</button>
         <button class="bout" onclick="if(confirm('Cancel this trip?')){tripState.phase='idle';clearInterval(timerInterval);renderLog();}">CANCEL TRIP</button>
       </div>`;
-    startTimer();return;
+    startTripTimer();return;
   }
 
+  // ── ARRIVED (enter amount)
   if(tripState.phase==='arrived'){
+    const activeRoutes=ROUTES.filter(r=>r.active);
+    const showRouteTo=useRoutes&&activeRoutes.length>0&&tripState.selectedRoute;
     el.innerHTML=`
       <div class="card">
         <div class="ctitle">END TRIP</div>
-        <div class="csub">// SELECT WHERE YOU ARRIVED & ENTER AMOUNT</div>
+        <div class="csub">// CONFIRM DESTINATION & ENTER AMOUNT</div>
         ${gbar}
         <div class="rdisp">
           <div class="rs"><div class="rl">FROM</div><div class="rn">${tripState.fromStation.name}</div></div>
           <div class="rarr">→</div>
           <div class="rs"><div class="rl">TO</div><div class="rn">${tripState.toStation?tripState.toStation.name:'???'}</div></div>
         </div>
-        <div class="field"><label>TO STATION (WHERE YOU ARRIVED)</label></div>
-        <div class="sgrid">${STATIONS.map(s=>{
-          const d=distKm(s),isN=tripState.nearestStation?.name===s.name,same=s.name===tripState.fromStation?.name;
-          return`<div class="sbtn ${tripState.toStation?.name===s.name?'sel':''} ${same?'dis':''}" onclick="selTo('${s.name}')">
-            ${s.name}${isN?' 📍':''}
-            ${d!==null?`<span class="dist">${d.toFixed(1)} km</span>`:''}
-          </div>`;
-        }).join('')}</div>
+        ${showRouteTo?`
+          <div class="field"><label>ARRIVED AT (CONFIRM OR CHANGE)</label></div>
+          <div class="rcards" style="margin-bottom:12px">
+            ${activeRoutes.filter(r=>r.from===tripState.fromStation.name).concat(activeRoutes.filter(r=>r.from!==tripState.fromStation.name)).map((r,i)=>`
+              <div class="rcard ${tripState.toStation?.name===r.to?'sel':''}" onclick="selTo('${r.to.replace(/'/g,"\\'")}')">
+                <div><div class="rc-route">${r.to}</div><div class="rc-sub">${r.from} → ${r.to}</div></div>
+                <div class="rc-arr">→</div>
+              </div>`).join('')}
+          </div>`
+        :`
+          <div class="field"><label>TO STATION</label></div>
+          <div class="sgrid">${STATIONS.map(s=>{const d=distKm(s),isN=tripState.nearestStation?.name===s.name,same=s.name===tripState.fromStation?.name;return`<div class="sbtn ${tripState.toStation?.name===s.name?'sel':''} ${same?'dis':''}" onclick="selTo('${s.name.replace(/'/g,"\\'")}')">
+            ${s.name}${isN?' 📍':''}${d!==null?`<span class="dist">${d.toFixed(1)} km</span>`:''}
+          </div>`;}).join('')}</div>`}
         <div class="field"><label>AMOUNT COLLECTED IN KES</label></div>
         <div class="awrap">
           <span class="apfx">KES</span>
-          <input type="number" class="ainput" id="amtIn" placeholder="0" min="0" value="${tripState.amount||''}">
+          <input type="number" class="ainput" id="amtIn" placeholder="0" min="${AMOUNT_MIN}" max="${AMOUNT_MAX}" value="${tripState.amount||''}">
         </div>
-        <button class="bb bend" onclick="endTrip()" ${!tripState.toStation?'disabled':''}>✅ SUBMIT TRIP</button>
+        <div class="field"><label>TRIP NOTES (optional)</label>
+          <textarea id="notesIn" placeholder="e.g. Road closed, vehicle issue, extra passengers...">${tripState.notes||''}</textarea>
+        </div>
+        <button class="bb bend" onclick="reviewTrip()" ${!tripState.toStation?'disabled':''}>REVIEW & CONFIRM →</button>
       </div>`;
-    if(tripState.nearestStation&&!tripState.toStation&&tripState.nearestStation.name!==tripState.fromStation?.name)setTimeout(()=>selTo(tripState.nearestStation.name),100);
+    if(!showRouteTo&&tripState.nearestStation&&!tripState.toStation&&tripState.nearestStation.name!==tripState.fromStation?.name)setTimeout(()=>selTo(tripState.nearestStation.name),100);
+    if(showRouteTo&&tripState.selectedRoute&&!tripState.toStation)setTimeout(()=>selTo(tripState.selectedRoute.to.replace(/'/g,"\\'")),100);
     return;
   }
 
+  // ── CONFIRM (review before submit)
+  if(tripState.phase==='confirm'){
+    const dur=Math.floor((tripState.tripEnd-tripState.tripStart)/60000);
+    const isHighAmount=tripState.amount>20000;
+    el.innerHTML=`
+      <div class="card" style="border-top:4px solid #22c55e">
+        <div class="confirm-title">CONFIRM TRIP</div>
+        ${isHighAmount?`<div class="confirm-warn">⚠ AMOUNT IS HIGHER THAN USUAL — PLEASE VERIFY</div>`:''}
+        <div class="confirm-card">
+          <div class="confirm-row"><span class="confirm-label">DRIVER</span><span class="confirm-val">${tripState.driver}</span></div>
+          <div class="confirm-row"><span class="confirm-label">CAR</span><span class="confirm-val">${tripState.carPlate}</span></div>
+          <div class="confirm-row"><span class="confirm-label">FROM</span><span class="confirm-val">${tripState.fromStation.name}</span></div>
+          <div class="confirm-row"><span class="confirm-label">TO</span><span class="confirm-val">${tripState.toStation.name}</span></div>
+          <div class="confirm-row"><span class="confirm-label">DURATION</span><span class="confirm-val">${dur} MIN</span></div>
+          <div class="confirm-row"><span class="confirm-label">TIME</span><span class="confirm-val">${new Date().toLocaleTimeString()}</span></div>
+          ${tripState.notes?`<div class="confirm-row"><span class="confirm-label">NOTES</span><span class="confirm-val">${tripState.notes}</span></div>`:''}
+          <div class="confirm-row" style="padding-top:14px;margin-top:4px;border-top:2px solid var(--accent);border-bottom:none">
+            <span class="confirm-label">AMOUNT COLLECTED</span>
+            <span class="confirm-amount">KES ${Number(tripState.amount).toLocaleString()}</span>
+          </div>
+        </div>
+        <button class="bb bconfirm" onclick="confirmAndSubmit()">✅ CONFIRM &amp; SUBMIT</button>
+        <button class="bout" onclick="backToEdit()">← GO BACK &amp; EDIT</button>
+      </div>`;
+    return;
+  }
+
+  // ── DONE
   if(tripState.phase==='done'){
     const last=localTrips[0];
+    const today=new Date().toLocaleDateString('en-GB');
+    const todayTrips=localTrips.filter(t=>t.date===today&&t.driver===tripState.driver);
+    const todayTotal=todayTrips.reduce((s,t)=>s+t.amount,0);
+    const target=carTargets[tripState.carPlate];
+    const tpct=target?Math.min(100,Math.round((todayTotal/target)*100)):null;
     el.innerHTML=`
       <div class="scard">
         <div class="sico">✅</div>
         <div class="stitle">TRIP LOGGED!</div>
         <div class="sdetails">
-          <div class="drow"><span>DRIVER</span><span>${last.driver}</span></div>
-          <div class="drow"><span>CAR</span><span>${last.carPlate}</span></div>
           <div class="drow"><span>ROUTE</span><span>${last.fromStation} → ${last.toStation}</span></div>
           <div class="drow"><span>DURATION</span><span>${last.duration} MIN</span></div>
           <div class="drow"><span>AMOUNT</span><span>KES ${Number(last.amount).toLocaleString()}</span></div>
-          <div class="drow"><span>TIME</span><span>${last.time}</span></div>
+          ${last.notes?`<div class="drow"><span>NOTES</span><span style="max-width:60%;text-align:right">${last.notes}</span></div>`:''}
         </div>
-        <div class="ssub">${appConfig.appsScriptUrl?'✅ SYNCED TO GOOGLE SHEETS':'💾 SAVED LOCALLY'}</div>
+        <div class="ssub">${appConfig.appsScriptUrl&&isOnline()?'✅ SYNCED TO GOOGLE SHEETS':offlineQ.length?'📦 QUEUED FOR SYNC':'💾 SAVED LOCALLY'}</div>
+      </div>
+      <div class="card" style="border-left:4px solid var(--accent2)">
+        <div class="ctitle" style="margin-bottom:12px">MY SHIFT TODAY</div>
+        <div class="sumcard" style="margin-bottom:0">
+          <div class="sumrow"><span class="sumlbl">TRIPS TODAY</span><span class="sumval">${todayTrips.length}</span></div>
+          <div class="sumrow"><span class="sumlbl">REVENUE TODAY</span><span class="sumval">KES ${todayTotal.toLocaleString()}</span></div>
+          <div class="sumrow"><span class="sumlbl">AVG PER TRIP</span><span class="sumval">KES ${todayTrips.length?Math.round(todayTotal/todayTrips.length).toLocaleString():'—'}</span></div>
+          ${target?`<div class="sumrow"><span class="sumlbl">TARGET PROGRESS</span><span class="sumval" style="color:${tpct>=100?'#22c55e':'var(--red)'}">${tpct}%</span></div>
+          <div style="margin-top:8px"><div class="target-bar"><div class="target-fill ${tpct>=100?'high':tpct>=50?'mid':'low'}" style="width:${tpct}%"></div></div>
+          <div style="font-family:var(--font-m);font-size:.48rem;color:var(--muted);margin-top:4px">KES ${todayTotal.toLocaleString()} of KES ${Number(target).toLocaleString()} TARGET</div></div>`:''}
+        </div>
       </div>
       <button class="bb bstart" onclick="newTrip()">🚌 START NEXT TRIP</button>
       <button class="bout" onclick="goSetup()">END SHIFT</button>
@@ -607,148 +1147,203 @@ function renderLog(){
 
 function renderTodayHistory(){
   const today=new Date().toLocaleDateString('en-GB');
-  const tt=localTrips.filter(t=>t.date===today);
+  const tt=localTrips.filter(t=>t.date===today&&t.driver===tripState.driver);
   if(!tt.length)return'';
   const tot=tt.reduce((s,t)=>s+t.amount,0);
-  return`<div class="hsect">
-    <div class="stitle2">TODAY'S TRIPS (${tt.length}) · KES ${tot.toLocaleString()}</div>
-    ${tt.slice(0,8).map(t=>`<div class="hitem">
-      <div class="htop"><span class="hroute">${t.fromStation} → ${t.toStation}</span><span class="hamt">KES ${Number(t.amount).toLocaleString()}</span></div>
-      <div class="hbot"><span>${t.driver} · ${t.carPlate}</span><span class="htime">${t.time}</span></div>
-    </div>`).join('')}
-  </div>`;
+  return`<div class="hsect"><div class="stitle2">MY TRIPS TODAY (${tt.length}) · KES ${tot.toLocaleString()}</div>
+  ${tt.slice(0,8).map(t=>`<div class="hitem">
+    <div class="htop"><span class="hroute">${t.fromStation} → ${t.toStation}</span><span class="hamt">KES ${Number(t.amount).toLocaleString()}</span></div>
+    <div class="hbot"><span>${t.carPlate}${t.notes?` · 📝 ${t.notes.slice(0,28)}`:''}</span><span class="htime">${t.time}</span></div>
+  </div>`).join('')}</div>`;
 }
 
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════
 // RENDER REPORTS
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════
 function renderReports(){
   const el=document.getElementById('page-reports');
-  const all=[...sheetTrips,...localTrips.filter(lt=>!sheetTrips.find(st=>st.time===lt.time&&st.driver===lt.driver))];
+  const all=allData();
   const filtered=filterTrips(all);
   const total=filtered.reduce((s,t)=>s+(t.amount||0),0);
   const avg=filtered.length?Math.round(total/filtered.length):0;
   const now=new Date();now.setHours(0,0,0,0);
   const todayT=all.filter(t=>{const d=parseDate(t.date);return d&&d>=now;});
-
-  // Build dropdown options from ALL data so filters show all choices
   const allCars=[...new Set(all.map(t=>t.carPlate).filter(Boolean))].sort();
   const allDrivers=[...new Set(all.map(t=>t.driver).filter(Boolean))].sort();
   const allStations=[...new Set([...all.map(t=>t.fromStation),...all.map(t=>t.toStation)].filter(Boolean))].sort();
-
-  // Active filter tags
   const activeTags=[];
-  if(filterCar)activeTags.push({label:'CAR: '+filterCar,clear:"filterCar='';renderReports()"});
-  if(filterDriver)activeTags.push({label:'DRIVER: '+filterDriver.split(' ')[0],clear:"filterDriver='';renderReports()"});
-  if(filterFrom)activeTags.push({label:'FROM: '+filterFrom,clear:"filterFrom='';renderReports()"});
-  if(filterTo)activeTags.push({label:'TO: '+filterTo,clear:"filterTo='';renderReports()"});
-  if(reportFilter!=='all')activeTags.push({label:reportFilter.toUpperCase(),clear:"reportFilter='all';renderReports()"});
+  if(filterCar)activeTags.push({l:'CAR: '+filterCar,c:"filterCar='';renderReports()"});
+  if(filterDriver)activeTags.push({l:'DRV: '+filterDriver.split(' ')[0],c:"filterDriver='';renderReports()"});
+  if(filterFrom)activeTags.push({l:'FROM: '+filterFrom,c:"filterFrom='';renderReports()"});
+  if(filterTo)activeTags.push({l:'TO: '+filterTo,c:"filterTo='';renderReports()"});
+  if(reportFilter!=='all')activeTags.push({l:reportFilter.toUpperCase(),c:"reportFilter='all';renderReports()"});
 
   el.innerHTML=`
     <div class="exprow">
-      <button class="bsm bg" onclick="loadSheetData()">⟳ SYNC</button>
-      <button class="bsm by" onclick="exportPDF()">⬇ PDF</button>
-      <button class="bsm" style="background:var(--muted);color:#fff" onclick="clearFilters()">✕ CLEAR</button>
+      <button class="bsm bg" onclick="loadSheetData()">⟳</button>
+      <button class="bsm by" onclick="exportPDF()">PDF</button>
+      <button class="bsm" style="background:#217346;color:#fff" onclick="exportExcel()">XLS</button>
+      <button class="bsm bwa" onclick="generateWhatsAppSummary()">📱 WA</button>
+      <button class="bsm bgray" onclick="clearFilters()">✕</button>
     </div>
-
     <div class="sgrid2">
       <div class="sbox"><div class="sl">TOTAL TRIPS</div><div class="sv green">${filtered.length}</div></div>
-      <div class="sbox"><div class="sl">TOTAL REVENUE</div><div class="sv green" style="font-size:1.2rem">KES ${total.toLocaleString()}</div></div>
-      <div class="sbox"><div class="sl">AVG / TRIP</div><div class="sv yellow" style="font-size:1.2rem">KES ${avg.toLocaleString()}</div></div>
+      <div class="sbox"><div class="sl">TOTAL REVENUE</div><div class="sv green" style="font-size:1.1rem">KES ${total.toLocaleString()}</div></div>
+      <div class="sbox"><div class="sl">AVG / TRIP</div><div class="sv yellow" style="font-size:1.1rem">KES ${avg.toLocaleString()}</div></div>
       <div class="sbox"><div class="sl">TODAY'S TRIPS</div><div class="sv">${todayT.length}</div></div>
     </div>
+    <div class="rtabs">
+      <button class="rtab ${reportTab==='overview'?'active':''}" onclick="reportTab='overview';renderReports()">OVERVIEW</button>
+      <button class="rtab ${reportTab==='charts'?'active':''}" onclick="reportTab='charts';renderReports();setTimeout(renderCharts,80)">CHARTS</button>
+      <button class="rtab ${reportTab==='leaderboard'?'active':''}" onclick="reportTab='leaderboard';renderReports()">LEADERBOARD</button>
+      <button class="rtab ${reportTab==='performance'?'active':''}" onclick="reportTab='performance';renderReports()">PERFORMANCE</button>
+    </div>
 
-    <!-- FILTER PANEL -->
-    <div class="card" style="padding:14px;margin-bottom:12px">
-      <div class="stitle2" style="margin-bottom:10px">🔍 FILTER REPORTS</div>
-
-      <div class="fchips" style="margin-bottom:10px">
-        ${['all','today','week','month'].map(f=>`<div class="fchip ${reportFilter===f?'active':''}" onclick="reportFilter='${f}';renderReports()">${f==='all'?'ALL TIME':f.toUpperCase()}</div>`).join('')}
+    <!-- OVERVIEW -->
+    <div id="rsect-overview" class="rsect ${reportTab==='overview'?'active':''}">
+      <div class="card" style="padding:13px;margin-bottom:11px">
+        <div class="stitle2" style="margin-bottom:9px">🔍 FILTER REPORTS</div>
+        <div class="fchips">${['all','today','week','month'].map(f=>`<div class="fchip ${reportFilter===f?'active':''}" onclick="reportFilter='${f}';renderReports()">${f==='all'?'ALL TIME':f.toUpperCase()}</div>`).join('')}</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px">
+          <div><div style="font-family:var(--font-m);font-size:.48rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">BY CAR</div>
+            <select style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 9px;font-family:var(--font-b);font-size:.8rem;outline:none;appearance:none" onchange="filterCar=this.value;renderReports()">
+              <option value="">All Cars</option>${allCars.map(c=>`<option value="${c}" ${filterCar===c?'selected':''}>${c}</option>`).join('')}</select></div>
+          <div><div style="font-family:var(--font-m);font-size:.48rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">BY DRIVER</div>
+            <select style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 9px;font-family:var(--font-b);font-size:.8rem;outline:none;appearance:none" onchange="filterDriver=this.value;renderReports()">
+              <option value="">All Drivers</option>${allDrivers.map(d=>`<option value="${d}" ${filterDriver===d?'selected':''}>${d.split(' ')[0]}</option>`).join('')}</select></div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px">
+          <div><div style="font-family:var(--font-m);font-size:.48rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">FROM</div>
+            <select style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 9px;font-family:var(--font-b);font-size:.8rem;outline:none;appearance:none" onchange="filterFrom=this.value;renderReports()">
+              <option value="">Any</option>${allStations.map(s=>`<option value="${s}" ${filterFrom===s?'selected':''}>${s}</option>`).join('')}</select></div>
+          <div><div style="font-family:var(--font-m);font-size:.48rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px">TO</div>
+            <select style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 9px;font-family:var(--font-b);font-size:.8rem;outline:none;appearance:none" onchange="filterTo=this.value;renderReports()">
+              <option value="">Any</option>${allStations.map(s=>`<option value="${s}" ${filterTo===s?'selected':''}>${s}</option>`).join('')}</select></div>
+        </div>
+        ${activeTags.length?`<div style="margin-top:9px;display:flex;flex-wrap:wrap;gap:4px">${activeTags.map(t=>`<div class="tag-active">${t.l} <span onclick="${t.c}">✕</span></div>`).join('')}</div>`:''}
       </div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
-        <div>
-          <div style="font-family:var(--font-m);font-size:.52rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">BY CAR</div>
-          <select style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px;font-family:var(--font-b);font-size:.82rem;outline:none;appearance:none" onchange="filterCar=this.value;renderReports()">
-            <option value="">All Cars</option>
-            ${allCars.map(c=>`<option value="${c}" ${filterCar===c?'selected':''}>${c}</option>`).join('')}
-          </select>
-        </div>
-        <div>
-          <div style="font-family:var(--font-m);font-size:.52rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">BY DRIVER</div>
-          <select style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px;font-family:var(--font-b);font-size:.82rem;outline:none;appearance:none" onchange="filterDriver=this.value;renderReports()">
-            <option value="">All Drivers</option>
-            ${allDrivers.map(d=>`<option value="${d}" ${filterDriver===d?'selected':''}>${d.split(' ')[0]}</option>`).join('')}
-          </select>
-        </div>
-      </div>
-
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-        <div>
-          <div style="font-family:var(--font-m);font-size:.52rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">FROM STATION</div>
-          <select style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px;font-family:var(--font-b);font-size:.82rem;outline:none;appearance:none" onchange="filterFrom=this.value;renderReports()">
-            <option value="">Any Station</option>
-            ${allStations.map(s=>`<option value="${s}" ${filterFrom===s?'selected':''}>${s}</option>`).join('')}
-          </select>
-        </div>
-        <div>
-          <div style="font-family:var(--font-m);font-size:.52rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">TO STATION</div>
-          <select style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px;font-family:var(--font-b);font-size:.82rem;outline:none;appearance:none" onchange="filterTo=this.value;renderReports()">
-            <option value="">Any Station</option>
-            ${allStations.map(s=>`<option value="${s}" ${filterTo===s?'selected':''}>${s}</option>`).join('')}
-          </select>
-        </div>
-      </div>
-
-      ${activeTags.length?`<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:5px">
-        ${activeTags.map(t=>`<div style="display:inline-flex;align-items:center;gap:5px;background:var(--accent);color:#fff;padding:3px 9px;font-family:var(--font-m);font-size:.52rem;letter-spacing:1px">
-          ${t.label} <span onclick="${t.clear}" style="cursor:pointer;opacity:.8;font-size:.75rem">✕</span>
+      ${filtered.length===0?'<div class="empty">NO RESULTS<br>TRY DIFFERENT FILTERS OR SYNC</div>':`
+      <div class="rtable">
+        <div class="rth"><span>ROUTE</span><span>DRIVER</span><span>DATE</span><span>AMOUNT</span></div>
+        ${filtered.slice(0,80).map(t=>`<div class="rtr">
+          <div><div class="trroute">${(t.fromStation||'').slice(0,7)}→${(t.toStation||'').slice(0,7)}</div><div style="font-family:var(--font-m);font-size:.43rem;color:var(--muted)">${t.carPlate||''}</div></div>
+          <div style="font-size:.64rem;color:var(--muted)">${(t.driver||'').split(' ')[0]}</div>
+          <div style="font-family:var(--font-m);font-size:.48rem;color:var(--muted)">${(t.date||'').slice(0,10)}</div>
+          <div class="tramt">KES ${Number(t.amount||0).toLocaleString()}</div>
         </div>`).join('')}
-      </div>`:''}
+      </div>
+      <div style="font-family:var(--font-m);font-size:.5rem;color:var(--muted);text-align:center;padding:6px">SHOWING ${Math.min(80,filtered.length)} OF ${filtered.length}</div>`}
+      ${renderCarBars(filtered,total)}
     </div>
 
-    ${filtered.length===0?'<div class="empty">NO RESULTS<br>TRY DIFFERENT FILTERS OR SYNC FROM SHEET</div>':`
-    <div class="rtable">
-      <div class="rth"><span>ROUTE</span><span>DRIVER</span><span>DATE</span><span>AMOUNT</span></div>
-      ${filtered.slice(0,80).map(t=>`<div class="rtr">
-        <div><div class="trroute">${(t.fromStation||'').slice(0,7)}→${(t.toStation||'').slice(0,7)}</div><div style="font-family:var(--font-m);font-size:.46rem;color:var(--muted)">${t.carPlate||''}</div></div>
-        <div><div class="trdrv">${(t.driver||'').split(' ')[0]}</div></div>
-        <div class="trtm">${(t.date||'').slice(0,10)}</div>
-        <div class="tramt">KES ${Number(t.amount||0).toLocaleString()}</div>
-      </div>`).join('')}
+    <!-- CHARTS -->
+    <div class="rsect ${reportTab==='charts'?'active':''}">
+      <div class="chart-wrap"><div class="chart-title">DAILY REVENUE — 30 DAYS</div><div class="chart-canvas"><canvas id="chartDaily"></canvas></div></div>
+      <div class="chart-wrap"><div class="chart-title">WEEKLY COMPARISON</div><div class="chart-canvas"><canvas id="chartWeekly"></canvas></div></div>
+      <div class="chart-wrap"><div class="chart-title">REVENUE BY CAR</div><div class="chart-canvas"><canvas id="chartCars"></canvas></div></div>
+      <div class="chart-wrap"><div class="chart-title">DAILY TRIPS — 14 DAYS</div><div class="chart-canvas"><canvas id="chartTrips"></canvas></div></div>
     </div>
-    <div style="font-family:var(--font-m);font-size:.55rem;color:var(--muted);text-align:center;padding:8px">
-      SHOWING ${Math.min(filtered.length,80)} OF ${filtered.length} TRIPS
-    </div>`}
 
-    ${filtered.length?`
-    <div class="stitle2" style="margin-bottom:9px;margin-top:4px">REVENUE BY CAR</div>
-    ${[...new Set(filtered.map(t=>t.carPlate).filter(Boolean))].map(car=>{
-      const ct=filtered.filter(t=>t.carPlate===car),cr=ct.reduce((s,t)=>s+t.amount,0),pct=total?Math.round((cr/total)*100):0;
-      return`<div class="hitem" style="margin-bottom:7px;cursor:pointer" onclick="filterCar=filterCar===car?'':'${car}';renderReports()">
-        <div class="htop"><span class="hroute">${car} ${filterCar===car?'<span style=\"background:var(--accent);color:#fff;font-size:.45rem;padding:1px 5px\">FILTERED</span>':''}</span><span class="hamt">KES ${cr.toLocaleString()}</span></div>
-        <div style="height:5px;background:var(--border);border-radius:3px;margin-top:6px;overflow:hidden"><div style="height:100%;width:${pct}%;background:var(--accent);border-radius:3px"></div></div>
-        <div class="hbot" style="margin-top:4px"><span>${ct.length} trips</span><span>${pct}% of revenue</span></div>
-      </div>`;
-    }).join('')}`:''}`;
+    <!-- LEADERBOARD -->
+    <div class="rsect ${reportTab==='leaderboard'?'active':''}">
+      ${renderLeaderboard(filtered)}
+    </div>
+
+    <!-- PERFORMANCE -->
+    <div class="rsect ${reportTab==='performance'?'active':''}">
+      ${renderPerformance(all)}
+    </div>`;
 }
 
-// ════════════════════════════════════════════
+function renderCarBars(filtered,total){
+  const cars=[...new Set(filtered.map(t=>t.carPlate).filter(Boolean))];
+  if(!cars.length)return'';
+  const today=new Date().toLocaleDateString('en-GB');
+  return`<div class="stitle2" style="margin-bottom:9px;margin-top:4px">REVENUE BY CAR</div>
+  ${cars.map(car=>{
+    const ct=filtered.filter(t=>t.carPlate===car),cr=ct.reduce((s,t)=>s+t.amount,0),pct=total?Math.round((cr/total)*100):0;
+    const todayRev=localTrips.filter(t=>t.carPlate===car&&t.date===today).reduce((s,t)=>s+t.amount,0);
+    const target=carTargets[car],tpct=target?Math.min(100,Math.round((todayRev/target)*100)):null;
+    return`<div class="hitem" style="margin-bottom:7px;cursor:pointer" onclick="filterCar=filterCar==='${car}'?'':'${car}';renderReports()">
+      <div class="htop"><span class="hroute">${car}${shifts[car]?.open===false?' <span style=\\"background:var(--red);color:#fff;font-size:.42rem;padding:1px 5px\\">CLOSED</span>':''}</span><span class="hamt">KES ${cr.toLocaleString()}</span></div>
+      <div class="bar-mini"><div class="bar-fill" style="width:${pct}%"></div></div>
+      <div class="hbot" style="margin-top:4px"><span>${ct.length} trips · ${pct}% of total</span>${target?`<span style="color:${tpct>=100?'#22c55e':tpct>=50?'var(--accent2)':'var(--red)'}">TODAY ${tpct}%</span>`:''}</div>
+    </div>`;
+  }).join('')}`;
+}
+
+function renderLeaderboard(filtered){
+  if(!filtered.length)return'<div class="empty">NO DATA<br>SYNC FROM SHEET OR LOG TRIPS</div>';
+  const dm={};filtered.forEach(t=>{const d=t.driver||'?';if(!dm[d])dm[d]={trips:0,revenue:0};dm[d].trips++;dm[d].revenue+=t.amount||0;});
+  const dr=Object.entries(dm).sort((a,b)=>b[1].revenue-a[1].revenue);
+  const mr=dr[0]?.[1].revenue||1;
+  const cm={};filtered.forEach(t=>{const c=t.carPlate||'?';if(!cm[c])cm[c]={trips:0,revenue:0};cm[c].trips++;cm[c].revenue+=t.amount||0;});
+  const cr=Object.entries(cm).sort((a,b)=>b[1].revenue-a[1].revenue);
+  return`
+    <div class="stitle2" style="margin-bottom:9px">🏆 TOP DRIVERS BY REVENUE</div>
+    ${dr.slice(0,7).map(([name,data],i)=>`<div class="lb-item">
+      <div class="lb-rank ${i===0?'g':i===1?'s':i===2?'b':''}">${i+1}</div>
+      <div><div class="lb-name">${name.split(' ')[0]} ${name.split(' ')[1]||''}</div><div class="lb-sub">${data.trips} trips</div>
+      <div class="bar-mini" style="width:80%"><div class="bar-fill" style="width:${Math.round((data.revenue/mr)*100)}%"></div></div></div>
+      <div><div class="lb-val">KES ${(data.revenue/1000).toFixed(1)}K</div><div class="lb-vsub">KES ${data.trips?Math.round(data.revenue/data.trips).toLocaleString():'—'}/trip</div></div>
+    </div>`).join('')}
+    <div class="stitle2" style="margin-bottom:9px;margin-top:14px">🚗 TOP CARS BY REVENUE</div>
+    ${cr.map(([plate,data],i)=>`<div class="lb-item">
+      <div class="lb-rank ${i===0?'g':i===1?'s':i===2?'b':''}">${i+1}</div>
+      <div><div class="lb-name">${plate}</div><div class="lb-sub">${data.trips} trips</div>
+      <div class="bar-mini" style="width:80%"><div class="bar-fill" style="width:${Math.round((data.revenue/(cr[0][1].revenue||1))*100)}%"></div></div></div>
+      <div><div class="lb-val">KES ${(data.revenue/1000).toFixed(1)}K</div><div class="lb-vsub">${data.trips?Math.round(data.revenue/data.trips).toLocaleString():''}/trip</div></div>
+    </div>`).join('')}`;
+}
+
+function renderPerformance(all){
+  if(!all.length)return'<div class="empty">NO DATA<br>SYNC FROM SHEET OR LOG TRIPS</div>';
+  const drivers=[...new Set(all.map(t=>t.driver).filter(Boolean))];
+  const allAvgs=drivers.map(d=>{const dt=all.filter(t=>t.driver===d);return dt.length?dt.reduce((s,t)=>s+t.amount,0)/dt.length:0;});
+  const maxAvg=Math.max(...allAvgs)||1;
+  const allDays=drivers.map(d=>[...new Set(all.filter(t=>t.driver===d).map(t=>t.date))].length);
+  const maxDays=Math.max(...allDays)||1;
+  const allTrips=drivers.map(d=>all.filter(t=>t.driver===d).length);
+  const maxTrips=Math.max(...allTrips)||1;
+  return drivers.map((driver,di)=>{
+    const dtrips=all.filter(t=>t.driver===driver);
+    const rev=dtrips.reduce((s,t)=>s+t.amount,0);
+    const avg=dtrips.length?Math.round(rev/dtrips.length):0;
+    const days=[...new Set(dtrips.map(t=>t.date))].length;
+    const bestDay=dtrips.reduce((best,t)=>{const dr=dtrips.filter(x=>x.date===t.date).reduce((s,x)=>s+x.amount,0);return dr>best?dr:best;},0);
+    const score=Math.round((allAvgs[di]/maxAvg)*50+(allDays[di]/maxDays)*30+(allTrips[di]/maxTrips)*20);
+    const grade=score>=80?'A':score>=60?'B':'C';
+    return`<div class="perf-card">
+      <div class="perf-name">${driver.split(' ')[0]} ${driver.split(' ')[1]||''} <span class="score-badge score-${grade.toLowerCase()}">${grade}</span></div>
+      <div class="perf-grid">
+        <div class="pstat"><div class="pl">TOTAL TRIPS</div><div class="pv">${dtrips.length}</div></div>
+        <div class="pstat"><div class="pl">REVENUE</div><div class="pv" style="font-size:.85rem">KES ${(rev/1000).toFixed(1)}K</div></div>
+        <div class="pstat"><div class="pl">AVG/TRIP</div><div class="pv" style="font-size:.85rem">KES ${avg.toLocaleString()}</div></div>
+        <div class="pstat"><div class="pl">DAYS ACTIVE</div><div class="pv">${days}</div></div>
+        <div class="pstat"><div class="pl">BEST DAY</div><div class="pv" style="font-size:.85rem">KES ${bestDay.toLocaleString()}</div></div>
+        <div class="pstat"><div class="pl">SCORE</div><div class="pv">${score}/100</div></div>
+      </div>
+      <div style="margin-top:9px"><div style="font-family:var(--font-m);font-size:.46rem;color:var(--muted);margin-bottom:4px">PERFORMANCE SCORE</div>
+      <div class="target-bar"><div class="target-fill ${score>=80?'high':score>=60?'mid':'low'}" style="width:${score}%"></div></div></div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════
 // RENDER ADMIN
-// ════════════════════════════════════════════
+// ══════════════════════════════════════════════
 function renderAdmin(){
   const el=document.getElementById('page-admin');
   if(!adminUnlocked){
     el.innerHTML=`
       <div class="apinbox">
         <div class="apintitle">ADMIN ACCESS</div>
-        <div class="apinsub">ENTER PIN TO MANAGE DRIVERS, CARS & STATIONS</div>
+        <div class="apinsub">ENTER PIN TO MANAGE SHIFTS,<br>ROUTES, DRIVERS & SETTINGS</div>
         <input type="password" class="pininput" id="pinIn" maxlength="6" placeholder="••••" onkeydown="if(event.key==='Enter')checkPin()">
         <button class="bb bstart" style="max-width:200px;margin:0 auto;display:block" onclick="checkPin()">UNLOCK</button>
       </div>`;
     return;
   }
-
   el.innerHTML=`
     <div class="card" style="border-left:4px solid var(--accent2);margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;align-items:center">
@@ -757,22 +1352,100 @@ function renderAdmin(){
       </div>
     </div>
     <div class="atabs">
+      <button class="atab ${adminTab==='shifts'?'active':''}" onclick="adminTab='shifts';renderAdmin()">SHIFTS</button>
+      <button class="atab ${adminTab==='routes'?'active':''}" onclick="adminTab='routes';renderAdmin()">ROUTES</button>
       <button class="atab ${adminTab==='drivers'?'active':''}" onclick="adminTab='drivers';renderAdmin()">DRIVERS</button>
       <button class="atab ${adminTab==='cars'?'active':''}" onclick="adminTab='cars';renderAdmin()">CARS</button>
       <button class="atab ${adminTab==='stations'?'active':''}" onclick="adminTab='stations';renderAdmin()">STATIONS</button>
+      <button class="atab ${adminTab==='trips'?'active':''}" onclick="adminTab='trips';renderAdmin()">TRIPS</button>
       <button class="atab ${adminTab==='config'?'active':''}" onclick="adminTab='config';renderAdmin()">CONFIG</button>
-      <button class="atab ${adminTab==='settings'?'active':''}" onclick="adminTab='settings';renderAdmin()">SETTINGS</button>
+      <button class="atab ${adminTab==='settings'?'active':''}" onclick="adminTab='settings';renderAdmin()">⚙ DEV</button>
     </div>
 
-    <div id="asect-drivers" class="asect ${adminTab==='drivers'?'active':''}">
+    <!-- SHIFTS -->
+    <div class="asect ${adminTab==='shifts'?'active':''}">
       <div class="card">
-        <div class="ctitle">MANAGE DRIVERS <span class="pill">${DRIVERS.length}</span></div>
-        <div class="alist">
-          ${DRIVERS.map((d,i)=>`<div class="aitem">
-            <div><div class="aitem-name">${d}</div><div class="aitem-sub">DRIVER #${i+1}</div></div>
-            <button class="adel" onclick="removeDriver(${i})" title="Remove">✕</button>
-          </div>`).join('')}
+        <div class="ctitle">SHIFT MANAGEMENT</div>
+        <div class="csub">// OPEN OR CLOSE SHIFTS PER CAR — CLOSED CARS CANNOT LOG TRIPS</div>
+        ${CARS.map(car=>{
+          const s=shifts[car];
+          const isOpen=s?.open===true;
+          const isClosed=s?.open===false;
+          const openTime=s?.openedAt?new Date(s.openedAt).toLocaleTimeString():'';
+          return`<div class="aitem" style="margin-bottom:8px">
+            <div style="flex:1">
+              <div class="aitem-name">${car}</div>
+              <div class="aitem-sub">
+                ${isOpen?`<span class="shift-open">🟢 OPEN</span> since ${openTime} by ${s.openedBy||'?'}`
+                :isClosed?`<span class="shift-closed">🔴 CLOSED</span> at ${s?.closedAt?new Date(s.closedAt).toLocaleTimeString():''}`
+                :'<span style="font-family:var(--font-m);font-size:.52rem;color:var(--muted)">NO SHIFT SET</span>'}
+              </div>
+            </div>
+            <div class="abtn-row">
+              ${!isOpen?`<button class="bsm bg" onclick="openShift('${car}')">OPEN</button>`:''}
+              ${isOpen?`<button class="bsm br" onclick="closeShift('${car}')">CLOSE</button>`:''}
+            </div>
+          </div>`;
+        }).join('')}
+        <div class="divline"></div>
+        <div style="display:flex;gap:7px">
+          <button class="bsm bg" style="flex:1;padding:10px" onclick="openAllShifts()">OPEN ALL SHIFTS</button>
+          <button class="bsm br" style="flex:1;padding:10px" onclick="closeAllShifts()">CLOSE ALL SHIFTS</button>
         </div>
+      </div>
+    </div>
+
+    <!-- ROUTES -->
+    <div class="asect ${adminTab==='routes'?'active':''}">
+      <div class="card">
+        <div class="ctitle">ROUTE MANAGEMENT <span class="pill">${ROUTES.filter(r=>r.active).length} ACTIVE</span></div>
+        <div class="csub">// DEFINE FIXED ROUTES DRIVERS CAN SELECT — TOGGLE ACTIVE/INACTIVE</div>
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:10px;background:var(--surface);border:1px solid var(--border)">
+          <div style="flex:1;font-family:var(--font-m);font-size:.58rem;color:var(--text)">ROUTE PICKER MODE</div>
+          <button class="bsm ${useRoutes?'bg':'bghost'}" onclick="useRoutes=!useRoutes;save('fs_useroutes',useRoutes);renderAdmin()">${useRoutes?'✅ ENABLED':'DISABLED'}</button>
+        </div>
+        ${ROUTES.map((r,i)=>`<div class="aitem" style="margin-bottom:7px">
+          <div style="flex:1">
+            <div class="aitem-name" style="font-size:.66rem">${r.from} → ${r.to}</div>
+            <div class="aitem-sub">${r.active?'<span class="shift-open">ACTIVE</span>':'<span class="shift-closed">INACTIVE</span>'}</div>
+          </div>
+          <div class="abtn-row">
+            <button class="aedit" onclick="toggleRoute(${i})">${r.active?'HIDE':'SHOW'}</button>
+            <button class="adel" onclick="removeRoute(${i})">✕</button>
+          </div>
+        </div>`).join('')}
+        <div class="divline"></div>
+        <div class="csub" style="margin:0 0 8px 0">ADD NEW ROUTE</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px">
+          <div class="field" style="margin:0"><label>FROM</label>
+            <select id="newRFrom" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 9px;font-size:.82rem;outline:none;appearance:none">
+              <option value="">Select</option>${STATIONS.map(s=>`<option value="${s.name}">${s.name}</option>`).join('')}
+            </select>
+          </div>
+          <div class="field" style="margin:0"><label>TO</label>
+            <select id="newRTo" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 9px;font-size:.82rem;outline:none;appearance:none">
+              <option value="">Select</option>${STATIONS.map(s=>`<option value="${s.name}">${s.name}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:7px">
+          <button class="bsm bg" style="flex:1;padding:10px" onclick="addRoute()">ADD ROUTE</button>
+          <button class="bsm by" style="flex:1;padding:10px" onclick="addReturnRoute()">ADD + RETURN</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- DRIVERS -->
+    <div class="asect ${adminTab==='drivers'?'active':''}">
+      <div class="card">
+        <div class="ctitle">DRIVERS <span class="pill">${DRIVERS.length}</span></div>
+        ${DRIVERS.map((d,i)=>`<div class="aitem">
+          <div><div class="aitem-name">${d}</div><div class="aitem-sub">PIN: ${driverPins[d]?'SET ✓':'NOT SET'}</div></div>
+          <div class="abtn-row">
+            <button class="aedit" onclick="adminSetDriverPin('${d.replace(/'/g,"\\'")}')">🔑 PIN</button>
+            <button class="adel" onclick="removeDriver(${i})">✕</button>
+          </div>
+        </div>`).join('')}
         <div class="divline"></div>
         <div class="addrow">
           <div class="field"><label>New Driver Name</label><input type="text" id="newDriver" placeholder="FULL NAME IN CAPS"></div>
@@ -781,15 +1454,17 @@ function renderAdmin(){
       </div>
     </div>
 
-    <div id="asect-cars" class="asect ${adminTab==='cars'?'active':''}">
+    <!-- CARS -->
+    <div class="asect ${adminTab==='cars'?'active':''}">
       <div class="card">
-        <div class="ctitle">MANAGE CARS <span class="pill">${CARS.length}</span></div>
-        <div class="alist">
-          ${CARS.map((c,i)=>`<div class="aitem">
-            <div><div class="aitem-name">${c}</div><div class="aitem-sub">CAR #${i+1}</div></div>
+        <div class="ctitle">CARS <span class="pill">${CARS.length}</span></div>
+        ${CARS.map((c,i)=>`<div class="aitem">
+          <div><div class="aitem-name">${c}</div><div class="aitem-sub">Target: ${carTargets[c]?'KES '+Number(carTargets[c]).toLocaleString():'Not set'}</div></div>
+          <div class="abtn-row">
+            <button class="aedit" onclick="adminSetTarget('${c}')">🎯</button>
             <button class="adel" onclick="removeCar(${i})">✕</button>
-          </div>`).join('')}
-        </div>
+          </div>
+        </div>`).join('')}
         <div class="divline"></div>
         <div class="addrow">
           <div class="field"><label>New Car Plate</label><input type="text" id="newCar" placeholder="e.g. KCA 123A"></div>
@@ -798,18 +1473,17 @@ function renderAdmin(){
       </div>
     </div>
 
-    <div id="asect-stations" class="asect ${adminTab==='stations'?'active':''}">
+    <!-- STATIONS -->
+    <div class="asect ${adminTab==='stations'?'active':''}">
       <div class="card">
-        <div class="ctitle">MANAGE STATIONS <span class="pill">${STATIONS.length}</span></div>
-        <div class="alist">
-          ${STATIONS.map((s,i)=>`<div class="aitem">
-            <div><div class="aitem-name">${s.name}</div><div class="aitem-sub">${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}</div></div>
-            <button class="adel" onclick="removeStation(${i})">✕</button>
-          </div>`).join('')}
-        </div>
+        <div class="ctitle">STATIONS <span class="pill">${STATIONS.length}</span></div>
+        ${STATIONS.map((s,i)=>`<div class="aitem">
+          <div><div class="aitem-name">${s.name}</div><div class="aitem-sub">${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}</div></div>
+          <button class="adel" onclick="removeStation(${i})">✕</button>
+        </div>`).join('')}
         <div class="divline"></div>
         <div class="field"><label>Station Name</label><input type="text" id="newStn" placeholder="STATION NAME IN CAPS"></div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:7px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px">
           <div class="field" style="margin:0"><label>Latitude</label><input type="number" id="newLat" placeholder="-1.2833" step="any"></div>
           <div class="field" style="margin:0"><label>Longitude</label><input type="number" id="newLng" placeholder="36.8167" step="any"></div>
         </div>
@@ -817,170 +1491,189 @@ function renderAdmin(){
       </div>
     </div>
 
-    <div id="asect-config" class="asect ${adminTab==='config'?'active':''}">
+    <!-- TRIPS -->
+    <div class="asect ${adminTab==='trips'?'active':''}">
       <div class="card">
-        <div class="ctitle">SYSTEM CONFIG</div>
-        <div class="csub">// CHANGE ADMIN PIN</div>
-        <div class="addrow">
-          <div class="field"><label>New PIN (4-6 digits)</label><input type="password" id="newPin" placeholder="New PIN" maxlength="6"></div>
-          <button class="bsm bg" onclick="changePin()">SAVE</button>
-        </div>
-        <div class="divline"></div>
-        <div class="csub" style="margin-top:0">// RESET TO DEFAULTS</div>
-        <button class="bout" onclick="resetToDefaults()">RESET ALL DATA TO DEFAULTS</button>
-        <div class="divline"></div>
-        <div class="csub" style="margin-top:0">// LOCAL TRIP DATA</div>
-        <p style="font-size:.75rem;color:var(--muted);margin-bottom:9px">${localTrips.length} trips stored on this device.</p>
-        <button class="bout" onclick="if(confirm('Clear all local trip data?')){localTrips=[];save('fs_trips',[]);toast('CLEARED');renderAdmin();}">CLEAR LOCAL TRIP DATA</button>
-      </div>
-
-    <div id="asect-settings" class="asect ${adminTab==='settings'?'active':''}">
-      <div class="card">
-        <div class="ctitle">SHEET CONNECTION</div>
-        <div class="csub">// DEVELOPER ONLY — CONNECT TO GOOGLE SHEET</div>
-        <div style="margin-bottom:14px">
-          <div class="stitle2">APPS SCRIPT URL (SEND DATA TO SHEET)</div>
-          ${appConfig.appsScriptUrl?`<div class="conn-badge"><div class="dg"></div>CONNECTED</div><div class="urlbox">${appConfig.appsScriptUrl}</div>`:''}
-          <div class="irow">
-            <div class="field"><label>Web App URL</label><input type="text" id="scrUrl" placeholder="https://script.google.com/macros/s/.../exec" value="${appConfig.appsScriptUrl||''}"></div>
-            <button class="bsm bg" onclick="saveScriptUrl()">SAVE</button>
-          </div>
-        </div>
-        <div class="divline"></div>
-        <div>
-          <div class="stitle2">CSV URL (PULL REPORTS FROM SHEET)</div>
-          ${appConfig.sheetCsvUrl?`<div class="conn-badge"><div class="dg"></div>URL SET</div>`:''}
-          <div class="irow">
-            <div class="field"><label>Published CSV URL</label><input type="text" id="csvUrl" value="${appConfig.sheetCsvUrl||''}" placeholder="...pub?output=csv"></div>
-            <button class="bsm bg" onclick="saveCsvUrl()">SAVE</button>
-          </div>
-          <p style="font-size:.7rem;color:var(--muted);margin-top:8px;line-height:1.7">In Google Sheets → <strong>File → Share → Publish to web</strong> → Select sheet → Choose <strong>CSV</strong> → Copy URL → Paste above.</p>
-        </div>
-      </div>
-      <div class="card">
-        <div class="ctitle">SETUP GUIDE</div>
-        <div class="steps">
-          <div class="step">Open your Google Sheet → click <code>Extensions</code> → <code>Apps Script</code></div>
-          <div class="step">Delete all code → paste the <strong>apps-script.js</strong> code → Save (💾)</div>
-          <div class="step">Click <code>Deploy</code> → <code>New deployment</code> → Select <code>Web app</code></div>
-          <div class="step">Execute as: <code>Me</code> | Who has access: <code>Anyone</code> → Deploy → Authorize</div>
-          <div class="step">Copy the Web App URL → paste in Apps Script URL above → SAVE</div>
-          <div class="step">In Google Sheets → <code>File → Share → Publish to web</code> → CSV → Copy URL → paste in CSV URL → SAVE</div>
-        </div>
+        <div class="ctitle">LOCAL TRIPS <span class="pill">${localTrips.length}</span></div>
+        <div class="csub">// EDIT OR DELETE LOCAL TRIP RECORDS</div>
+        ${localTrips.length===0?'<div class="empty">NO LOCAL TRIPS</div>':localTrips.slice(0,30).map(t=>`
+          <div class="aitem" style="margin-bottom:7px">
+            <div style="flex:1">
+              <div class="aitem-name" style="font-size:.6rem">${t.fromStation} → ${t.toStation}</div>
+              <div class="aitem-sub">${t.driver} · ${t.carPlate} · KES ${t.amount} · ${t.date}</div>
+              ${t.notes?`<div class="aitem-sub">📝 ${t.notes}</div>`:''}
+            </div>
+            <div class="abtn-row">
+              <button class="aedit" onclick="openEditTrip(${t.id})">✏</button>
+              <button class="adel" onclick="deleteTrip(${t.id})">✕</button>
+            </div>
+          </div>`).join('')}
       </div>
     </div>
 
-    </div>`;
-}
-
-function checkPin(){
-  const pin=document.getElementById('pinIn')?.value;
-  const storedPin=localStorage.getItem('fs_pin')||ADMIN_PIN;
-  if(pin===storedPin){adminUnlocked=true;renderAdmin();}
-  else{toast('WRONG PIN');}
-}
-
-function addDriver(){
-  const n=(document.getElementById('newDriver')?.value||'').trim().toUpperCase();
-  if(!n){toast('ENTER DRIVER NAME');return;}
-  if(DRIVERS.includes(n)){toast('DRIVER ALREADY EXISTS');return;}
-  DRIVERS.push(n);save('fs_drivers',DRIVERS);toast('DRIVER ADDED ✅');renderAdmin();
-}
-function removeDriver(i){
-  if(!confirm('Remove '+DRIVERS[i]+'?'))return;
-  DRIVERS.splice(i,1);save('fs_drivers',DRIVERS);renderAdmin();
-}
-function addCar(){
-  const n=(document.getElementById('newCar')?.value||'').trim().toUpperCase();
-  if(!n){toast('ENTER CAR PLATE');return;}
-  if(CARS.includes(n)){toast('CAR ALREADY EXISTS');return;}
-  CARS.push(n);save('fs_cars',CARS);toast('CAR ADDED ✅');renderAdmin();
-}
-function removeCar(i){
-  if(!confirm('Remove '+CARS[i]+'?'))return;
-  CARS.splice(i,1);save('fs_cars',CARS);renderAdmin();
-}
-function addStation(){
-  const n=(document.getElementById('newStn')?.value||'').trim().toUpperCase();
-  const lat=parseFloat(document.getElementById('newLat')?.value||'');
-  const lng=parseFloat(document.getElementById('newLng')?.value||'');
-  if(!n){toast('ENTER STATION NAME');return;}
-  if(isNaN(lat)||isNaN(lng)){toast('ENTER VALID COORDINATES');return;}
-  STATIONS.push({name:n,lat,lng});save('fs_stations',STATIONS);toast('STATION ADDED ✅');renderAdmin();
-}
-function removeStation(i){
-  if(!confirm('Remove '+STATIONS[i].name+'?'))return;
-  STATIONS.splice(i,1);save('fs_stations',STATIONS);renderAdmin();
-}
-function changePin(){
-  const p=document.getElementById('newPin')?.value||'';
-  if(p.length<4){toast('PIN MUST BE AT LEAST 4 DIGITS');return;}
-  localStorage.setItem('fs_pin',p);toast('PIN UPDATED ✅');
-}
-function resetToDefaults(){
-  if(!confirm('Reset ALL data to defaults? This cannot be undone.'))return;
-  DRIVERS=[...DEFAULT_DRIVERS];CARS=[...DEFAULT_CARS];STATIONS=[...DEFAULT_STATIONS];
-  save('fs_drivers',DRIVERS);save('fs_cars',CARS);save('fs_stations',STATIONS);
-  toast('RESET COMPLETE');renderAdmin();
-}
-
-// ════════════════════════════════════════════
-// RENDER SETTINGS
-// ════════════════════════════════════════════
-function renderSettings(){
-  // Settings are now rendered inside Admin panel
-  return;
-  const el=document.getElementById('page-settings');
-  el.innerHTML=`
-    <div class="card">
-      <div class="ctitle">SHEET CONNECTION</div>
-      <div class="csub">// CONNECT TO YOUR GOOGLE SHEET</div>
-      <div style="margin-bottom:14px">
-        <div class="stitle2">APPS SCRIPT URL (SEND DATA TO SHEET)</div>
-        ${appConfig.appsScriptUrl?`<div class="conn-badge"><div class="dg"></div>CONNECTED</div><div class="urlbox">${appConfig.appsScriptUrl}</div>`:''}
+    <!-- CONFIG -->
+    <div class="asect ${adminTab==='config'?'active':''}">
+      <div class="card">
+        <div class="ctitle">SYSTEM CONFIG</div>
+        <div class="csub">// CHANGE ADMIN PIN</div>
         <div class="irow">
-          <div class="field"><label>Web App URL</label><input type="text" id="scrUrl" placeholder="https://script.google.com/macros/s/.../exec" value="${appConfig.appsScriptUrl||''}"></div>
+          <div class="field"><label>New Admin PIN (4-6 digits)</label><input type="password" id="newPin" placeholder="New PIN" maxlength="6"></div>
+          <button class="bsm bg" onclick="changePin()">SAVE</button>
+        </div>
+        <div class="divline"></div>
+        <div class="csub" style="margin-top:0">// SESSION TIMEOUT</div>
+        <p style="font-size:.74rem;color:var(--muted);margin-bottom:9px">Auto-logout after <strong>30 minutes</strong> of inactivity. Warning shown at 60 seconds remaining.</p>
+        <div class="divline"></div>
+        <div class="csub" style="margin-top:0">// LOCAL DATA</div>
+        <p style="font-size:.74rem;color:var(--muted);margin-bottom:9px">${localTrips.length} trips · ${offlineQ.length} queued</p>
+        ${offlineQ.length?`<button class="bsm by" style="width:100%;padding:10px;margin-bottom:8px" onclick="flushQueue()">SYNC ${offlineQ.length} QUEUED TRIPS NOW</button>`:''}
+        <button class="bout" onclick="if(confirm('Reset all lists to defaults?')){resetToDefaults();}">RESET LISTS TO DEFAULTS</button>
+        <button class="bout" onclick="if(confirm('Clear all local trips?')){localTrips=[];save('fs_trips',[]);toast('CLEARED');renderAdmin();}">CLEAR LOCAL TRIP DATA</button>
+      </div>
+    </div>
+
+    <!-- DEVELOPER SETTINGS -->
+    <div class="asect ${adminTab==='settings'?'active':''}">
+      <div class="card">
+        <div class="ctitle">SHEET CONNECTION</div>
+        <div class="csub">// DEVELOPER ACCESS</div>
+        ${appConfig.appsScriptUrl?`<div class="conn-badge"><div class="dg"></div>APPS SCRIPT CONNECTED</div><div class="urlbox">${appConfig.appsScriptUrl}</div>`:''}
+        <div class="irow">
+          <div class="field"><label>Apps Script Web App URL</label><input type="text" id="scrUrl" placeholder="https://script.google.com/macros/s/.../exec" value="${appConfig.appsScriptUrl||''}"></div>
           <button class="bsm bg" onclick="saveScriptUrl()">SAVE</button>
         </div>
-      </div>
-      <div class="divline"></div>
-      <div>
-        <div class="stitle2">CSV URL (PULL REPORTS FROM SHEET)</div>
-        ${appConfig.sheetCsvUrl?`<div class="conn-badge"><div class="dg"></div>URL SET</div>`:''}
+        <div class="divline"></div>
+        ${appConfig.sheetCsvUrl?`<div class="conn-badge"><div class="dg"></div>CSV URL SET</div>`:''}
         <div class="irow">
           <div class="field"><label>Published CSV URL</label><input type="text" id="csvUrl" value="${appConfig.sheetCsvUrl||''}" placeholder="...pub?output=csv"></div>
           <button class="bsm bg" onclick="saveCsvUrl()">SAVE</button>
         </div>
-        <p style="font-size:.7rem;color:var(--muted);margin-top:8px;line-height:1.7">In Google Sheets → <strong>File → Share → Publish to web</strong> → Select sheet → Choose <strong>CSV</strong> → Copy URL → Paste above.</p>
+        <p style="font-size:.68rem;color:var(--muted);margin-top:8px;line-height:1.7">Google Sheets → <strong>File → Share → Publish to web</strong> → Sheet → CSV → Copy URL</p>
       </div>
-    </div>
-
-    <div class="card">
-      <div class="ctitle">SETUP GUIDE</div>
-      <div class="steps">
-        <div class="step">Open your Google Sheet → click <code>Extensions</code> → <code>Apps Script</code></div>
-        <div class="step">Delete all code → paste the <strong>apps-script.js</strong> code → Save (💾)</div>
-        <div class="step">Click <code>Deploy</code> → <code>New deployment</code> → Select <code>Web app</code></div>
-        <div class="step">Execute as: <code>Me</code> | Who has access: <code>Anyone</code> → Deploy → Authorize</div>
-        <div class="step">Copy the Web App URL → paste in Apps Script URL above → SAVE</div>
-        <div class="step">In Google Sheets → <code>File → Share → Publish to web</code> → Select sheet → CSV → Copy URL → paste in CSV URL above → SAVE</div>
+      <div class="card">
+        <div class="ctitle">SETUP GUIDE</div>
+        <div class="steps">
+          <div class="step">Open your Google Sheet → <code>Extensions</code> → <code>Apps Script</code></div>
+          <div class="step">Delete all code → paste the <code>apps-script.js</code> → Save</div>
+          <div class="step"><code>Deploy</code> → <code>New deployment</code> → <code>Web app</code></div>
+          <div class="step">Execute as: <code>Me</code> | Access: <code>Anyone</code> → Deploy → Authorize</div>
+          <div class="step">Copy Web App URL → paste in Apps Script URL above</div>
+          <div class="step">In Sheet → <code>File → Share → Publish to web</code> → CSV → Copy → paste in CSV URL</div>
+        </div>
       </div>
     </div>`;
 }
 
-function saveScriptUrl(){
-  appConfig.appsScriptUrl=(document.getElementById('scrUrl')?.value||'').trim();
-  save('fs_config',appConfig);toast(appConfig.appsScriptUrl?'✅ APPS SCRIPT URL SAVED':'URL CLEARED');renderSettings();
+// ══════════════════════════════════════════════
+// ADMIN ACTIONS
+// ══════════════════════════════════════════════
+function checkPin(){const pin=document.getElementById('pinIn')?.value;if(pin===(localStorage.getItem(ADMIN_PIN_KEY)||DEFAULT_ADMIN_PIN)){adminUnlocked=true;renderAdmin();}else toast('WRONG PIN');}
+
+// SHIFTS
+function openShift(plate){
+  const by=prompt('Who is opening this shift?')||'ADMIN';
+  shifts[plate]={open:true,openedAt:Date.now(),openedBy:by.toUpperCase(),closedAt:null};
+  save('fs_shifts',shifts);toast(`✅ SHIFT OPENED FOR ${plate}`);renderAdmin();
 }
-function saveCsvUrl(){
-  appConfig.sheetCsvUrl=(document.getElementById('csvUrl')?.value||'').trim();
-  save('fs_config',appConfig);toast(appConfig.sheetCsvUrl?'✅ CSV URL SAVED':'URL CLEARED');renderSettings();
+function closeShift(plate){
+  if(!confirm(`Close shift for ${plate}?`))return;
+  shifts[plate]={...shifts[plate],open:false,closedAt:Date.now()};
+  save('fs_shifts',shifts);toast(`🔴 SHIFT CLOSED FOR ${plate}`);renderAdmin();
+}
+function openAllShifts(){
+  const by=prompt('Who is opening all shifts?')||'ADMIN';
+  CARS.forEach(c=>{shifts[c]={open:true,openedAt:Date.now(),openedBy:by.toUpperCase(),closedAt:null};});
+  save('fs_shifts',shifts);toast('✅ ALL SHIFTS OPENED');renderAdmin();
+}
+function closeAllShifts(){
+  if(!confirm('Close ALL shifts?'))return;
+  CARS.forEach(c=>{shifts[c]={...shifts[c],open:false,closedAt:Date.now()};});
+  save('fs_shifts',shifts);toast('🔴 ALL SHIFTS CLOSED');renderAdmin();
 }
 
-// ══ INIT ══
+// ROUTES
+function toggleRoute(i){ROUTES[i].active=!ROUTES[i].active;save('fs_routes',ROUTES);renderAdmin();}
+function removeRoute(i){if(!confirm('Remove this route?'))return;ROUTES.splice(i,1);save('fs_routes',ROUTES);renderAdmin();}
+function addRoute(){
+  const from=document.getElementById('newRFrom')?.value,to=document.getElementById('newRTo')?.value;
+  if(!from||!to){toast('SELECT BOTH FROM AND TO');return;}
+  if(from===to){toast('FROM AND TO MUST BE DIFFERENT');return;}
+  if(ROUTES.find(r=>r.from===from&&r.to===to)){toast('ROUTE ALREADY EXISTS');return;}
+  ROUTES.push({from,to,active:true});save('fs_routes',ROUTES);toast('ROUTE ADDED ✅');renderAdmin();
+}
+function addReturnRoute(){
+  const from=document.getElementById('newRFrom')?.value,to=document.getElementById('newRTo')?.value;
+  if(!from||!to){toast('SELECT BOTH FROM AND TO');return;}
+  if(from===to){toast('FROM AND TO MUST BE DIFFERENT');return;}
+  if(!ROUTES.find(r=>r.from===from&&r.to===to))ROUTES.push({from,to,active:true});
+  if(!ROUTES.find(r=>r.from===to&&r.to===from))ROUTES.push({from:to,to:from,active:true});
+  save('fs_routes',ROUTES);toast('ROUTE + RETURN ADDED ✅');renderAdmin();
+}
+
+// DRIVERS & CARS
+function adminSetDriverPin(driver){
+  const pin=prompt(`Set PIN for ${driver.split(' ')[0]} (blank to remove):`);
+  if(pin===null)return;
+  if(pin===''){delete driverPins[driver];}
+  else if(pin.length>=4){driverPins[driver]=pin;}
+  else{toast('PIN MUST BE AT LEAST 4 DIGITS');return;}
+  save('fs_dpins',driverPins);toast(pin?'PIN SET ✅':'PIN REMOVED');renderAdmin();
+}
+function adminSetTarget(plate){
+  const t=prompt(`Daily revenue target for ${plate} (KES, blank to remove):`);
+  if(t===null)return;
+  if(t===''){delete carTargets[plate];}
+  else{const n=parseFloat(t);if(isNaN(n)||n<=0){toast('INVALID AMOUNT');return;}carTargets[plate]=n;}
+  save('fs_targets',carTargets);toast(t?'TARGET SET ✅':'TARGET REMOVED');renderAdmin();
+}
+function addDriver(){const n=(document.getElementById('newDriver')?.value||'').trim().toUpperCase();if(!n){toast('ENTER NAME');return;}if(DRIVERS.includes(n)){toast('ALREADY EXISTS');return;}DRIVERS.push(n);save('fs_drivers',DRIVERS);toast('DRIVER ADDED ✅');renderAdmin();}
+function removeDriver(i){if(!confirm('Remove '+DRIVERS[i]+'?'))return;const d=DRIVERS[i];delete driverPins[d];save('fs_dpins',driverPins);DRIVERS.splice(i,1);save('fs_drivers',DRIVERS);renderAdmin();}
+function addCar(){const n=(document.getElementById('newCar')?.value||'').trim().toUpperCase();if(!n){toast('ENTER PLATE');return;}if(CARS.includes(n)){toast('ALREADY EXISTS');return;}CARS.push(n);save('fs_cars',CARS);toast('CAR ADDED ✅');renderAdmin();}
+function removeCar(i){if(!confirm('Remove '+CARS[i]+'?'))return;CARS.splice(i,1);save('fs_cars',CARS);renderAdmin();}
+function addStation(){
+  const n=(document.getElementById('newStn')?.value||'').trim().toUpperCase();
+  const lat=parseFloat(document.getElementById('newLat')?.value||'');
+  const lng=parseFloat(document.getElementById('newLng')?.value||'');
+  if(!n){toast('ENTER NAME');return;}if(isNaN(lat)||isNaN(lng)){toast('ENTER VALID COORDINATES');return;}
+  STATIONS.push({name:n,lat,lng});save('fs_stations',STATIONS);toast('STATION ADDED ✅');renderAdmin();
+}
+function removeStation(i){if(!confirm('Remove '+STATIONS[i].name+'?'))return;STATIONS.splice(i,1);save('fs_stations',STATIONS);renderAdmin();}
+function changePin(){const p=document.getElementById('newPin')?.value||'';if(p.length<4){toast('MIN 4 DIGITS');return;}localStorage.setItem(ADMIN_PIN_KEY,p);toast('PIN UPDATED ✅');}
+function resetToDefaults(){DRIVERS=[...DEFAULT_DRIVERS];CARS=[...DEFAULT_CARS];STATIONS=[...DEFAULT_STATIONS];ROUTES=[...DEFAULT_ROUTES];save('fs_drivers',DRIVERS);save('fs_cars',CARS);save('fs_stations',STATIONS);save('fs_routes',ROUTES);toast('RESET ✅');renderAdmin();}
+
+// TRIPS
+function openEditTrip(id){
+  const trip=localTrips.find(t=>t.id===id);if(!trip)return;
+  editingTripId=id;
+  document.getElementById('editDriver').value=trip.driver||'';
+  document.getElementById('editCar').value=trip.carPlate||'';
+  document.getElementById('editFrom').value=trip.fromStation||'';
+  document.getElementById('editTo').value=trip.toStation||'';
+  document.getElementById('editAmount').value=trip.amount||'';
+  document.getElementById('editDate').value=trip.date||'';
+  document.getElementById('editModal').classList.add('open');
+}
+function closeEditModal(){document.getElementById('editModal').classList.remove('open');editingTripId=null;}
+function saveEditTrip(){
+  const idx=localTrips.findIndex(t=>t.id===editingTripId);if(idx<0)return;
+  localTrips[idx]={...localTrips[idx],driver:document.getElementById('editDriver').value,carPlate:document.getElementById('editCar').value,fromStation:document.getElementById('editFrom').value,toStation:document.getElementById('editTo').value,amount:parseFloat(document.getElementById('editAmount').value)||0,date:document.getElementById('editDate').value};
+  save('fs_trips',localTrips);closeEditModal();toast('TRIP UPDATED ✅');renderAdmin();
+}
+function deleteTrip(id){if(!confirm('Delete this trip?'))return;localTrips=localTrips.filter(t=>t.id!==id);save('fs_trips',localTrips);toast('DELETED');renderAdmin();}
+
+function saveScriptUrl(){appConfig.appsScriptUrl=(document.getElementById('scrUrl')?.value||'').trim();save('fs_config',appConfig);toast(appConfig.appsScriptUrl?'✅ SAVED':'CLEARED');renderAdmin();}
+function saveCsvUrl(){appConfig.sheetCsvUrl=(document.getElementById('csvUrl')?.value||'').trim();save('fs_config',appConfig);toast(appConfig.sheetCsvUrl?'✅ SAVED':'CLEARED');renderAdmin();}
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
 if(tripState.driver)document.getElementById('driverBadge').textContent=tripState.driver.split(' ')[0]+' · '+tripState.carPlate;
+if(tripState.phase!=='setup')startSessionTimer();
+updateOfflineBadge();
+startAutoSync();
 renderLog();
 if(tripState.phase==='idle')getGPS();
+if(appConfig.sheetCsvUrl)loadSheetData(true);
 </script>
 </body>
 </html>
