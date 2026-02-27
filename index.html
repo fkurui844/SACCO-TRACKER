@@ -250,6 +250,10 @@ if (sd) { tripState.driver=sd.driver; tripState.carPlate=sd.carPlate; tripState.
 
 let currentPage = 'log';
 let reportFilter = 'all';
+let filterCar = '';
+let filterDriver = '';
+let filterFrom = '';
+let filterTo = '';
 let adminTab = 'drivers';
 let adminUnlocked = false;
 let timerInterval = null;
@@ -410,13 +414,23 @@ function parseDate(str){
 function filterTrips(trips){
   const now=new Date(),today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
   return trips.filter(t=>{
-    if(reportFilter==='all')return true;
-    const d=parseDate(t.date);if(!d)return false;
-    if(reportFilter==='today')return d>=today;
-    if(reportFilter==='week'){const ws=new Date(today);ws.setDate(today.getDate()-today.getDay());return d>=ws;}
-    if(reportFilter==='month')return d.getMonth()===now.getMonth()&&d.getFullYear()===now.getFullYear();
+    if(reportFilter!=='all'){
+      const d=parseDate(t.date);if(!d)return false;
+      if(reportFilter==='today'&&d<today)return false;
+      if(reportFilter==='week'){const ws=new Date(today);ws.setDate(today.getDate()-today.getDay());if(d<ws)return false;}
+      if(reportFilter==='month'&&(d.getMonth()!==now.getMonth()||d.getFullYear()!==now.getFullYear()))return false;
+    }
+    if(filterCar&&(t.carPlate||'').trim()!==filterCar)return false;
+    if(filterDriver&&(t.driver||'').trim()!==filterDriver)return false;
+    if(filterFrom&&(t.fromStation||'').trim()!==filterFrom)return false;
+    if(filterTo&&(t.toStation||'').trim()!==filterTo)return false;
     return true;
   });
+}
+
+function clearFilters(){
+  filterCar='';filterDriver='';filterFrom='';filterTo='';reportFilter='all';
+  renderReports();
 }
 
 // ════════════════════════════════════════════
@@ -614,39 +628,105 @@ function renderReports(){
   const filtered=filterTrips(all);
   const total=filtered.reduce((s,t)=>s+(t.amount||0),0);
   const avg=filtered.length?Math.round(total/filtered.length):0;
-  const cars=[...new Set(filtered.map(t=>t.carPlate))];
   const now=new Date();now.setHours(0,0,0,0);
   const todayT=all.filter(t=>{const d=parseDate(t.date);return d&&d>=now;});
 
+  // Build dropdown options from ALL data so filters show all choices
+  const allCars=[...new Set(all.map(t=>t.carPlate).filter(Boolean))].sort();
+  const allDrivers=[...new Set(all.map(t=>t.driver).filter(Boolean))].sort();
+  const allStations=[...new Set([...all.map(t=>t.fromStation),...all.map(t=>t.toStation)].filter(Boolean))].sort();
+
+  // Active filter tags
+  const activeTags=[];
+  if(filterCar)activeTags.push({label:'CAR: '+filterCar,clear:"filterCar='';renderReports()"});
+  if(filterDriver)activeTags.push({label:'DRIVER: '+filterDriver.split(' ')[0],clear:"filterDriver='';renderReports()"});
+  if(filterFrom)activeTags.push({label:'FROM: '+filterFrom,clear:"filterFrom='';renderReports()"});
+  if(filterTo)activeTags.push({label:'TO: '+filterTo,clear:"filterTo='';renderReports()"});
+  if(reportFilter!=='all')activeTags.push({label:reportFilter.toUpperCase(),clear:"reportFilter='all';renderReports()"});
+
   el.innerHTML=`
     <div class="exprow">
-      <button class="bsm bg" onclick="loadSheetData()">⟳ SYNC FROM SHEET</button>
-      <button class="bsm by" onclick="exportPDF()">⬇ EXPORT PDF</button>
+      <button class="bsm bg" onclick="loadSheetData()">⟳ SYNC</button>
+      <button class="bsm by" onclick="exportPDF()">⬇ PDF</button>
+      <button class="bsm" style="background:var(--muted);color:#fff" onclick="clearFilters()">✕ CLEAR</button>
     </div>
+
     <div class="sgrid2">
       <div class="sbox"><div class="sl">TOTAL TRIPS</div><div class="sv green">${filtered.length}</div></div>
       <div class="sbox"><div class="sl">TOTAL REVENUE</div><div class="sv green" style="font-size:1.2rem">KES ${total.toLocaleString()}</div></div>
       <div class="sbox"><div class="sl">AVG / TRIP</div><div class="sv yellow" style="font-size:1.2rem">KES ${avg.toLocaleString()}</div></div>
       <div class="sbox"><div class="sl">TODAY'S TRIPS</div><div class="sv">${todayT.length}</div></div>
     </div>
-    <div class="fchips">
-      ${['all','today','week','month'].map(f=>`<div class="fchip ${reportFilter===f?'active':''}" onclick="reportFilter='${f}';renderReports()">${f==='all'?'ALL TIME':f.toUpperCase()}</div>`).join('')}
+
+    <!-- FILTER PANEL -->
+    <div class="card" style="padding:14px;margin-bottom:12px">
+      <div class="stitle2" style="margin-bottom:10px">🔍 FILTER REPORTS</div>
+
+      <div class="fchips" style="margin-bottom:10px">
+        ${['all','today','week','month'].map(f=>`<div class="fchip ${reportFilter===f?'active':''}" onclick="reportFilter='${f}';renderReports()">${f==='all'?'ALL TIME':f.toUpperCase()}</div>`).join('')}
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+        <div>
+          <div style="font-family:var(--font-m);font-size:.52rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">BY CAR</div>
+          <select style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px;font-family:var(--font-b);font-size:.82rem;outline:none;appearance:none" onchange="filterCar=this.value;renderReports()">
+            <option value="">All Cars</option>
+            ${allCars.map(c=>`<option value="${c}" ${filterCar===c?'selected':''}>${c}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <div style="font-family:var(--font-m);font-size:.52rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">BY DRIVER</div>
+          <select style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px;font-family:var(--font-b);font-size:.82rem;outline:none;appearance:none" onchange="filterDriver=this.value;renderReports()">
+            <option value="">All Drivers</option>
+            ${allDrivers.map(d=>`<option value="${d}" ${filterDriver===d?'selected':''}>${d.split(' ')[0]}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div>
+          <div style="font-family:var(--font-m);font-size:.52rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">FROM STATION</div>
+          <select style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px;font-family:var(--font-b);font-size:.82rem;outline:none;appearance:none" onchange="filterFrom=this.value;renderReports()">
+            <option value="">Any Station</option>
+            ${allStations.map(s=>`<option value="${s}" ${filterFrom===s?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </div>
+        <div>
+          <div style="font-family:var(--font-m);font-size:.52rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px">TO STATION</div>
+          <select style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px;font-family:var(--font-b);font-size:.82rem;outline:none;appearance:none" onchange="filterTo=this.value;renderReports()">
+            <option value="">Any Station</option>
+            ${allStations.map(s=>`<option value="${s}" ${filterTo===s?'selected':''}>${s}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+
+      ${activeTags.length?`<div style="margin-top:10px;display:flex;flex-wrap:wrap;gap:5px">
+        ${activeTags.map(t=>`<div style="display:inline-flex;align-items:center;gap:5px;background:var(--accent);color:#fff;padding:3px 9px;font-family:var(--font-m);font-size:.52rem;letter-spacing:1px">
+          ${t.label} <span onclick="${t.clear}" style="cursor:pointer;opacity:.8;font-size:.75rem">✕</span>
+        </div>`).join('')}
+      </div>`:''}
     </div>
-    ${filtered.length===0?'<div class="empty">NO DATA YET<br>TAP ⟳ SYNC FROM SHEET</div>':`
+
+    ${filtered.length===0?'<div class="empty">NO RESULTS<br>TRY DIFFERENT FILTERS OR SYNC FROM SHEET</div>':`
     <div class="rtable">
-      <div class="rth"><span>ROUTE</span><span>DRIVER</span><span>TIME</span><span>AMOUNT</span></div>
-      ${filtered.slice(0,60).map(t=>`<div class="rtr">
-        <div><div class="trroute">${(t.fromStation||'').slice(0,8)}→${(t.toStation||'').slice(0,8)}</div><div style="font-family:var(--font-m);font-size:.48rem;color:var(--muted)">${t.date||''}</div></div>
-        <div><div class="trdrv">${(t.driver||'').split(' ')[0]}</div><div style="font-family:var(--font-m);font-size:.48rem;color:var(--muted)">${t.carPlate||''}</div></div>
-        <div class="trtm">${(t.time||'').slice(0,5)}</div>
+      <div class="rth"><span>ROUTE</span><span>DRIVER</span><span>DATE</span><span>AMOUNT</span></div>
+      ${filtered.slice(0,80).map(t=>`<div class="rtr">
+        <div><div class="trroute">${(t.fromStation||'').slice(0,7)}→${(t.toStation||'').slice(0,7)}</div><div style="font-family:var(--font-m);font-size:.46rem;color:var(--muted)">${t.carPlate||''}</div></div>
+        <div><div class="trdrv">${(t.driver||'').split(' ')[0]}</div></div>
+        <div class="trtm">${(t.date||'').slice(0,10)}</div>
         <div class="tramt">KES ${Number(t.amount||0).toLocaleString()}</div>
       </div>`).join('')}
+    </div>
+    <div style="font-family:var(--font-m);font-size:.55rem;color:var(--muted);text-align:center;padding:8px">
+      SHOWING ${Math.min(filtered.length,80)} OF ${filtered.length} TRIPS
     </div>`}
-    ${cars.length?`<div class="stitle2" style="margin-bottom:9px">REVENUE BY CAR</div>
-    ${cars.map(car=>{
+
+    ${filtered.length?`
+    <div class="stitle2" style="margin-bottom:9px;margin-top:4px">REVENUE BY CAR</div>
+    ${[...new Set(filtered.map(t=>t.carPlate).filter(Boolean))].map(car=>{
       const ct=filtered.filter(t=>t.carPlate===car),cr=ct.reduce((s,t)=>s+t.amount,0),pct=total?Math.round((cr/total)*100):0;
-      return`<div class="hitem" style="margin-bottom:7px">
-        <div class="htop"><span class="hroute">${car}</span><span class="hamt">KES ${cr.toLocaleString()}</span></div>
+      return`<div class="hitem" style="margin-bottom:7px;cursor:pointer" onclick="filterCar=filterCar===car?'':'${car}';renderReports()">
+        <div class="htop"><span class="hroute">${car} ${filterCar===car?'<span style=\"background:var(--accent);color:#fff;font-size:.45rem;padding:1px 5px\">FILTERED</span>':''}</span><span class="hamt">KES ${cr.toLocaleString()}</span></div>
         <div style="height:5px;background:var(--border);border-radius:3px;margin-top:6px;overflow:hidden"><div style="height:100%;width:${pct}%;background:var(--accent);border-radius:3px"></div></div>
         <div class="hbot" style="margin-top:4px"><span>${ct.length} trips</span><span>${pct}% of revenue</span></div>
       </div>`;
