@@ -9,7 +9,6 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-/* (same CSS as before – unchanged) */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#f5f7f5;--card:#fff;--surface:#eef2ee;--border:#dde8dd;
@@ -25,6 +24,8 @@
   --shadow:0 2px 16px rgba(0,0,0,.4);--shlg:0 8px 32px rgba(0,0,0,.5);
 }
 body{background:var(--bg);color:var(--text);font-family:var(--font-b);min-height:100vh;max-width:480px;margin:0 auto;transition:background .3s,color .3s}
+
+/* HEADER */
 header{background:var(--accent);padding:13px 16px 10px;position:sticky;top:0;z-index:100}
 .hrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px}
 .logo{font-family:var(--font-d);font-size:1.6rem;letter-spacing:3px;color:#fff}
@@ -38,45 +39,79 @@ header{background:var(--accent);padding:13px 16px 10px;position:sticky;top:0;z-i
 .offline-badge{background:#ef4444;color:#fff;font-family:var(--font-m);font-size:.46rem;padding:2px 6px;letter-spacing:1px;display:none}
 .offline-badge.show{display:inline-block}
 .sync-timer{font-family:var(--font-m);font-size:.46rem;color:rgba(255,255,255,.55);letter-spacing:1px;white-space:nowrap}
-.session-bar{font-family:var(--font-m);font-size:.46rem;color:rgba(255,220,100,.9);letter-spacing:1px;white-space:nowrap}
+/* Session bar: hidden by default, only shown in last 5 minutes */
+.session-bar{font-family:var(--font-m);font-size:.46rem;color:rgba(255,220,100,.9);letter-spacing:1px;white-space:nowrap;display:none}
+.session-bar.show{display:inline}
 .session-bar.warn{color:#ff6b6b;animation:pulse 1s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+
+/* NAV */
 .bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--card);border-top:2px solid var(--border);display:grid;grid-template-columns:1fr 1fr 1fr;z-index:100;transition:background .3s}
 .nbtn{padding:9px 4px;text-align:center;cursor:pointer;border:none;background:transparent;transition:background .15s}
 .nbtn.active{background:var(--alight)}
 .nbtn .ni{font-size:1.15rem;display:block;margin-bottom:1px}
 .nbtn .nl{font-family:var(--font-m);font-size:.46rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
 .nbtn.active .nl{color:var(--accent)}
+
 main{padding:13px 13px 74px}
 .page{display:none}.page.active{display:block}
+
+/* CARD */
 .card{background:var(--card);border:1px solid var(--border);padding:16px;margin-bottom:12px;box-shadow:var(--shadow);animation:fadeUp .3s ease;transition:background .3s,border-color .3s}
 .ctitle{font-family:var(--font-d);font-size:1.2rem;color:var(--accent);letter-spacing:2px;margin-bottom:4px}
 .csub{font-family:var(--font-m);font-size:.52rem;color:var(--muted);letter-spacing:1px;margin-bottom:13px}
+
+/* FIELD */
 .field{margin-bottom:10px}
 .field label{display:block;font-family:var(--font-m);font-size:.5rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px}
 .field select,.field input,.field textarea{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 11px;font-family:var(--font-b);font-size:.86rem;outline:none;transition:border-color .2s;appearance:none}
 .field textarea{resize:vertical;min-height:66px;font-size:.82rem}
 .field select:focus,.field input:focus,.field textarea:focus{border-color:var(--accent)}
+
+/* STATION GRID */
 .sgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px}
-.sbtn{background:var(--bg);border:2px solid var(--border);padding:10px 7px;text-align:center;cursor:pointer;transition:all .2s;font-family:var(--font-b);font-size:.72rem;color:var(--text);font-weight:500}
+.sbtn{background:var(--bg);border:2px solid var(--border);padding:10px 7px;text-align:center;cursor:pointer;transition:all .2s;font-family:var(--font-b);font-size:.72rem;color:var(--text);font-weight:500;position:relative}
 .sbtn:hover{border-color:var(--accent);color:var(--accent);background:var(--alight)}
 .sbtn.sel{border-color:var(--accent);background:var(--accent);color:#fff}
 .sbtn.dis{opacity:.22;cursor:not-allowed;pointer-events:none}
+.sbtn.nearest{border-color:var(--accent2)}
+.sbtn .dist{display:block;font-family:var(--font-m);font-size:.44rem;opacity:.7;margin-top:2px}
+.sbtn.sel .dist{opacity:.8}
+
+/* GPS BAR */
+.gbar{display:flex;align-items:center;gap:7px;padding:8px 10px;background:var(--alight);border:1px solid var(--border);margin-bottom:11px;font-family:var(--font-m);font-size:.52rem;color:var(--accent);letter-spacing:1px}
+.gbar.err{background:var(--rlight);border-color:var(--red);color:var(--red)}
+.gbar.detecting{background:var(--surface);border-color:var(--border);color:var(--muted)}
+
+/* ROUTE DISPLAY */
 .rdisp{display:flex;align-items:center;gap:10px;padding:12px;background:var(--alight);border:1px solid var(--border);margin-bottom:12px}
 .rs{flex:1;text-align:center}
 .rs .rn{font-family:var(--font-m);font-size:.66rem;font-weight:700;color:var(--accent);letter-spacing:1px}
 .rs .rl{font-family:var(--font-m);font-size:.44rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px}
 .rarr{font-size:1.3rem;color:var(--accent)}
+
+/* TIMER */
 .tdisp{text-align:center;padding:13px;background:var(--text);color:var(--bg);margin-bottom:12px;transition:background .3s}
 .tl{font-family:var(--font-m);font-size:.48rem;letter-spacing:2px;color:rgba(128,200,128,.7);text-transform:uppercase;margin-bottom:3px}
 .tv{font-family:var(--font-d);font-size:2.5rem;letter-spacing:3px;color:#22c55e}
+
+/* SPEED BADGE */
+.speed-badge{display:inline-flex;align-items:center;gap:6px;background:var(--alight);border:1px solid var(--border);padding:6px 12px;font-family:var(--font-m);font-size:.56rem;color:var(--accent);letter-spacing:1px;margin-bottom:10px}
+.speed-dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex-shrink:0}
+.speed-dot.moving{background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.25)}
+
+/* AMOUNT */
 .awrap{position:relative;margin-bottom:12px}
 .apfx{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-family:var(--font-m);font-size:.72rem;color:var(--muted);font-weight:700}
 .ainput{width:100%;background:var(--bg);border:2px solid var(--border);color:var(--text);padding:12px 12px 12px 48px;font-family:var(--font-m);font-size:1.1rem;font-weight:700;outline:none;transition:border-color .2s;letter-spacing:1px}
 .ainput:focus{border-color:var(--accent)}
+
+/* LOCK */
 .lock{padding:15px;background:var(--surface);border:2px dashed var(--border);text-align:center;margin-bottom:12px}
 .lico{font-size:1.6rem;margin-bottom:4px;opacity:.3}
 .ltxt{font-family:var(--font-m);font-size:.54rem;color:var(--muted);letter-spacing:1px;line-height:1.8;text-transform:uppercase}
+
+/* CONFIRM */
 .confirm-card{background:var(--surface);border:2px solid var(--accent);padding:18px;margin-bottom:14px;animation:fadeUp .3s ease}
 .confirm-title{font-family:var(--font-d);font-size:1.6rem;color:var(--accent);letter-spacing:3px;text-align:center;margin-bottom:16px}
 .confirm-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
@@ -85,11 +120,18 @@ main{padding:13px 13px 74px}
 .confirm-val{font-family:var(--font-m);font-size:.72rem;color:var(--text);font-weight:700;text-align:right;max-width:60%}
 .confirm-amount{font-family:var(--font-d);font-size:2rem;color:var(--accent);letter-spacing:2px}
 .confirm-warn{background:rgba(240,165,0,.12);border:1px solid var(--accent2);padding:9px 12px;font-family:var(--font-m);font-size:.56rem;color:var(--accent2);letter-spacing:1px;margin-bottom:12px;text-align:center}
+
+/* SHIFT */
 .shift-open{background:#22c55e;color:#fff;font-family:var(--font-m);font-size:.5rem;padding:2px 8px;letter-spacing:1px;display:inline-block}
 .shift-closed{background:var(--red);color:#fff;font-family:var(--font-m);font-size:.5rem;padding:2px 8px;letter-spacing:1px;display:inline-block}
 .shift-block{background:var(--rlight);border:2px solid var(--red);padding:20px;text-align:center;margin-bottom:12px}
 .shift-block-title{font-family:var(--font-d);font-size:1.4rem;color:var(--red);letter-spacing:2px;margin-bottom:6px}
 .shift-block-sub{font-family:var(--font-m);font-size:.58rem;color:var(--muted);letter-spacing:1px;line-height:1.8}
+
+/* PIN LOCKOUT */
+.pin-locked{background:var(--rlight);border:1px solid var(--red);padding:10px 13px;font-family:var(--font-m);font-size:.58rem;color:var(--red);letter-spacing:1px;text-align:center;margin-bottom:10px}
+
+/* BUTTONS */
 .bb{width:100%;padding:13px;font-family:var(--font-d);font-size:1.1rem;letter-spacing:3px;cursor:pointer;border:none;transition:all .2s;margin-bottom:7px}
 .bstart{background:var(--accent);color:#fff}.bstart:hover{background:#156632}.bstart:disabled{background:var(--muted);cursor:not-allowed}
 .barrive{background:var(--accent2);color:#fff}.barrive:hover{background:#d4920a}
@@ -102,6 +144,8 @@ main{padding:13px 13px 74px}
 .bwa{background:#25D366;color:#fff}
 .bghost{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:var(--font-m);font-size:.54rem;padding:7px 12px;cursor:pointer;transition:all .2s}
 .bghost:hover{border-color:var(--accent);color:var(--accent)}
+
+/* SUCCESS */
 .scard{background:var(--accent);color:#fff;padding:20px 16px;text-align:center;margin-bottom:12px;box-shadow:var(--shlg);animation:fadeUp .4s ease}
 .sico{font-size:2.2rem;margin-bottom:8px}
 .stitle{font-family:var(--font-d);font-size:1.7rem;letter-spacing:3px;margin-bottom:5px}
@@ -109,6 +153,8 @@ main{padding:13px 13px 74px}
 .sdetails{background:rgba(255,255,255,.15);padding:11px;margin:12px 0}
 .drow{display:flex;justify-content:space-between;font-family:var(--font-m);font-size:.56rem;margin-bottom:4px}
 .drow:last-child{margin-bottom:0}
+
+/* HISTORY */
 .hsect{margin-top:6px}
 .stitle2{font-family:var(--font-m);font-size:.52rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--border)}
 .hitem{background:var(--card);border:1px solid var(--border);padding:10px 12px;margin-bottom:7px;box-shadow:0 1px 4px rgba(0,0,0,.04);transition:background .3s}
@@ -117,11 +163,15 @@ main{padding:13px 13px 74px}
 .hamt{font-family:var(--font-m);font-size:.61rem;color:#22c55e;font-weight:700}
 .hbot{display:flex;justify-content:space-between;font-size:.62rem;color:var(--muted)}
 .htime{font-family:var(--font-m);font-size:.5rem}
+
+/* SHIFT SUMMARY */
 .sumcard{background:var(--surface);border:1px solid var(--border);padding:14px;margin-bottom:12px}
 .sumrow{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)}
 .sumrow:last-child{border-bottom:none}
 .sumlbl{font-family:var(--font-m);font-size:.54rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
 .sumval{font-family:var(--font-d);font-size:1.3rem;color:var(--accent)}
+
+/* REPORTS */
 .sgrid2{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px}
 .sbox{background:var(--card);border:1px solid var(--border);padding:13px;box-shadow:var(--shadow);transition:background .3s}
 .sbox .sl{font-family:var(--font-m);font-size:.46rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px}
@@ -138,13 +188,19 @@ main{padding:13px 13px 74px}
 .tramt{font-family:var(--font-m);font-size:.58rem;color:#22c55e;font-weight:700;text-align:right}
 .exprow{display:flex;gap:6px;margin-bottom:11px;flex-wrap:wrap}
 .exprow button{flex:1;min-width:55px}
+
+/* REPORT TABS */
 .rtabs{display:flex;gap:0;margin-bottom:12px;border-bottom:2px solid var(--border);overflow-x:auto}
 .rtab{font-family:var(--font-m);font-size:.5rem;letter-spacing:1px;padding:8px 12px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;background:transparent;border-top:none;border-left:none;border-right:none;transition:all .2s;text-transform:uppercase;white-space:nowrap;margin-bottom:-2px}
 .rtab.active{color:var(--accent);border-bottom-color:var(--accent)}
 .rsect{display:none}.rsect.active{display:block}
+
+/* CHARTS */
 .chart-wrap{background:var(--card);border:1px solid var(--border);padding:14px;margin-bottom:12px;box-shadow:var(--shadow)}
 .chart-title{font-family:var(--font-m);font-size:.52rem;color:var(--accent);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px}
 .chart-canvas{height:200px;position:relative}
+
+/* LEADERBOARD */
 .lb-item{display:grid;grid-template-columns:30px 1fr auto;gap:10px;align-items:center;padding:11px 12px;background:var(--card);border:1px solid var(--border);margin-bottom:7px;box-shadow:var(--shadow)}
 .lb-rank{font-family:var(--font-d);font-size:1.4rem;color:var(--muted);text-align:center}
 .lb-rank.g{color:#f0a500}.lb-rank.s{color:#9ca3af}.lb-rank.b{color:#b87333}
@@ -157,6 +213,8 @@ main{padding:13px 13px 74px}
 .target-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:5px}
 .target-fill{height:100%;border-radius:3px;transition:width 1s}
 .target-fill.low{background:var(--red)}.target-fill.mid{background:var(--accent2)}.target-fill.high{background:#22c55e}
+
+/* PERFORMANCE */
 .perf-card{background:var(--card);border:1px solid var(--border);padding:14px;margin-bottom:10px;box-shadow:var(--shadow)}
 .perf-name{font-family:var(--font-d);font-size:1.05rem;color:var(--text);letter-spacing:2px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
 .score-badge{font-family:var(--font-d);font-size:1rem;padding:2px 9px;letter-spacing:2px}
@@ -165,6 +223,8 @@ main{padding:13px 13px 74px}
 .pstat{text-align:center;padding:9px 6px;background:var(--surface);border:1px solid var(--border)}
 .pstat .pl{font-family:var(--font-m);font-size:.44rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px}
 .pstat .pv{font-family:var(--font-d);font-size:1.15rem;color:var(--accent)}
+
+/* ADMIN */
 .apinbox{text-align:center;padding:40px 16px}
 .apintitle{font-family:var(--font-d);font-size:2rem;color:var(--accent);letter-spacing:3px;margin-bottom:7px}
 .apinsub{font-family:var(--font-m);font-size:.56rem;color:var(--muted);letter-spacing:1px;margin-bottom:18px;line-height:1.8}
@@ -193,18 +253,30 @@ main{padding:13px 13px 74px}
 .step{counter-increment:s;padding:8px 10px 8px 32px;border-left:2px solid var(--border);margin-bottom:7px;position:relative;font-size:.74rem;color:var(--text);line-height:1.6}
 .step::before{content:counter(s);position:absolute;left:-12px;top:6px;width:22px;height:22px;background:var(--accent);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-m);font-size:.56rem;font-weight:700}
 .step code{background:var(--alight);padding:1px 5px;font-family:var(--font-m);font-size:.64rem;color:var(--accent)}
+
+/* SESSION TIMEOUT OVERLAY */
 .timeout-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;display:none;align-items:center;justify-content:center;padding:20px}
 .timeout-overlay.open{display:flex}
 .timeout-box{background:var(--card);border:3px solid var(--accent2);padding:30px 24px;text-align:center;max-width:320px;width:100%;animation:fadeUp .3s ease}
 .timeout-title{font-family:var(--font-d);font-size:2rem;color:var(--accent2);letter-spacing:3px;margin-bottom:8px}
 .timeout-sub{font-family:var(--font-m);font-size:.6rem;color:var(--muted);letter-spacing:1px;line-height:1.8;margin-bottom:18px}
 .timeout-count{font-family:var(--font-d);font-size:3rem;color:var(--red);letter-spacing:3px;margin-bottom:16px}
+
+/* MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
 .modal-overlay.open{display:flex}
 .modal{background:var(--card);border:1px solid var(--border);border-top:3px solid var(--accent);padding:22px;width:100%;max-width:380px;animation:fadeUp .3s ease;max-height:90vh;overflow-y:auto}
 .modal-title{font-family:var(--font-d);font-size:1.4rem;color:var(--accent);letter-spacing:2px;margin-bottom:14px}
 .modal-actions{display:flex;gap:8px;margin-top:14px}
 .modal-actions button{flex:1}
+
+/* SHIFT CLOSE SUMMARY MODAL */
+.shift-summary-modal .modal{border-top-color:var(--red)}
+.shift-sum-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);font-family:var(--font-m);font-size:.62rem}
+.shift-sum-row:last-child{border-bottom:none}
+.shift-sum-total{font-family:var(--font-d);font-size:1.6rem;color:var(--accent);margin-top:10px;text-align:center}
+
+/* MISC */
 .toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:9px 16px;font-family:var(--font-m);font-size:.56rem;letter-spacing:1px;z-index:999;opacity:0;transition:opacity .3s;max-width:90vw;text-align:center}
 .toast.show{opacity:1}
 .spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:30px auto}
@@ -217,6 +289,7 @@ main{padding:13px 13px 74px}
 .tag-active span{cursor:pointer;opacity:.8}.tag-active span:hover{opacity:1}
 .queue-banner{background:var(--accent2);color:#fff;padding:7px 13px;font-family:var(--font-m);font-size:.56rem;letter-spacing:1px;display:none;align-items:center;justify-content:space-between;cursor:pointer}
 .queue-banner.show{display:flex}
+
 @media print{
   .bnav,.hico,header .hright,.exprow,.fchips,.rtabs,.queue-banner,.timeout-overlay,.modal-overlay{display:none!important}
   body{background:#fff!important;color:#000!important;max-width:100%!important}
@@ -295,24 +368,45 @@ main{padding:13px 13px 74px}
   </div>
 </div>
 
+<!-- SHIFT CLOSE SUMMARY MODAL -->
+<div class="modal-overlay shift-summary-modal" id="shiftSummaryModal">
+  <div class="modal">
+    <div class="modal-title" style="color:var(--red)">CLOSE SHIFT</div>
+    <div id="shiftSummaryBody"></div>
+    <div class="modal-actions">
+      <button class="bb br" style="margin:0" id="shiftCloseConfirmBtn">CLOSE SHIFT</button>
+      <button class="bb" style="margin:0;background:var(--border);color:var(--text)" onclick="document.getElementById('shiftSummaryModal').classList.remove('open')">CANCEL</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
 // ══════════════════════════════════════════════
-// DEFAULT DATA
+// DEFAULT DATA — stations now include GPS coords
 // ══════════════════════════════════════════════
 const DEFAULT_DRIVERS  = ['FESTUS KIPKURUI','TOM WASIKE','FELIX OTIENO','MUTUA KIRUI','JANETH TIONY','ABIGAEL CHEPKORIR','GRACE WANGECHI'];
 const DEFAULT_CARS     = ['KBZ 300','KBY 400','KBU 500','KCA 200','KDY 260W','KYA 520X','KAF 2601'];
 const DEFAULT_STATIONS = [
-  'NAIROBI CBD', 'WESTLANDS', 'KAREN', 'NGONG', 'RONGAI', "LANG'ATA", 'KIKUYU', 'LIMURU'
+  {name:'NAIROBI CBD', lat:-1.2833, lng:36.8167},
+  {name:'WESTLANDS',   lat:-1.2676, lng:36.8112},
+  {name:'KAREN',       lat:-1.3197, lng:36.7073},
+  {name:'NGONG',       lat:-1.3583, lng:36.6583},
+  {name:'RONGAI',      lat:-1.3944, lng:36.7452},
+  {name:"LANG'ATA",    lat:-1.3204, lng:36.7571},
+  {name:'KIKUYU',      lat:-1.2463, lng:36.6637},
+  {name:'LIMURU',      lat:-1.1095, lng:36.6431},
 ];
 const ADMIN_PIN_KEY     = 'fs_pin';
 const DEFAULT_ADMIN_PIN = '1234';
-const SESSION_TIMEOUT   = 30 * 60; // 30 minutes in seconds
-const SESSION_WARN      = 60;      // warn when 60s left
+const SESSION_TIMEOUT   = 30 * 60;  // 30 min
+const SESSION_WARN_SHOW = 5 * 60;   // show bar at 5 min remaining
+const SESSION_WARN_OVL  = 60;       // overlay at 60s
 const AMOUNT_MIN        = 10;
 const AMOUNT_MAX        = 50000;
-const MOTION_THRESHOLD  = 2;       // m/s (~7 km/h)
+const MAX_PIN_ATTEMPTS  = 3;
+const PIN_LOCKOUT_SECS  = 5 * 60;   // 5-minute lockout
 
 // ══════════════════════════════════════════════
 // STATE
@@ -327,43 +421,56 @@ let localTrips = load('fs_trips', []);
 let offlineQ   = load('fs_queue', []);
 let driverPins = load('fs_dpins', {});
 let carTargets = load('fs_targets', {});
-let shifts     = load('fs_shifts', {}); // {plate: {open:bool, openedAt, openedBy}}
+let shifts     = load('fs_shifts', {});
 let sheetTrips = [];
-let appConfig  = load('fs_config', {appsScriptUrl:'', sheetCsvUrl:'https://docs.google.com/spreadsheets/d/162XUZwBJcpIc9m_011hzaBdbJY_I7Bf772aeJt7oQIs/pub?gid=0&single=true&output=csv'});
+let appConfig  = load('fs_config', {
+  appsScriptUrl:'',
+  sheetCsvUrl:'https://docs.google.com/spreadsheets/d/162XUZwBJcpIc9m_011hzaBdbJY_I7Bf772aeJt7oQIs/pub?gid=0&single=true&output=csv'
+});
+
+// PIN lockout state (in-memory only — resets on page reload, intentional)
+let adminPinFailures   = 0;
+let adminLockedUntil   = 0;
+let driverPinFailures  = {};  // {driverName: {count, until}}
 
 let tripState = {
-  phase:'setup',driver:'',carPlate:'',
-  fromStation:null,toStation:null,
-  amount:'',notes:'',tripStart:null,tripEnd:null,
-  motionWatchId:null,            // for GPS watch
-  speed:0, motionDetected:false
+  phase:'setup', driver:'', carPlate:'',
+  fromStation:null, toStation:null,
+  amount:'', notes:'',
+  tripStart:null, tripEnd:null,
+  // GPS / motion
+  gpsLat:null, gpsLng:null, gpsStatus:'unknown',
+  nearestStation:null,
+  gpsWatchId:null,
+  speed:null,         // m/s from GPS, null = unknown
 };
-const sd = load('fs_driver', null);
-if(sd){tripState.driver=sd.driver;tripState.carPlate=sd.carPlate;tripState.phase='idle';}
 
-let currentPage   = 'log';
-let reportFilter  = 'all';
-let filterCar='',filterDriver='',filterFrom='',filterTo='';
-let adminTab      = 'shifts';
-let reportTab     = 'overview';
-let adminUnlocked = false;
-let timerInterval = null;
-let syncInterval  = null;
-let syncCountdown = 300;
+const sd = load('fs_driver', null);
+if(sd){tripState.driver=sd.driver; tripState.carPlate=sd.carPlate; tripState.phase='idle';}
+
+let currentPage        = 'log';
+let reportFilter       = 'all';
+let filterCar='', filterDriver='', filterFrom='', filterTo='';
+let adminTab           = 'shifts';
+let reportTab          = 'overview';
+let adminUnlocked      = false;
+let timerInterval      = null;
+let syncInterval       = null;
+let syncCountdown      = 300;
 let sessionSecondsLeft = SESSION_TIMEOUT;
 let sessionInterval    = null;
 let showingTimeout     = false;
-let darkMode    = load('fs_dark', false);
-let charts      = {};
-let editingTripId = null;
+let darkMode           = load('fs_dark', false);
+let charts             = {};
+let editingTripId      = null;
 
-if(darkMode){document.documentElement.setAttribute('data-theme','dark');document.getElementById('darkBtn').textContent='☀️';}
+if(darkMode){document.documentElement.setAttribute('data-theme','dark'); document.getElementById('darkBtn').textContent='☀️';}
 
 // ══════════════════════════════════════════════
 // DARK MODE
 // ══════════════════════════════════════════════
 function toggleDark(){
-  darkMode=!darkMode;save('fs_dark',darkMode);
+  darkMode=!darkMode; save('fs_dark',darkMode);
   document.documentElement.setAttribute('data-theme',darkMode?'dark':'light');
   document.getElementById('darkBtn').textContent=darkMode?'☀️':'🌙';
   if(currentPage==='reports'&&reportTab==='charts')setTimeout(renderCharts,100);
@@ -381,7 +488,12 @@ function startSessionTimer(){
 }
 
 function tickSession(){
-  if(tripState.phase==='setup'||tripState.phase==='done'){clearInterval(sessionInterval);hideTimeoutOverlay();updateSessionBar();return;}
+  if(tripState.phase==='setup'||tripState.phase==='done'){
+    clearInterval(sessionInterval);
+    hideTimeoutOverlay();
+    updateSessionBar();
+    return;
+  }
   sessionSecondsLeft--;
   updateSessionBar();
   if(sessionSecondsLeft<=0){
@@ -391,25 +503,31 @@ function tickSession(){
     autoLogout();
     return;
   }
-  if(sessionSecondsLeft<=SESSION_WARN&&!showingTimeout){
+  if(sessionSecondsLeft<=SESSION_WARN_OVL && !showingTimeout){
     showingTimeout=true;
     document.getElementById('timeoutOverlay').classList.add('open');
   }
   if(showingTimeout){
     document.getElementById('timeoutCount').textContent=sessionSecondsLeft;
     document.getElementById('sessionBar').textContent='⏱ '+sessionSecondsLeft+'s';
-    document.getElementById('sessionBar').className='session-bar warn';
+    document.getElementById('sessionBar').className='session-bar show warn';
   }
 }
 
 function updateSessionBar(){
   const bar=document.getElementById('sessionBar');
-  if(tripState.phase==='setup'||tripState.phase==='done'){bar.textContent='';return;}
+  if(tripState.phase==='setup'||tripState.phase==='done'){bar.textContent='';bar.className='session-bar';return;}
   if(showingTimeout)return;
-  const m=Math.floor(sessionSecondsLeft/60);
-  const s=sessionSecondsLeft%60;
-  bar.textContent=`⏱ ${m}:${String(s).padStart(2,'0')}`;
-  bar.className='session-bar';
+  // Only show when ≤ 5 minutes left
+  if(sessionSecondsLeft <= SESSION_WARN_SHOW){
+    const m=Math.floor(sessionSecondsLeft/60);
+    const s=sessionSecondsLeft%60;
+    bar.textContent=`⏱ ${m}:${String(s).padStart(2,'0')}`;
+    bar.className='session-bar show';
+  } else {
+    bar.textContent='';
+    bar.className='session-bar';
+  }
 }
 
 function resetSessionTimer(){
@@ -417,7 +535,7 @@ function resetSessionTimer(){
   showingTimeout=false;
   hideTimeoutOverlay();
   updateSessionBar();
-  if(!sessionInterval)startSessionTimer();
+  if(!sessionInterval||sessionSecondsLeft<=0)startSessionTimer();
 }
 
 function hideTimeoutOverlay(){
@@ -427,15 +545,15 @@ function hideTimeoutOverlay(){
 
 function autoLogout(){
   clearInterval(timerInterval);
-  stopMotionDetection();
-  tripState={...tripState,phase:'setup',driver:'',carPlate:'',fromStation:null,toStation:null,amount:'',notes:'',tripStart:null,tripEnd:null,motionWatchId:null,speed:0,motionDetected:false};
+  stopGpsWatch();
+  tripState={...tripState,phase:'setup',driver:'',carPlate:'',fromStation:null,toStation:null,amount:'',notes:'',tripStart:null,tripEnd:null,gpsLat:null,gpsLng:null,gpsStatus:'unknown',nearestStation:null,speed:null};
   save('fs_driver',null);
   document.getElementById('driverBadge').textContent='— LOGIN —';
   document.getElementById('sessionBar').textContent='';
+  document.getElementById('sessionBar').className='session-bar';
   switchPage('log');
 }
 
-// Reset session on any activity
 ['click','touchstart','keypress'].forEach(ev=>{
   document.addEventListener(ev,()=>{
     if(tripState.phase!=='setup'&&tripState.phase!=='done'&&!showingTimeout)resetSessionTimer();
@@ -457,9 +575,46 @@ function switchPage(p){
 }
 function goSetup(){
   clearInterval(timerInterval);
-  stopMotionDetection();
+  stopGpsWatch();
   tripState.phase='setup';
   switchPage('log');
+}
+
+// ══════════════════════════════════════════════
+// PIN LOCKOUT HELPERS
+// ══════════════════════════════════════════════
+function isAdminLocked(){return adminLockedUntil>Date.now();}
+function adminLockSecsLeft(){return Math.ceil((adminLockedUntil-Date.now())/1000);}
+
+function recordAdminFailure(){
+  adminPinFailures++;
+  if(adminPinFailures>=MAX_PIN_ATTEMPTS){
+    adminLockedUntil=Date.now()+PIN_LOCKOUT_SECS*1000;
+    adminPinFailures=0;
+    toast(`🔒 TOO MANY ATTEMPTS — LOCKED FOR ${PIN_LOCKOUT_SECS/60} MINUTES`);
+  } else {
+    toast(`WRONG PIN — ${MAX_PIN_ATTEMPTS-adminPinFailures} ATTEMPT${MAX_PIN_ATTEMPTS-adminPinFailures===1?'':'S'} LEFT`);
+  }
+}
+
+function isDriverLocked(driver){
+  const d=driverPinFailures[driver];
+  return d&&d.until>Date.now();
+}
+function driverLockSecsLeft(driver){
+  return Math.ceil((driverPinFailures[driver].until-Date.now())/1000);
+}
+function recordDriverFailure(driver){
+  if(!driverPinFailures[driver])driverPinFailures[driver]={count:0,until:0};
+  driverPinFailures[driver].count++;
+  if(driverPinFailures[driver].count>=MAX_PIN_ATTEMPTS){
+    driverPinFailures[driver].until=Date.now()+PIN_LOCKOUT_SECS*1000;
+    driverPinFailures[driver].count=0;
+    toast(`🔒 TOO MANY ATTEMPTS — LOCKED FOR ${PIN_LOCKOUT_SECS/60} MINUTES`);
+  } else {
+    const left=MAX_PIN_ATTEMPTS-driverPinFailures[driver].count;
+    toast(`WRONG PIN — ${left} ATTEMPT${left===1?'':'S'} LEFT`);
+  }
 }
 
 // ══════════════════════════════════════════════
@@ -474,17 +629,18 @@ function updateOfflineBadge(){
 }
 window.addEventListener('online',()=>{updateOfflineBadge();if(offlineQ.length)flushQueue();});
 window.addEventListener('offline',()=>updateOfflineBadge());
+
 async function flushQueue(){
   if(!offlineQ.length||!appConfig.appsScriptUrl)return;
   toast('SYNCING '+offlineQ.length+' QUEUED TRIPS...');
   const remaining=[];
   for(const trip of offlineQ){
     try{
-      const params=new URLSearchParams({date:trip.date,time:trip.time,fromStation:trip.fromStation,toStation:trip.toStation,driver:trip.driver,carPlate:trip.carPlate,amount:trip.amount,duration:trip.duration,notes:trip.notes||''});
-      await fetch(appConfig.appsScriptUrl+'?'+params.toString(),{method:'GET',mode:'no-cors'});
+      const p=new URLSearchParams({date:trip.date,time:trip.time,fromStation:trip.fromStation,toStation:trip.toStation,driver:trip.driver,carPlate:trip.carPlate,amount:trip.amount,duration:trip.duration,notes:trip.notes||''});
+      await fetch(appConfig.appsScriptUrl+'?'+p.toString(),{method:'GET',mode:'no-cors'});
     }catch(e){remaining.push(trip);}
   }
-  offlineQ=remaining;save('fs_queue',offlineQ);
+  offlineQ=remaining; save('fs_queue',offlineQ);
   toast(remaining.length===0?'✅ ALL TRIPS SYNCED':'⚠ '+remaining.length+' STILL QUEUED');
   updateOfflineBadge();
 }
@@ -504,53 +660,97 @@ function startAutoSync(){
 }
 
 // ══════════════════════════════════════════════
-// MOTION DETECTION
+// GPS — passive watch (doesn't block flow)
 // ══════════════════════════════════════════════
-function startMotionDetection(){
-  if(!navigator.geolocation){
-    toast('GPS not supported – use manual start');
-    return;
-  }
-  tripState.motionWatchId = navigator.geolocation.watchPosition(
-    pos => {
-      const speed = pos.coords.speed; // speed in m/s, may be null
-      tripState.speed = speed || 0;
-      if(speed !== null && speed > MOTION_THRESHOLD && !tripState.motionDetected){
-        tripState.motionDetected = true;
-        toast('🚀 Vehicle started moving – timer started');
-        startActiveTrip();
-      } else {
-        renderLog(); // update speed display
+function hav(a,b,c,d){const R=6371,dL=(c-a)*Math.PI/180,dO=(d-b)*Math.PI/180,x=Math.sin(dL/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dO/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
+
+function findNearest(lat,lng){
+  let best=null,bd=Infinity;
+  STATIONS.forEach(s=>{
+    if(!s.lat||!s.lng)return;
+    const d=hav(lat,lng,s.lat,s.lng);
+    if(d<bd){bd=d;best={...s,dist:d};}
+  });
+  return best;
+}
+
+function startGpsWatch(){
+  stopGpsWatch();
+  if(!navigator.geolocation){tripState.gpsStatus='unsupported';renderLog();return;}
+  tripState.gpsStatus='detecting';
+  tripState.gpsWatchId=navigator.geolocation.watchPosition(
+    pos=>{
+      tripState.gpsLat=pos.coords.latitude;
+      tripState.gpsLng=pos.coords.longitude;
+      tripState.gpsStatus='ok';
+      // Speed in m/s — may be null on some devices
+      tripState.speed=(pos.coords.speed!=null&&pos.coords.speed>=0)?pos.coords.speed:null;
+      tripState.nearestStation=findNearest(tripState.gpsLat,tripState.gpsLng);
+      // Passive: if we're in idle and nearest station found, auto-suggest
+      if(tripState.phase==='idle'&&tripState.nearestStation&&!tripState.fromStation){
+        tripState.fromStation=STATIONS.find(s=>s.name===tripState.nearestStation.name)||null;
       }
+      renderLog();
     },
-    err => {
-      console.warn('GPS error:', err);
-      toast('GPS error – use manual start if needed');
-    },
-    { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+    err=>{tripState.gpsStatus='error';tripState.speed=null;renderLog();},
+    {enableHighAccuracy:true,maximumAge:5000,timeout:15000}
   );
 }
 
-function stopMotionDetection(){
-  if(tripState.motionWatchId){
-    navigator.geolocation.clearWatch(tripState.motionWatchId);
-    tripState.motionWatchId = null;
+function stopGpsWatch(){
+  if(tripState.gpsWatchId!=null){
+    navigator.geolocation.clearWatch(tripState.gpsWatchId);
+    tripState.gpsWatchId=null;
   }
+  tripState.speed=null;
 }
 
-function manualStartTrip(){
-  if(confirm('Start timer manually (motion not detected)?')){
-    startActiveTrip();
-  }
+function gpsBarHtml(){
+  if(tripState.gpsStatus==='detecting')
+    return`<div class="gbar detecting"><span>📡</span>DETECTING LOCATION...</div>`;
+  if(tripState.gpsStatus==='ok'&&tripState.nearestStation)
+    return`<div class="gbar"><span>📍</span>NEAREST: ${tripState.nearestStation.name} (${tripState.nearestStation.dist.toFixed(1)} KM)</div>`;
+  if(tripState.gpsStatus==='error')
+    return`<div class="gbar err"><span>⚠</span>GPS UNAVAILABLE</div>`;
+  return`<div class="gbar detecting"><span>📡</span>WAITING FOR GPS...</div>`;
 }
 
-function startActiveTrip(){
-  stopMotionDetection();
-  tripState.phase='active';
-  tripState.tripStart=Date.now();
-  renderLog();
-  startTripTimer();
-  toast('TRIP STARTED – SAFE JOURNEY! 🚌');
+function speedBadgeHtml(){
+  if(tripState.speed===null)return'';
+  const kmh=(tripState.speed*3.6).toFixed(0);
+  const moving=tripState.speed>2;
+  return`<div class="speed-badge">
+    <div class="speed-dot ${moving?'moving':''}"></div>
+    ${moving?`MOVING — ${kmh} KM/H`:`STATIONARY — ${kmh} KM/H`}
+  </div>`;
+}
+
+// ══════════════════════════════════════════════
+// FIX #1: TRIP TIMER — was missing entirely
+// ══════════════════════════════════════════════
+function startTripTimer(){
+  clearInterval(timerInterval);
+  timerInterval=setInterval(()=>{
+    const el=document.getElementById('timerVal');
+    if(el&&tripState.tripStart){
+      const s=Math.floor((Date.now()-tripState.tripStart)/1000);
+      el.textContent=`${String(Math.floor(s/3600)).padStart(2,'0')}:${String(Math.floor((s%3600)/60)).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+    }
+  },1000);
+}
+
+// ══════════════════════════════════════════════
+// TOAST
+// ══════════════════════════════════════════════
+function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200);}
+
+// ══════════════════════════════════════════════
+// SHIFT CHECK
+// ══════════════════════════════════════════════
+function isShiftOpen(plate){
+  const hasAnyShift=Object.keys(shifts).length>0;
+  if(!hasAnyShift)return true;
+  return shifts[plate]?.open===true;
 }
 
 // ══════════════════════════════════════════════
@@ -560,31 +760,46 @@ function saveDriver(){
   const d=document.getElementById('selD')?.value, p=document.getElementById('selP')?.value;
   if(!d||!p){toast('SELECT DRIVER AND CAR PLATE');return;}
   if(driverPins[d]){
+    // Check lockout
+    if(isDriverLocked(d)){
+      toast(`🔒 LOCKED — TRY AGAIN IN ${driverLockSecsLeft(d)}s`);
+      return;
+    }
+    const n=d.replace(/'/g,"\\'"), q=p.replace(/'/g,"\\'");
+    const lockMsg=isDriverLocked(d)?`<div class="pin-locked">🔒 LOCKED — TRY IN ${driverLockSecsLeft(d)}s</div>`:'';
     document.getElementById('page-log').innerHTML=`
       <div class="card" style="border-left:4px solid var(--accent2)">
         <div class="ctitle">DRIVER PIN</div>
         <div class="csub">// ENTER YOUR PIN TO CONTINUE</div>
+        ${lockMsg}
         <div style="text-align:center;margin-bottom:14px">
           <div style="font-family:var(--font-m);font-size:.58rem;color:var(--muted);margin-bottom:10px">${d} · ${p}</div>
-          <input type="password" id="driverPinIn" maxlength="6" placeholder="••••" class="pininput" onkeydown="if(event.key==='Enter')confirmDriverPin('${d.replace(/'/g,"\\'")}','${p.replace(/'/g,"\\'")}')">
+          <input type="password" id="driverPinIn" maxlength="6" placeholder="••••" class="pininput"
+            onkeydown="if(event.key==='Enter')confirmDriverPin('${n}','${q}')">
         </div>
-        <button class="bb bstart" onclick="confirmDriverPin('${d.replace(/'/g,"\\'")}','${p.replace(/'/g,"\\'")}')">CONFIRM</button>
+        <button class="bb bstart" onclick="confirmDriverPin('${n}','${q}')">CONFIRM</button>
         <button class="bout" onclick="renderLog()">BACK</button>
       </div>`;
     return;
   }
   finishLogin(d,p);
 }
+
 function confirmDriverPin(d,p){
+  if(isDriverLocked(d)){toast(`🔒 LOCKED — TRY IN ${driverLockSecsLeft(d)}s`);return;}
   const pin=document.getElementById('driverPinIn')?.value;
-  if(pin!==driverPins[d]){toast('WRONG PIN — TRY AGAIN');return;}
+  if(pin!==driverPins[d]){recordDriverFailure(d);if(!isDriverLocked(d))saveDriver();else renderLog();return;}
+  // Success — clear failures
+  driverPinFailures[d]={count:0,until:0};
   finishLogin(d,p);
 }
+
 function finishLogin(d,p){
-  tripState.driver=d;tripState.carPlate=p;tripState.phase='idle';
+  tripState.driver=d; tripState.carPlate=p; tripState.phase='idle';
   save('fs_driver',{driver:d,carPlate:p});
   document.getElementById('driverBadge').textContent=d.split(' ')[0]+' · '+p;
   startSessionTimer();
+  startGpsWatch();
   renderLog();
 }
 
@@ -592,13 +807,28 @@ function finishLogin(d,p){
 // STATION SELECTION
 // ══════════════════════════════════════════════
 function selFrom(n){
-  tripState.fromStation=n;
+  tripState.fromStation=STATIONS.find(s=>s.name===n)||{name:n,lat:0,lng:0};
   renderLog();
 }
 function selTo(n){
   if(tripState.phase!=='arrived')return;
-  tripState.toStation=n;
+  tripState.toStation=STATIONS.find(s=>s.name===n)||{name:n,lat:0,lng:0};
   renderLog();
+}
+
+function stationGridHtml(selected, disabledName=null){
+  return STATIONS.map(s=>{
+    const d=tripState.gpsLat?hav(tripState.gpsLat,tripState.gpsLng,s.lat,s.lng):null;
+    const nearest=tripState.nearestStation?.name===s.name;
+    const isSel=selected===s.name;
+    const isDis=s.name===disabledName;
+    return`<div class="sbtn ${isSel?'sel':''} ${isDis?'dis':''} ${nearest&&!isSel?'nearest':''}"
+      onclick="${isDis?'':`sel${selected===null?'From':'To'}('${s.name.replace(/'/g,"\\'")}')` }"
+      title="${nearest?'Nearest to you':''}">
+      ${s.name}${nearest&&!isSel?' 📍':''}
+      ${d!==null?`<span class="dist">${d.toFixed(1)} km</span>`:''}
+    </div>`;
+  }).join('');
 }
 
 // ══════════════════════════════════════════════
@@ -606,54 +836,56 @@ function selTo(n){
 // ══════════════════════════════════════════════
 function startTrip(){
   if(!tripState.fromStation){toast('SELECT YOUR STARTING STATION');return;}
-  // SHIFT CHECK
-  if(!isShiftOpen(tripState.carPlate)){
-    toast('⛔ SHIFT IS CLOSED FOR '+tripState.carPlate);return;
-  }
-  tripState.phase='waiting_motion';
-  tripState.speed=0;
-  tripState.motionDetected=false;
+  if(!isShiftOpen(tripState.carPlate)){toast('⛔ SHIFT IS CLOSED FOR '+tripState.carPlate);return;}
+  tripState.phase='active';
+  tripState.tripStart=Date.now();
+  tripState.toStation=null;
+  tripState.notes='';
   renderLog();
-  startMotionDetection();
+  startTripTimer();
+  toast('TRIP STARTED — SAFE JOURNEY! 🚌');
 }
 
 function arrive(){
-  tripState.phase='arrived';tripState.tripEnd=Date.now();
+  tripState.phase='arrived';
+  tripState.tripEnd=Date.now();
   clearInterval(timerInterval);
-  stopMotionDetection();
   renderLog();
   toast('ARRIVED — SELECT DESTINATION & ENTER AMOUNT');
 }
 
 function reviewTrip(){
-  // Collect form values then go to confirm phase
   const amt=parseFloat(document.getElementById('amtIn')?.value||'0');
   const notes=(document.getElementById('notesIn')?.value||'').trim();
   if(!tripState.toStation){toast('SELECT DESTINATION STATION');return;}
   if(!amt||amt<=0){toast('ENTER AMOUNT COLLECTED');return;}
   if(amt<AMOUNT_MIN){toast(`AMOUNT TOO LOW — MINIMUM KES ${AMOUNT_MIN}`);return;}
   if(amt>AMOUNT_MAX){toast(`AMOUNT TOO HIGH — MAXIMUM KES ${AMOUNT_MAX.toLocaleString()}`);return;}
-  if(tripState.toStation===tripState.fromStation){toast('TO STATION MUST BE DIFFERENT');return;}
-  tripState.amount=amt;tripState.notes=notes;
-  tripState.phase='confirm';renderLog();
+  if(tripState.toStation.name===tripState.fromStation.name){toast('TO STATION MUST BE DIFFERENT');return;}
+  tripState.amount=amt; tripState.notes=notes;
+  tripState.phase='confirm';
+  renderLog();
 }
 
 function confirmAndSubmit(){
-  // Duplicate check
   const tenMin=10*60*1000;
-  const dup=localTrips.find(t=>t.driver===tripState.driver&&t.carPlate===tripState.carPlate&&t.fromStation===tripState.fromStation&&t.toStation===tripState.toStation&&(Date.now()-new Date(t.timestamp).getTime())<tenMin);
+  const dup=localTrips.find(t=>
+    t.driver===tripState.driver&&t.carPlate===tripState.carPlate&&
+    t.fromStation===tripState.fromStation.name&&t.toStation===tripState.toStation.name&&
+    (Date.now()-new Date(t.timestamp).getTime())<tenMin
+  );
   if(dup&&!confirm('⚠ SIMILAR TRIP LOGGED WITHIN 10 MINUTES — SUBMIT ANYWAY?'))return;
-
   const trip={
     id:Date.now(),driver:tripState.driver,carPlate:tripState.carPlate,
-    fromStation:tripState.fromStation,toStation:tripState.toStation,
+    fromStation:tripState.fromStation.name,toStation:tripState.toStation.name,
     amount:tripState.amount,duration:Math.floor((tripState.tripEnd-tripState.tripStart)/60000),
     notes:tripState.notes,date:new Date().toLocaleDateString('en-GB'),
     time:new Date().toLocaleTimeString(),timestamp:new Date().toISOString(),
   };
-  localTrips.unshift(trip);save('fs_trips',localTrips.slice(0,200));
+  localTrips.unshift(trip); save('fs_trips',localTrips.slice(0,200));
   tripState.phase='done';
-  submitToSheets(trip);renderLog();
+  submitToSheets(trip);
+  renderLog();
 }
 
 function backToEdit(){tripState.phase='arrived';renderLog();}
@@ -662,13 +894,15 @@ function newTrip(){
   const prev=tripState.toStation;
   tripState.phase='idle';
   tripState.fromStation=prev;
-  tripState.toStation=null;tripState.amount='';tripState.notes='';tripState.tripStart=null;tripState.tripEnd=null;
+  tripState.toStation=null; tripState.amount=''; tripState.notes='';
+  tripState.tripStart=null; tripState.tripEnd=null;
   resetSessionTimer();
-  renderLog();toast('READY FOR NEXT TRIP');
+  renderLog();
+  toast('READY FOR NEXT TRIP');
 }
 
 // ══════════════════════════════════════════════
-// SUBMIT TO SHEETS
+// SUBMIT
 // ══════════════════════════════════════════════
 async function submitToSheets(trip){
   if(!appConfig.appsScriptUrl){
@@ -678,8 +912,8 @@ async function submitToSheets(trip){
   }
   if(!isOnline()){offlineQ.push(trip);save('fs_queue',offlineQ);updateOfflineBadge();toast('📦 OFFLINE — QUEUED');return;}
   try{
-    const params=new URLSearchParams({date:trip.date,time:trip.time,fromStation:trip.fromStation,toStation:trip.toStation,driver:trip.driver,carPlate:trip.carPlate,amount:trip.amount,duration:trip.duration,notes:trip.notes||''});
-    await fetch(appConfig.appsScriptUrl+'?'+params.toString(),{method:'GET',mode:'no-cors'});
+    const p=new URLSearchParams({date:trip.date,time:trip.time,fromStation:trip.fromStation,toStation:trip.toStation,driver:trip.driver,carPlate:trip.carPlate,amount:trip.amount,duration:trip.duration,notes:trip.notes||''});
+    await fetch(appConfig.appsScriptUrl+'?'+p.toString(),{method:'GET',mode:'no-cors'});
     toast('✅ SYNCED TO GOOGLE SHEETS');
   }catch(e){offlineQ.push(trip);save('fs_queue',offlineQ);updateOfflineBadge();toast('⚠ QUEUED FOR RETRY');}
 }
@@ -694,44 +928,24 @@ function generateWhatsAppSummary(){
   if(!todayT.length){toast('NO TRIPS TODAY TO SUMMARIZE');return;}
   const total=todayT.reduce((s,t)=>s+t.amount,0);
   const avg=Math.round(total/todayT.length);
-
-  // Per car breakdown
   const cars=[...new Set(todayT.map(t=>t.carPlate).filter(Boolean))];
   const carLines=cars.map(car=>{
     const ct=todayT.filter(t=>t.carPlate===car);
     const cr=ct.reduce((s,t)=>s+t.amount,0);
     const target=carTargets[car];
     const pct=target?` (${Math.round((cr/target)*100)}% of target)`:'';
-    return `  🚗 ${car}: ${ct.length} trips · KES ${cr.toLocaleString()}${pct}`;
+    return`  🚗 ${car}: ${ct.length} trips · KES ${cr.toLocaleString()}${pct}`;
   }).join('\n');
-
-  // Per driver breakdown
   const drivers=[...new Set(todayT.map(t=>t.driver).filter(Boolean))];
   const driverLines=drivers.map(d=>{
     const dt=todayT.filter(t=>t.driver===d);
     const dr=dt.reduce((s,t)=>s+t.amount,0);
-    return `  👤 ${d}: ${dt.length} trips · KES ${dr.toLocaleString()}`;
+    return`  👤 ${d}: ${dt.length} trips · KES ${dr.toLocaleString()}`;
   }).join('\n');
-
-  const msg=`🚌 *FESTUS SACCO — DAILY REPORT*\n📅 ${today}\n\n`+
-    `📊 *SUMMARY*\n`+
-    `• Total Trips: ${todayT.length}\n`+
-    `• Total Revenue: KES ${total.toLocaleString()}\n`+
-    `• Average/Trip: KES ${avg.toLocaleString()}\n\n`+
-    `🚗 *BY CAR*\n${carLines}\n\n`+
-    `👤 *BY DRIVER*\n${driverLines}\n\n`+
-    `_Generated by FESTUS SACCO App_`;
-
-  // Try WhatsApp, fallback to clipboard
+  const msg=`🚌 *FESTUS SACCO — DAILY REPORT*\n📅 ${today}\n\n📊 *SUMMARY*\n• Total Trips: ${todayT.length}\n• Total Revenue: KES ${total.toLocaleString()}\n• Average/Trip: KES ${avg.toLocaleString()}\n\n🚗 *BY CAR*\n${carLines}\n\n👤 *BY DRIVER*\n${driverLines}\n\n_Generated by FESTUS SACCO App_`;
   const encoded=encodeURIComponent(msg);
-  const waUrl=`https://wa.me/?text=${encoded}`;
-  // Copy to clipboard first
-  if(navigator.clipboard){
-    navigator.clipboard.writeText(msg).then(()=>{
-      toast('📋 COPIED! OPENING WHATSAPP...');
-    }).catch(()=>{});
-  }
-  setTimeout(()=>window.open(waUrl,'_blank'),500);
+  if(navigator.clipboard){navigator.clipboard.writeText(msg).then(()=>toast('📋 COPIED! OPENING WHATSAPP...')).catch(()=>{});}
+  setTimeout(()=>window.open(`https://wa.me/?text=${encoded}`,'_blank'),500);
 }
 
 // ══════════════════════════════════════════════
@@ -844,8 +1058,7 @@ function exportExcel(){
 // CHARTS
 // ══════════════════════════════════════════════
 function renderCharts(){
-  const all=allData();
-  const isDark=darkMode;
+  const all=allData(),isDark=darkMode;
   const tc=isDark?'#5a8a6a':'#6a8a6a',gc=isDark?'#2a3e2e':'#dde8dd';
   Chart.defaults.color=tc;Chart.defaults.borderColor=gc;
   Chart.defaults.font.family="'Space Mono',monospace";Chart.defaults.font.size=10;
@@ -857,7 +1070,7 @@ function renderCharts(){
   const days30=[];
   for(let i=29;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);d.setHours(0,0,0,0);const n=new Date(d);n.setDate(d.getDate()+1);const dt=all.filter(t=>{const rd=parseDate(t.date);return rd&&rd>=d&&rd<n;});days30.push({label:d.toLocaleDateString('en-GB',{day:'numeric',month:'short'}),trips:dt.length,revenue:dt.reduce((s,t)=>s+t.amount,0)});}
   const weeks=[];
-  for(let i=7;i>=0;i--){const ws=new Date();ws.setDate(ws.getDate()-ws.getDay()-i*7);ws.setHours(0,0,0,0);const we=new Date(ws);we.setDate(ws.getDate()+7);const wt=all.filter(t=>{const d=parseDate(t.date);return d&&d>=ws&&d<we;});weeks.push({label:'W'+(8-i),revenue:wt.reduce((s,t)=>s+t.amount,0),trips:wt.length});}
+  for(let i=7;i>=0;i--){const ws=new Date();ws.setDate(ws.getDate()-ws.getDay()-i*7);ws.setHours(0,0,0,0);const we=new Date(ws);we.setDate(ws.getDate()+7);const wt=all.filter(t=>{const d=parseDate(t.date);return d&&d>=ws&&d<we;});weeks.push({label:'W'+(8-i),revenue:wt.reduce((s,t)=>s+t.amount,0)});}
   mk('chartDaily','bar',days30.map(d=>d.label),[{label:'Revenue',data:days30.map(d=>d.revenue),backgroundColor:'rgba(26,122,60,0.7)',borderColor:'#1a7a3c',borderWidth:1,borderRadius:3}]);
   mk('chartWeekly','bar',weeks.map(w=>w.label),[{label:'Revenue',data:weeks.map(w=>w.revenue),backgroundColor:weeks.map((_,i)=>i===weeks.length-1?'rgba(240,165,0,0.8)':'rgba(26,122,60,0.5)'),borderColor:weeks.map((_,i)=>i===weeks.length-1?'#f0a500':'#1a7a3c'),borderWidth:1,borderRadius:3}]);
   const cars=[...new Set(all.map(t=>t.carPlate).filter(Boolean))];
@@ -875,7 +1088,7 @@ function renderLog(){
   if(tripState.driver)document.getElementById('driverBadge').textContent=tripState.driver.split(' ')[0]+' · '+tripState.carPlate;
   else document.getElementById('driverBadge').textContent='— LOGIN —';
 
-  // ── SETUP
+  // SETUP
   if(tripState.phase==='setup'){
     el.innerHTML=`
       <div class="card" style="border-left:4px solid var(--accent2)">
@@ -892,9 +1105,8 @@ function renderLog(){
     return;
   }
 
-  // ── IDLE (start trip)
+  // IDLE
   if(tripState.phase==='idle'){
-    // Check shift
     if(!isShiftOpen(tripState.carPlate)){
       el.innerHTML=`
         <div class="shift-block">
@@ -908,8 +1120,10 @@ function renderLog(){
       <div class="card">
         <div class="ctitle">START TRIP</div>
         <div class="csub">// SELECT YOUR STARTING STATION</div>
+        ${gpsBarHtml()}
+        ${speedBadgeHtml()}
         <div class="field"><label>FROM STATION</label></div>
-        <div class="sgrid">${STATIONS.map(s=>`<div class="sbtn ${tripState.fromStation===s?'sel':''}" onclick="selFrom('${s.replace(/'/g,"\\'")}')">${s}</div>`).join('')}</div>
+        <div class="sgrid">${stationGridHtml(tripState.fromStation?.name||null)}</div>
         <button class="bb bstart" onclick="startTrip()" ${!tripState.fromStation?'disabled':''}>🚌 START TRIP</button>
         <button class="bout" onclick="goSetup()">CHANGE DRIVER / CAR</button>
       </div>
@@ -917,25 +1131,7 @@ function renderLog(){
     return;
   }
 
-  // ── WAITING FOR MOTION
-  if(tripState.phase==='waiting_motion'){
-    const speedText = tripState.speed ? `Current speed: ${tripState.speed.toFixed(1)} m/s` : 'Waiting for GPS...';
-    el.innerHTML=`
-      <div class="card">
-        <div class="ctitle">WAITING FOR VEHICLE TO MOVE</div>
-        <div class="csub">// Timer will start automatically when speed > ${MOTION_THRESHOLD} m/s</div>
-        <div style="background:var(--alight);padding:15px;text-align:center;margin-bottom:12px;border:1px solid var(--border)">
-          <div style="font-family:var(--font-m);font-size:.6rem;color:var(--accent);margin-bottom:4px">⏳ ${speedText}</div>
-          <div class="spinner" style="width:30px;height:30px;margin:8px auto"></div>
-        </div>
-        <button class="bb bend" onclick="manualStartTrip()">▶️ START TIMER MANUALLY</button>
-        <button class="bout" onclick="if(confirm('Cancel trip?')){stopMotionDetection();tripState.phase='idle';renderLog();}">CANCEL</button>
-      </div>
-      ${renderTodayHistory()}`;
-    return;
-  }
-
-  // ── ACTIVE
+  // ACTIVE
   if(tripState.phase==='active'){
     const secs=tripState.tripStart?Math.floor((Date.now()-tripState.tripStart)/1000):0;
     el.innerHTML=`
@@ -943,10 +1139,11 @@ function renderLog(){
         <div class="ctitle">TRIP IN PROGRESS</div>
         <div class="csub">// DRIVE TO DESTINATION — TAP ARRIVE WHEN THERE</div>
         <div class="rdisp">
-          <div class="rs"><div class="rl">FROM</div><div class="rn">${tripState.fromStation}</div></div>
+          <div class="rs"><div class="rl">FROM</div><div class="rn">${tripState.fromStation.name}</div></div>
           <div class="rarr">→</div>
           <div class="rs"><div class="rl">TO</div><div class="rn" style="color:var(--muted)">DESTINATION</div></div>
         </div>
+        ${speedBadgeHtml()}
         <div class="tdisp">
           <div class="tl">TRIP DURATION</div>
           <div class="tv" id="timerVal">${String(Math.floor(secs/3600)).padStart(2,'0')}:${String(Math.floor((secs%3600)/60)).padStart(2,'0')}:${String(secs%60).padStart(2,'0')}</div>
@@ -955,25 +1152,24 @@ function renderLog(){
         <button class="bb barrive" onclick="arrive()">📍 I HAVE ARRIVED</button>
         <button class="bout" onclick="if(confirm('Cancel this trip?')){tripState.phase='idle';clearInterval(timerInterval);renderLog();}">CANCEL TRIP</button>
       </div>`;
-    startTripTimer();return;
+    startTripTimer();
+    return;
   }
 
-  // ── ARRIVED (enter amount)
+  // ARRIVED
   if(tripState.phase==='arrived'){
     el.innerHTML=`
       <div class="card">
         <div class="ctitle">END TRIP</div>
         <div class="csub">// CONFIRM DESTINATION & ENTER AMOUNT</div>
+        ${gpsBarHtml()}
         <div class="rdisp">
-          <div class="rs"><div class="rl">FROM</div><div class="rn">${tripState.fromStation}</div></div>
+          <div class="rs"><div class="rl">FROM</div><div class="rn">${tripState.fromStation.name}</div></div>
           <div class="rarr">→</div>
-          <div class="rs"><div class="rl">TO</div><div class="rn">${tripState.toStation||'???'}</div></div>
+          <div class="rs"><div class="rl">TO</div><div class="rn">${tripState.toStation?tripState.toStation.name:'???'}</div></div>
         </div>
         <div class="field"><label>TO STATION</label></div>
-        <div class="sgrid">${STATIONS.map(s=>{
-          const same=s===tripState.fromStation;
-          return`<div class="sbtn ${tripState.toStation===s?'sel':''} ${same?'dis':''}" onclick="selTo('${s.replace(/'/g,"\\'")}')">${s}</div>`;
-        }).join('')}</div>
+        <div class="sgrid">${stationGridHtml(tripState.toStation?.name||null, tripState.fromStation.name)}</div>
         <div class="field"><label>AMOUNT COLLECTED IN KES</label></div>
         <div class="awrap">
           <span class="apfx">KES</span>
@@ -984,10 +1180,14 @@ function renderLog(){
         </div>
         <button class="bb bend" onclick="reviewTrip()" ${!tripState.toStation?'disabled':''}>REVIEW & CONFIRM →</button>
       </div>`;
+    // Auto-suggest nearest on arrival
+    if(!tripState.toStation&&tripState.nearestStation&&tripState.nearestStation.name!==tripState.fromStation.name){
+      setTimeout(()=>selTo(tripState.nearestStation.name),150);
+    }
     return;
   }
 
-  // ── CONFIRM (review before submit)
+  // CONFIRM
   if(tripState.phase==='confirm'){
     const dur=Math.floor((tripState.tripEnd-tripState.tripStart)/60000);
     const isHighAmount=tripState.amount>20000;
@@ -998,8 +1198,8 @@ function renderLog(){
         <div class="confirm-card">
           <div class="confirm-row"><span class="confirm-label">DRIVER</span><span class="confirm-val">${tripState.driver}</span></div>
           <div class="confirm-row"><span class="confirm-label">CAR</span><span class="confirm-val">${tripState.carPlate}</span></div>
-          <div class="confirm-row"><span class="confirm-label">FROM</span><span class="confirm-val">${tripState.fromStation}</span></div>
-          <div class="confirm-row"><span class="confirm-label">TO</span><span class="confirm-val">${tripState.toStation}</span></div>
+          <div class="confirm-row"><span class="confirm-label">FROM</span><span class="confirm-val">${tripState.fromStation.name}</span></div>
+          <div class="confirm-row"><span class="confirm-label">TO</span><span class="confirm-val">${tripState.toStation.name}</span></div>
           <div class="confirm-row"><span class="confirm-label">DURATION</span><span class="confirm-val">${dur} MIN</span></div>
           <div class="confirm-row"><span class="confirm-label">TIME</span><span class="confirm-val">${new Date().toLocaleTimeString()}</span></div>
           ${tripState.notes?`<div class="confirm-row"><span class="confirm-label">NOTES</span><span class="confirm-val">${tripState.notes}</span></div>`:''}
@@ -1014,7 +1214,7 @@ function renderLog(){
     return;
   }
 
-  // ── DONE
+  // DONE
   if(tripState.phase==='done'){
     const last=localTrips[0];
     const today=new Date().toLocaleDateString('en-GB');
@@ -1105,8 +1305,6 @@ function renderReports(){
       <button class="rtab ${reportTab==='leaderboard'?'active':''}" onclick="reportTab='leaderboard';renderReports()">LEADERBOARD</button>
       <button class="rtab ${reportTab==='performance'?'active':''}" onclick="reportTab='performance';renderReports()">PERFORMANCE</button>
     </div>
-
-    <!-- OVERVIEW -->
     <div id="rsect-overview" class="rsect ${reportTab==='overview'?'active':''}">
       <div class="card" style="padding:13px;margin-bottom:11px">
         <div class="stitle2" style="margin-bottom:9px">🔍 FILTER REPORTS</div>
@@ -1142,24 +1340,14 @@ function renderReports(){
       <div style="font-family:var(--font-m);font-size:.5rem;color:var(--muted);text-align:center;padding:6px">SHOWING ${Math.min(80,filtered.length)} OF ${filtered.length}</div>`}
       ${renderCarBars(filtered,total)}
     </div>
-
-    <!-- CHARTS -->
     <div class="rsect ${reportTab==='charts'?'active':''}">
       <div class="chart-wrap"><div class="chart-title">DAILY REVENUE — 30 DAYS</div><div class="chart-canvas"><canvas id="chartDaily"></canvas></div></div>
       <div class="chart-wrap"><div class="chart-title">WEEKLY COMPARISON</div><div class="chart-canvas"><canvas id="chartWeekly"></canvas></div></div>
       <div class="chart-wrap"><div class="chart-title">REVENUE BY CAR</div><div class="chart-canvas"><canvas id="chartCars"></canvas></div></div>
       <div class="chart-wrap"><div class="chart-title">DAILY TRIPS — 14 DAYS</div><div class="chart-canvas"><canvas id="chartTrips"></canvas></div></div>
     </div>
-
-    <!-- LEADERBOARD -->
-    <div class="rsect ${reportTab==='leaderboard'?'active':''}">
-      ${renderLeaderboard(filtered)}
-    </div>
-
-    <!-- PERFORMANCE -->
-    <div class="rsect ${reportTab==='performance'?'active':''}">
-      ${renderPerformance(all)}
-    </div>`;
+    <div class="rsect ${reportTab==='leaderboard'?'active':''}">${renderLeaderboard(filtered)}</div>
+    <div class="rsect ${reportTab==='performance'?'active':''}">${renderPerformance(all)}</div>`;
 }
 
 function renderCarBars(filtered,total){
@@ -1242,12 +1430,16 @@ function renderPerformance(all){
 function renderAdmin(){
   const el=document.getElementById('page-admin');
   if(!adminUnlocked){
+    const locked=isAdminLocked();
     el.innerHTML=`
       <div class="apinbox">
         <div class="apintitle">ADMIN ACCESS</div>
         <div class="apinsub">ENTER PIN TO MANAGE SHIFTS,<br>STATIONS, DRIVERS & SETTINGS</div>
-        <input type="password" class="pininput" id="pinIn" maxlength="6" placeholder="••••" onkeydown="if(event.key==='Enter')checkPin()">
-        <button class="bb bstart" style="max-width:200px;margin:0 auto;display:block" onclick="checkPin()">UNLOCK</button>
+        ${locked?`<div class="pin-locked">🔒 TOO MANY ATTEMPTS<br>TRY AGAIN IN ${adminLockSecsLeft()}s</div>`:''}
+        <input type="password" class="pininput" id="pinIn" maxlength="6" placeholder="••••"
+          ${locked?'disabled':''} onkeydown="if(event.key==='Enter')checkPin()">
+        <button class="bb bstart" style="max-width:200px;margin:0 auto;display:block"
+          onclick="checkPin()" ${locked?'disabled':''}>UNLOCK</button>
       </div>`;
     return;
   }
@@ -1289,14 +1481,14 @@ function renderAdmin(){
             </div>
             <div class="abtn-row">
               ${!isOpen?`<button class="bsm bg" onclick="openShift('${car}')">OPEN</button>`:''}
-              ${isOpen?`<button class="bsm br" onclick="closeShift('${car}')">CLOSE</button>`:''}
+              ${isOpen?`<button class="bsm br" onclick="showCloseShiftSummary('${car}')">CLOSE</button>`:''}
             </div>
           </div>`;
         }).join('')}
         <div class="divline"></div>
         <div style="display:flex;gap:7px">
-          <button class="bsm bg" style="flex:1;padding:10px" onclick="openAllShifts()">OPEN ALL SHIFTS</button>
-          <button class="bsm br" style="flex:1;padding:10px" onclick="closeAllShifts()">CLOSE ALL SHIFTS</button>
+          <button class="bsm bg" style="flex:1;padding:10px" onclick="openAllShifts()">OPEN ALL</button>
+          <button class="bsm br" style="flex:1;padding:10px" onclick="closeAllShifts()">CLOSE ALL</button>
         </div>
       </div>
     </div>
@@ -1344,11 +1536,18 @@ function renderAdmin(){
       <div class="card">
         <div class="ctitle">STATIONS <span class="pill">${STATIONS.length}</span></div>
         ${STATIONS.map((s,i)=>`<div class="aitem">
-          <div><div class="aitem-name">${s}</div></div>
+          <div>
+            <div class="aitem-name">${s.name}</div>
+            <div class="aitem-sub">${s.lat?`${s.lat.toFixed(4)}, ${s.lng.toFixed(4)}`:'No GPS'}</div>
+          </div>
           <button class="adel" onclick="removeStation(${i})">✕</button>
         </div>`).join('')}
         <div class="divline"></div>
         <div class="field"><label>Station Name</label><input type="text" id="newStn" placeholder="STATION NAME IN CAPS"></div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px">
+          <div class="field" style="margin:0"><label>Latitude</label><input type="number" id="newLat" placeholder="-1.2833" step="any"></div>
+          <div class="field" style="margin:0"><label>Longitude</label><input type="number" id="newLng" placeholder="36.8167" step="any"></div>
+        </div>
         <button class="bsm bg" style="width:100%;padding:10px" onclick="addStation()">ADD STATION</button>
       </div>
     </div>
@@ -1383,14 +1582,19 @@ function renderAdmin(){
           <button class="bsm bg" onclick="changePin()">SAVE</button>
         </div>
         <div class="divline"></div>
-        <div class="csub" style="margin-top:0">// SESSION TIMEOUT</div>
-        <p style="font-size:.74rem;color:var(--muted);margin-bottom:9px">Auto-logout after <strong>30 minutes</strong> of inactivity. Warning shown at 60 seconds remaining.</p>
+        <div class="csub" style="margin-top:0">// SECURITY SETTINGS</div>
+        <div style="font-size:.74rem;color:var(--muted);margin-bottom:9px;line-height:1.8">
+          • Session timeout: <strong>30 minutes</strong> of inactivity<br>
+          • Countdown bar shows only in final <strong>5 minutes</strong><br>
+          • Warning overlay at <strong>60 seconds</strong> remaining<br>
+          • PIN lockout: <strong>3 failed attempts</strong> = 5 min lock
+        </div>
         <div class="divline"></div>
         <div class="csub" style="margin-top:0">// LOCAL DATA</div>
-        <p style="font-size:.74rem;color:var(--muted);margin-bottom:9px">${localTrips.length} trips · ${offlineQ.length} queued</p>
+        <p style="font-size:.74rem;color:var(--muted);margin-bottom:9px">${localTrips.length} trips stored · ${offlineQ.length} queued for sync</p>
         ${offlineQ.length?`<button class="bsm by" style="width:100%;padding:10px;margin-bottom:8px" onclick="flushQueue()">SYNC ${offlineQ.length} QUEUED TRIPS NOW</button>`:''}
         <button class="bout" onclick="if(confirm('Reset all lists to defaults?')){resetToDefaults();}">RESET LISTS TO DEFAULTS</button>
-        <button class="bout" onclick="if(confirm('Clear all local trips?')){localTrips=[];save('fs_trips',[]);toast('CLEARED');renderAdmin();}">CLEAR LOCAL TRIP DATA</button>
+        <button class="bout" onclick="if(confirm('Clear all local trips? This cannot be undone.')){localTrips=[];save('fs_trips',[]);toast('CLEARED');renderAdmin();}">CLEAR LOCAL TRIP DATA</button>
       </div>
     </div>
 
@@ -1419,8 +1623,8 @@ function renderAdmin(){
           <div class="step">Delete all code → paste the <code>apps-script.js</code> → Save</div>
           <div class="step"><code>Deploy</code> → <code>New deployment</code> → <code>Web app</code></div>
           <div class="step">Execute as: <code>Me</code> | Access: <code>Anyone</code> → Deploy → Authorize</div>
-          <div class="step">Copy Web App URL → paste in Apps Script URL above</div>
-          <div class="step">In Sheet → <code>File → Share → Publish to web</code> → CSV → Copy → paste in CSV URL</div>
+          <div class="step">Copy Web App URL → paste in Apps Script URL above → SAVE</div>
+          <div class="step">In Sheet → <code>File → Share → Publish to web</code> → CSV → Copy → paste in CSV URL → SAVE</div>
         </div>
       </div>
     </div>`;
@@ -1429,18 +1633,56 @@ function renderAdmin(){
 // ══════════════════════════════════════════════
 // ADMIN ACTIONS
 // ══════════════════════════════════════════════
-function checkPin(){const pin=document.getElementById('pinIn')?.value;if(pin===(localStorage.getItem(ADMIN_PIN_KEY)||DEFAULT_ADMIN_PIN)){adminUnlocked=true;renderAdmin();}else toast('WRONG PIN');}
+function checkPin(){
+  if(isAdminLocked()){toast(`🔒 LOCKED — TRY IN ${adminLockSecsLeft()}s`);return;}
+  const pin=document.getElementById('pinIn')?.value;
+  if(pin===(localStorage.getItem(ADMIN_PIN_KEY)||DEFAULT_ADMIN_PIN)){
+    adminPinFailures=0;
+    adminUnlocked=true;
+    renderAdmin();
+  } else {
+    recordAdminFailure();
+    renderAdmin();
+  }
+}
 
-// SHIFTS
+// SHIFT CLOSE WITH SUMMARY
+function showCloseShiftSummary(plate){
+  const today=new Date().toLocaleDateString('en-GB');
+  const shiftStart=shifts[plate]?.openedAt;
+  const tripsInShift=localTrips.filter(t=>
+    t.carPlate===plate&&t.date===today&&
+    (!shiftStart||new Date(t.timestamp).getTime()>=shiftStart)
+  );
+  const revenue=tripsInShift.reduce((s,t)=>s+t.amount,0);
+  const drivers=[...new Set(tripsInShift.map(t=>t.driver).filter(Boolean))];
+
+  document.getElementById('shiftSummaryBody').innerHTML=`
+    <div style="font-family:var(--font-m);font-size:.58rem;color:var(--muted);letter-spacing:1px;margin-bottom:12px">
+      SHIFT SUMMARY FOR <strong style="color:var(--text)">${plate}</strong>
+    </div>
+    <div class="shift-sum-row"><span>TOTAL TRIPS</span><strong>${tripsInShift.length}</strong></div>
+    <div class="shift-sum-row"><span>DRIVERS ON SHIFT</span><strong>${drivers.length?drivers.map(d=>d.split(' ')[0]).join(', '):'None'}</strong></div>
+    <div class="shift-sum-row"><span>OPENED AT</span><strong>${shifts[plate]?.openedAt?new Date(shifts[plate].openedAt).toLocaleTimeString():'—'}</strong></div>
+    <div class="shift-sum-row"><span>CLOSING AT</span><strong>${new Date().toLocaleTimeString()}</strong></div>
+    <div class="shift-sum-total">KES ${revenue.toLocaleString()}</div>
+    <div style="font-family:var(--font-m);font-size:.5rem;color:var(--muted);text-align:center;margin-top:4px">TOTAL REVENUE THIS SHIFT</div>`;
+
+  document.getElementById('shiftCloseConfirmBtn').onclick=()=>closeShift(plate);
+  document.getElementById('shiftSummaryModal').classList.add('open');
+}
+
 function openShift(plate){
   const by=prompt('Who is opening this shift?')||'ADMIN';
   shifts[plate]={open:true,openedAt:Date.now(),openedBy:by.toUpperCase(),closedAt:null};
   save('fs_shifts',shifts);toast(`✅ SHIFT OPENED FOR ${plate}`);renderAdmin();
 }
 function closeShift(plate){
-  if(!confirm(`Close shift for ${plate}?`))return;
   shifts[plate]={...shifts[plate],open:false,closedAt:Date.now()};
-  save('fs_shifts',shifts);toast(`🔴 SHIFT CLOSED FOR ${plate}`);renderAdmin();
+  save('fs_shifts',shifts);
+  document.getElementById('shiftSummaryModal').classList.remove('open');
+  toast(`🔴 SHIFT CLOSED FOR ${plate}`);
+  renderAdmin();
 }
 function openAllShifts(){
   const by=prompt('Who is opening all shifts?')||'ADMIN';
@@ -1475,12 +1717,15 @@ function addCar(){const n=(document.getElementById('newCar')?.value||'').trim().
 function removeCar(i){if(!confirm('Remove '+CARS[i]+'?'))return;CARS.splice(i,1);save('fs_cars',CARS);renderAdmin();}
 function addStation(){
   const n=(document.getElementById('newStn')?.value||'').trim().toUpperCase();
+  const lat=parseFloat(document.getElementById('newLat')?.value||'');
+  const lng=parseFloat(document.getElementById('newLng')?.value||'');
   if(!n){toast('ENTER NAME');return;}
-  STATIONS.push(n);save('fs_stations',STATIONS);toast('STATION ADDED ✅');renderAdmin();
+  STATIONS.push({name:n,lat:isNaN(lat)?0:lat,lng:isNaN(lng)?0:lng});
+  save('fs_stations',STATIONS);toast('STATION ADDED ✅');renderAdmin();
 }
-function removeStation(i){if(!confirm('Remove '+STATIONS[i]+'?'))return;STATIONS.splice(i,1);save('fs_stations',STATIONS);renderAdmin();}
+function removeStation(i){if(!confirm('Remove '+STATIONS[i].name+'?'))return;STATIONS.splice(i,1);save('fs_stations',STATIONS);renderAdmin();}
 function changePin(){const p=document.getElementById('newPin')?.value||'';if(p.length<4){toast('MIN 4 DIGITS');return;}localStorage.setItem(ADMIN_PIN_KEY,p);toast('PIN UPDATED ✅');}
-function resetToDefaults(){DRIVERS=[...DEFAULT_DRIVERS];CARS=[...DEFAULT_CARS];STATIONS=[...DEFAULT_STATIONS];save('fs_drivers',DRIVERS);save('fs_cars',CARS);save('fs_stations',STATIONS);toast('RESET ✅');renderAdmin();}
+function resetToDefaults(){DRIVERS=[...DEFAULT_DRIVERS];CARS=[...DEFAULT_CARS];STATIONS=DEFAULT_STATIONS.map(s=>({...s}));save('fs_drivers',DRIVERS);save('fs_cars',CARS);save('fs_stations',STATIONS);toast('RESET ✅');renderAdmin();}
 
 // TRIPS
 function openEditTrip(id){
@@ -1504,17 +1749,12 @@ function deleteTrip(id){if(!confirm('Delete this trip?'))return;localTrips=local
 
 function saveScriptUrl(){appConfig.appsScriptUrl=(document.getElementById('scrUrl')?.value||'').trim();save('fs_config',appConfig);toast(appConfig.appsScriptUrl?'✅ SAVED':'CLEARED');renderAdmin();}
 function saveCsvUrl(){appConfig.sheetCsvUrl=(document.getElementById('csvUrl')?.value||'').trim();save('fs_config',appConfig);toast(appConfig.sheetCsvUrl?'✅ SAVED':'CLEARED');renderAdmin();}
-function isShiftOpen(plate){
-  const hasAnyShift=Object.keys(shifts).length>0;
-  if(!hasAnyShift)return true;
-  return shifts[plate]?.open===true;
-}
 
 // ══════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════
 if(tripState.driver)document.getElementById('driverBadge').textContent=tripState.driver.split(' ')[0]+' · '+tripState.carPlate;
-if(tripState.phase!=='setup')startSessionTimer();
+if(tripState.phase!=='setup'){startSessionTimer();startGpsWatch();}
 updateOfflineBadge();
 startAutoSync();
 renderLog();
