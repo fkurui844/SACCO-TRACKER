@@ -3,12 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>FESTUS SACCO</title>
+<title>FELISHA SACCO</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
+/* (same CSS as before – unchanged) */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#f5f7f5;--card:#fff;--surface:#eef2ee;--border:#dde8dd;
@@ -24,8 +25,6 @@
   --shadow:0 2px 16px rgba(0,0,0,.4);--shlg:0 8px 32px rgba(0,0,0,.5);
 }
 body{background:var(--bg);color:var(--text);font-family:var(--font-b);min-height:100vh;max-width:480px;margin:0 auto;transition:background .3s,color .3s}
-
-/* HEADER */
 header{background:var(--accent);padding:13px 16px 10px;position:sticky;top:0;z-index:100}
 .hrow{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px}
 .logo{font-family:var(--font-d);font-size:1.6rem;letter-spacing:3px;color:#fff}
@@ -42,72 +41,42 @@ header{background:var(--accent);padding:13px 16px 10px;position:sticky;top:0;z-i
 .session-bar{font-family:var(--font-m);font-size:.46rem;color:rgba(255,220,100,.9);letter-spacing:1px;white-space:nowrap}
 .session-bar.warn{color:#ff6b6b;animation:pulse 1s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
-
-/* NAV */
 .bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--card);border-top:2px solid var(--border);display:grid;grid-template-columns:1fr 1fr 1fr;z-index:100;transition:background .3s}
 .nbtn{padding:9px 4px;text-align:center;cursor:pointer;border:none;background:transparent;transition:background .15s}
 .nbtn.active{background:var(--alight)}
 .nbtn .ni{font-size:1.15rem;display:block;margin-bottom:1px}
 .nbtn .nl{font-family:var(--font-m);font-size:.46rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
 .nbtn.active .nl{color:var(--accent)}
-
 main{padding:13px 13px 74px}
 .page{display:none}.page.active{display:block}
-
-/* CARD */
 .card{background:var(--card);border:1px solid var(--border);padding:16px;margin-bottom:12px;box-shadow:var(--shadow);animation:fadeUp .3s ease;transition:background .3s,border-color .3s}
 .ctitle{font-family:var(--font-d);font-size:1.2rem;color:var(--accent);letter-spacing:2px;margin-bottom:4px}
 .csub{font-family:var(--font-m);font-size:.52rem;color:var(--muted);letter-spacing:1px;margin-bottom:13px}
-
-/* FIELD */
 .field{margin-bottom:10px}
 .field label{display:block;font-family:var(--font-m);font-size:.5rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:4px}
 .field select,.field input,.field textarea{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 11px;font-family:var(--font-b);font-size:.86rem;outline:none;transition:border-color .2s;appearance:none}
 .field textarea{resize:vertical;min-height:66px;font-size:.82rem}
 .field select:focus,.field input:focus,.field textarea:focus{border-color:var(--accent)}
-
-/* STATION GRID */
 .sgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px}
 .sbtn{background:var(--bg);border:2px solid var(--border);padding:10px 7px;text-align:center;cursor:pointer;transition:all .2s;font-family:var(--font-b);font-size:.72rem;color:var(--text);font-weight:500}
 .sbtn:hover{border-color:var(--accent);color:var(--accent);background:var(--alight)}
 .sbtn.sel{border-color:var(--accent);background:var(--accent);color:#fff}
 .sbtn.dis{opacity:.22;cursor:not-allowed;pointer-events:none}
-
-/* ROUTE CARDS */
-.rcards{display:flex;flex-direction:column;gap:7px;margin-bottom:12px}
-.rcard{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;background:var(--bg);border:2px solid var(--border);cursor:pointer;transition:all .2s}
-.rcard:hover{border-color:var(--accent);background:var(--alight)}
-.rcard.sel{border-color:var(--accent);background:var(--accent);color:#fff}
-.rcard.sel .rc-sub{color:rgba(255,255,255,.7)}
-.rc-route{font-family:var(--font-m);font-size:.72rem;font-weight:700;letter-spacing:1px}
-.rc-sub{font-family:var(--font-m);font-size:.48rem;color:var(--muted);letter-spacing:1px;margin-top:2px}
-.rc-arr{font-size:1.4rem;color:var(--accent)}
-.rcard.sel .rc-arr{color:#fff}
-
-/* ROUTE DISPLAY */
 .rdisp{display:flex;align-items:center;gap:10px;padding:12px;background:var(--alight);border:1px solid var(--border);margin-bottom:12px}
 .rs{flex:1;text-align:center}
 .rs .rn{font-family:var(--font-m);font-size:.66rem;font-weight:700;color:var(--accent);letter-spacing:1px}
 .rs .rl{font-family:var(--font-m);font-size:.44rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:2px}
 .rarr{font-size:1.3rem;color:var(--accent)}
-
-/* TIMER */
 .tdisp{text-align:center;padding:13px;background:var(--text);color:var(--bg);margin-bottom:12px;transition:background .3s}
 .tl{font-family:var(--font-m);font-size:.48rem;letter-spacing:2px;color:rgba(128,200,128,.7);text-transform:uppercase;margin-bottom:3px}
 .tv{font-family:var(--font-d);font-size:2.5rem;letter-spacing:3px;color:#22c55e}
-
-/* AMOUNT */
 .awrap{position:relative;margin-bottom:12px}
 .apfx{position:absolute;left:11px;top:50%;transform:translateY(-50%);font-family:var(--font-m);font-size:.72rem;color:var(--muted);font-weight:700}
 .ainput{width:100%;background:var(--bg);border:2px solid var(--border);color:var(--text);padding:12px 12px 12px 48px;font-family:var(--font-m);font-size:1.1rem;font-weight:700;outline:none;transition:border-color .2s;letter-spacing:1px}
 .ainput:focus{border-color:var(--accent)}
-
-/* LOCK */
 .lock{padding:15px;background:var(--surface);border:2px dashed var(--border);text-align:center;margin-bottom:12px}
 .lico{font-size:1.6rem;margin-bottom:4px;opacity:.3}
 .ltxt{font-family:var(--font-m);font-size:.54rem;color:var(--muted);letter-spacing:1px;line-height:1.8;text-transform:uppercase}
-
-/* CONFIRM CARD */
 .confirm-card{background:var(--surface);border:2px solid var(--accent);padding:18px;margin-bottom:14px;animation:fadeUp .3s ease}
 .confirm-title{font-family:var(--font-d);font-size:1.6rem;color:var(--accent);letter-spacing:3px;text-align:center;margin-bottom:16px}
 .confirm-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border)}
@@ -116,15 +85,11 @@ main{padding:13px 13px 74px}
 .confirm-val{font-family:var(--font-m);font-size:.72rem;color:var(--text);font-weight:700;text-align:right;max-width:60%}
 .confirm-amount{font-family:var(--font-d);font-size:2rem;color:var(--accent);letter-spacing:2px}
 .confirm-warn{background:rgba(240,165,0,.12);border:1px solid var(--accent2);padding:9px 12px;font-family:var(--font-m);font-size:.56rem;color:var(--accent2);letter-spacing:1px;margin-bottom:12px;text-align:center}
-
-/* SHIFT BADGE */
 .shift-open{background:#22c55e;color:#fff;font-family:var(--font-m);font-size:.5rem;padding:2px 8px;letter-spacing:1px;display:inline-block}
 .shift-closed{background:var(--red);color:#fff;font-family:var(--font-m);font-size:.5rem;padding:2px 8px;letter-spacing:1px;display:inline-block}
 .shift-block{background:var(--rlight);border:2px solid var(--red);padding:20px;text-align:center;margin-bottom:12px}
 .shift-block-title{font-family:var(--font-d);font-size:1.4rem;color:var(--red);letter-spacing:2px;margin-bottom:6px}
 .shift-block-sub{font-family:var(--font-m);font-size:.58rem;color:var(--muted);letter-spacing:1px;line-height:1.8}
-
-/* BUTTONS */
 .bb{width:100%;padding:13px;font-family:var(--font-d);font-size:1.1rem;letter-spacing:3px;cursor:pointer;border:none;transition:all .2s;margin-bottom:7px}
 .bstart{background:var(--accent);color:#fff}.bstart:hover{background:#156632}.bstart:disabled{background:var(--muted);cursor:not-allowed}
 .barrive{background:var(--accent2);color:#fff}.barrive:hover{background:#d4920a}
@@ -137,8 +102,6 @@ main{padding:13px 13px 74px}
 .bwa{background:#25D366;color:#fff}
 .bghost{background:transparent;border:1px solid var(--border);color:var(--muted);font-family:var(--font-m);font-size:.54rem;padding:7px 12px;cursor:pointer;transition:all .2s}
 .bghost:hover{border-color:var(--accent);color:var(--accent)}
-
-/* SUCCESS */
 .scard{background:var(--accent);color:#fff;padding:20px 16px;text-align:center;margin-bottom:12px;box-shadow:var(--shlg);animation:fadeUp .4s ease}
 .sico{font-size:2.2rem;margin-bottom:8px}
 .stitle{font-family:var(--font-d);font-size:1.7rem;letter-spacing:3px;margin-bottom:5px}
@@ -146,8 +109,6 @@ main{padding:13px 13px 74px}
 .sdetails{background:rgba(255,255,255,.15);padding:11px;margin:12px 0}
 .drow{display:flex;justify-content:space-between;font-family:var(--font-m);font-size:.56rem;margin-bottom:4px}
 .drow:last-child{margin-bottom:0}
-
-/* HISTORY */
 .hsect{margin-top:6px}
 .stitle2{font-family:var(--font-m);font-size:.52rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;padding-bottom:5px;border-bottom:1px solid var(--border)}
 .hitem{background:var(--card);border:1px solid var(--border);padding:10px 12px;margin-bottom:7px;box-shadow:0 1px 4px rgba(0,0,0,.04);transition:background .3s}
@@ -156,15 +117,11 @@ main{padding:13px 13px 74px}
 .hamt{font-family:var(--font-m);font-size:.61rem;color:#22c55e;font-weight:700}
 .hbot{display:flex;justify-content:space-between;font-size:.62rem;color:var(--muted)}
 .htime{font-family:var(--font-m);font-size:.5rem}
-
-/* DAILY SUMMARY CARD */
 .sumcard{background:var(--surface);border:1px solid var(--border);padding:14px;margin-bottom:12px}
 .sumrow{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)}
 .sumrow:last-child{border-bottom:none}
 .sumlbl{font-family:var(--font-m);font-size:.54rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase}
 .sumval{font-family:var(--font-d);font-size:1.3rem;color:var(--accent)}
-
-/* REPORTS */
 .sgrid2{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px}
 .sbox{background:var(--card);border:1px solid var(--border);padding:13px;box-shadow:var(--shadow);transition:background .3s}
 .sbox .sl{font-family:var(--font-m);font-size:.46rem;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:4px}
@@ -181,19 +138,13 @@ main{padding:13px 13px 74px}
 .tramt{font-family:var(--font-m);font-size:.58rem;color:#22c55e;font-weight:700;text-align:right}
 .exprow{display:flex;gap:6px;margin-bottom:11px;flex-wrap:wrap}
 .exprow button{flex:1;min-width:55px}
-
-/* REPORT TABS */
 .rtabs{display:flex;gap:0;margin-bottom:12px;border-bottom:2px solid var(--border);overflow-x:auto}
 .rtab{font-family:var(--font-m);font-size:.5rem;letter-spacing:1px;padding:8px 12px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;background:transparent;border-top:none;border-left:none;border-right:none;transition:all .2s;text-transform:uppercase;white-space:nowrap;margin-bottom:-2px}
 .rtab.active{color:var(--accent);border-bottom-color:var(--accent)}
 .rsect{display:none}.rsect.active{display:block}
-
-/* CHARTS */
 .chart-wrap{background:var(--card);border:1px solid var(--border);padding:14px;margin-bottom:12px;box-shadow:var(--shadow)}
 .chart-title{font-family:var(--font-m);font-size:.52rem;color:var(--accent);letter-spacing:2px;text-transform:uppercase;margin-bottom:12px}
 .chart-canvas{height:200px;position:relative}
-
-/* LEADERBOARD */
 .lb-item{display:grid;grid-template-columns:30px 1fr auto;gap:10px;align-items:center;padding:11px 12px;background:var(--card);border:1px solid var(--border);margin-bottom:7px;box-shadow:var(--shadow)}
 .lb-rank{font-family:var(--font-d);font-size:1.4rem;color:var(--muted);text-align:center}
 .lb-rank.g{color:#f0a500}.lb-rank.s{color:#9ca3af}.lb-rank.b{color:#b87333}
@@ -206,8 +157,6 @@ main{padding:13px 13px 74px}
 .target-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:5px}
 .target-fill{height:100%;border-radius:3px;transition:width 1s}
 .target-fill.low{background:var(--red)}.target-fill.mid{background:var(--accent2)}.target-fill.high{background:#22c55e}
-
-/* PERF */
 .perf-card{background:var(--card);border:1px solid var(--border);padding:14px;margin-bottom:10px;box-shadow:var(--shadow)}
 .perf-name{font-family:var(--font-d);font-size:1.05rem;color:var(--text);letter-spacing:2px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
 .score-badge{font-family:var(--font-d);font-size:1rem;padding:2px 9px;letter-spacing:2px}
@@ -216,8 +165,6 @@ main{padding:13px 13px 74px}
 .pstat{text-align:center;padding:9px 6px;background:var(--surface);border:1px solid var(--border)}
 .pstat .pl{font-family:var(--font-m);font-size:.44rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px}
 .pstat .pv{font-family:var(--font-d);font-size:1.15rem;color:var(--accent)}
-
-/* ADMIN */
 .apinbox{text-align:center;padding:40px 16px}
 .apintitle{font-family:var(--font-d);font-size:2rem;color:var(--accent);letter-spacing:3px;margin-bottom:7px}
 .apinsub{font-family:var(--font-m);font-size:.56rem;color:var(--muted);letter-spacing:1px;margin-bottom:18px;line-height:1.8}
@@ -246,24 +193,18 @@ main{padding:13px 13px 74px}
 .step{counter-increment:s;padding:8px 10px 8px 32px;border-left:2px solid var(--border);margin-bottom:7px;position:relative;font-size:.74rem;color:var(--text);line-height:1.6}
 .step::before{content:counter(s);position:absolute;left:-12px;top:6px;width:22px;height:22px;background:var(--accent);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-m);font-size:.56rem;font-weight:700}
 .step code{background:var(--alight);padding:1px 5px;font-family:var(--font-m);font-size:.64rem;color:var(--accent)}
-
-/* SESSION TIMEOUT OVERLAY */
 .timeout-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;display:none;align-items:center;justify-content:center;padding:20px}
 .timeout-overlay.open{display:flex}
 .timeout-box{background:var(--card);border:3px solid var(--accent2);padding:30px 24px;text-align:center;max-width:320px;width:100%;animation:fadeUp .3s ease}
 .timeout-title{font-family:var(--font-d);font-size:2rem;color:var(--accent2);letter-spacing:3px;margin-bottom:8px}
 .timeout-sub{font-family:var(--font-m);font-size:.6rem;color:var(--muted);letter-spacing:1px;line-height:1.8;margin-bottom:18px}
 .timeout-count{font-family:var(--font-d);font-size:3rem;color:var(--red);letter-spacing:3px;margin-bottom:16px}
-
-/* MODAL */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:center;justify-content:center;padding:20px}
 .modal-overlay.open{display:flex}
 .modal{background:var(--card);border:1px solid var(--border);border-top:3px solid var(--accent);padding:22px;width:100%;max-width:380px;animation:fadeUp .3s ease;max-height:90vh;overflow-y:auto}
 .modal-title{font-family:var(--font-d);font-size:1.4rem;color:var(--accent);letter-spacing:2px;margin-bottom:14px}
 .modal-actions{display:flex;gap:8px;margin-top:14px}
 .modal-actions button{flex:1}
-
-/* MISC */
 .toast{position:fixed;bottom:76px;left:50%;transform:translateX(-50%);background:var(--text);color:var(--bg);padding:9px 16px;font-family:var(--font-m);font-size:.56rem;letter-spacing:1px;z-index:999;opacity:0;transition:opacity .3s;max-width:90vw;text-align:center}
 .toast.show{opacity:1}
 .spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;margin:30px auto}
@@ -276,7 +217,6 @@ main{padding:13px 13px 74px}
 .tag-active span{cursor:pointer;opacity:.8}.tag-active span:hover{opacity:1}
 .queue-banner{background:var(--accent2);color:#fff;padding:7px 13px;font-family:var(--font-m);font-size:.56rem;letter-spacing:1px;display:none;align-items:center;justify-content:space-between;cursor:pointer}
 .queue-banner.show{display:flex}
-
 @media print{
   .bnav,.hico,header .hright,.exprow,.fchips,.rtabs,.queue-banner,.timeout-overlay,.modal-overlay{display:none!important}
   body{background:#fff!important;color:#000!important;max-width:100%!important}
@@ -290,7 +230,7 @@ main{padding:13px 13px 74px}
 
 <header>
   <div class="hrow">
-    <div class="logo">FESTUS<span> SACCO</span></div>
+    <div class="logo">FELISHA<span> SACCO</span></div>
     <div class="hright">
       <span class="session-bar" id="sessionBar"></span>
       <span class="offline-badge" id="offlineBadge">OFFLINE</span>
@@ -366,23 +306,13 @@ const DEFAULT_CARS     = ['KBZ 300','KBY 400','KBU 500','KCA 200','KDY 260W','KY
 const DEFAULT_STATIONS = [
   'NAIROBI CBD', 'WESTLANDS', 'KAREN', 'NGONG', 'RONGAI', "LANG'ATA", 'KIKUYU', 'LIMURU'
 ];
-// Default routes: common routes for this SACCO
-const DEFAULT_ROUTES = [
-  {from:'NAIROBI CBD',to:'RONGAI',active:true},
-  {from:'RONGAI',to:'NAIROBI CBD',active:true},
-  {from:'NAIROBI CBD',to:'NGONG',active:true},
-  {from:'NGONG',to:'NAIROBI CBD',active:true},
-  {from:"LANG'ATA",to:'NAIROBI CBD',active:true},
-  {from:'NAIROBI CBD',to:"LANG'ATA",active:true},
-  {from:'NAIROBI CBD',to:'KAREN',active:true},
-  {from:'KAREN',to:'NAIROBI CBD',active:true},
-];
 const ADMIN_PIN_KEY     = 'fs_pin';
 const DEFAULT_ADMIN_PIN = '1234';
 const SESSION_TIMEOUT   = 30 * 60; // 30 minutes in seconds
 const SESSION_WARN      = 60;      // warn when 60s left
 const AMOUNT_MIN        = 10;
 const AMOUNT_MAX        = 50000;
+const MOTION_THRESHOLD  = 2;       // m/s (~7 km/h)
 
 // ══════════════════════════════════════════════
 // STATE
@@ -393,7 +323,6 @@ function save(k,v){localStorage.setItem(k,JSON.stringify(v));}
 let DRIVERS    = load('fs_drivers', DEFAULT_DRIVERS);
 let CARS       = load('fs_cars', DEFAULT_CARS);
 let STATIONS   = load('fs_stations', DEFAULT_STATIONS);
-let ROUTES     = load('fs_routes', DEFAULT_ROUTES);
 let localTrips = load('fs_trips', []);
 let offlineQ   = load('fs_queue', []);
 let driverPins = load('fs_dpins', {});
@@ -404,8 +333,10 @@ let appConfig  = load('fs_config', {appsScriptUrl:'', sheetCsvUrl:'https://docs.
 
 let tripState = {
   phase:'setup',driver:'',carPlate:'',
-  fromStation:null,toStation:null,selectedRoute:null,
-  amount:'',notes:'',tripStart:null,tripEnd:null
+  fromStation:null,toStation:null,
+  amount:'',notes:'',tripStart:null,tripEnd:null,
+  motionWatchId:null,            // for GPS watch
+  speed:0, motionDetected:false
 };
 const sd = load('fs_driver', null);
 if(sd){tripState.driver=sd.driver;tripState.carPlate=sd.carPlate;tripState.phase='idle';}
@@ -423,7 +354,6 @@ let sessionSecondsLeft = SESSION_TIMEOUT;
 let sessionInterval    = null;
 let showingTimeout     = false;
 let darkMode    = load('fs_dark', false);
-let useRoutes   = load('fs_useroutes', true); // toggle: route cards vs free station pick
 let charts      = {};
 let editingTripId = null;
 
@@ -497,7 +427,8 @@ function hideTimeoutOverlay(){
 
 function autoLogout(){
   clearInterval(timerInterval);
-  tripState={...tripState,phase:'setup',driver:'',carPlate:'',fromStation:null,toStation:null,selectedRoute:null,amount:'',notes:'',tripStart:null,tripEnd:null};
+  stopMotionDetection();
+  tripState={...tripState,phase:'setup',driver:'',carPlate:'',fromStation:null,toStation:null,amount:'',notes:'',tripStart:null,tripEnd:null,motionWatchId:null,speed:0,motionDetected:false};
   save('fs_driver',null);
   document.getElementById('driverBadge').textContent='— LOGIN —';
   document.getElementById('sessionBar').textContent='';
@@ -526,6 +457,7 @@ function switchPage(p){
 }
 function goSetup(){
   clearInterval(timerInterval);
+  stopMotionDetection();
   tripState.phase='setup';
   switchPage('log');
 }
@@ -572,6 +504,56 @@ function startAutoSync(){
 }
 
 // ══════════════════════════════════════════════
+// MOTION DETECTION
+// ══════════════════════════════════════════════
+function startMotionDetection(){
+  if(!navigator.geolocation){
+    toast('GPS not supported – use manual start');
+    return;
+  }
+  tripState.motionWatchId = navigator.geolocation.watchPosition(
+    pos => {
+      const speed = pos.coords.speed; // speed in m/s, may be null
+      tripState.speed = speed || 0;
+      if(speed !== null && speed > MOTION_THRESHOLD && !tripState.motionDetected){
+        tripState.motionDetected = true;
+        toast('🚀 Vehicle started moving – timer started');
+        startActiveTrip();
+      } else {
+        renderLog(); // update speed display
+      }
+    },
+    err => {
+      console.warn('GPS error:', err);
+      toast('GPS error – use manual start if needed');
+    },
+    { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+  );
+}
+
+function stopMotionDetection(){
+  if(tripState.motionWatchId){
+    navigator.geolocation.clearWatch(tripState.motionWatchId);
+    tripState.motionWatchId = null;
+  }
+}
+
+function manualStartTrip(){
+  if(confirm('Start timer manually (motion not detected)?')){
+    startActiveTrip();
+  }
+}
+
+function startActiveTrip(){
+  stopMotionDetection();
+  tripState.phase='active';
+  tripState.tripStart=Date.now();
+  renderLog();
+  startTripTimer();
+  toast('TRIP STARTED – SAFE JOURNEY! 🚌');
+}
+
+// ══════════════════════════════════════════════
 // DRIVER LOGIN
 // ══════════════════════════════════════════════
 function saveDriver(){
@@ -607,16 +589,8 @@ function finishLogin(d,p){
 }
 
 // ══════════════════════════════════════════════
-// ROUTE / STATION SELECTION
+// STATION SELECTION
 // ══════════════════════════════════════════════
-function selectRoute(idx){
-  const r=ROUTES.filter(r=>r.active)[idx];
-  tripState.selectedRoute=r;
-  tripState.fromStation=r.from;
-  tripState.toStation=null;
-  renderLog();
-}
-
 function selFrom(n){
   tripState.fromStation=n;
   renderLog();
@@ -631,18 +605,23 @@ function selTo(n){
 // TRIP FLOW
 // ══════════════════════════════════════════════
 function startTrip(){
-  if(!tripState.fromStation){toast('SELECT YOUR STARTING STATION / ROUTE');return;}
+  if(!tripState.fromStation){toast('SELECT YOUR STARTING STATION');return;}
   // SHIFT CHECK
   if(!isShiftOpen(tripState.carPlate)){
     toast('⛔ SHIFT IS CLOSED FOR '+tripState.carPlate);return;
   }
-  tripState.phase='active';tripState.tripStart=Date.now();tripState.toStation=null;tripState.notes='';
-  renderLog();startTripTimer();toast('TRIP STARTED — SAFE JOURNEY! 🚌');
+  tripState.phase='waiting_motion';
+  tripState.speed=0;
+  tripState.motionDetected=false;
+  renderLog();
+  startMotionDetection();
 }
 
 function arrive(){
   tripState.phase='arrived';tripState.tripEnd=Date.now();
-  clearInterval(timerInterval);renderLog();
+  clearInterval(timerInterval);
+  stopMotionDetection();
+  renderLog();
   toast('ARRIVED — SELECT DESTINATION & ENTER AMOUNT');
 }
 
@@ -683,7 +662,6 @@ function newTrip(){
   const prev=tripState.toStation;
   tripState.phase='idle';
   tripState.fromStation=prev;
-  tripState.selectedRoute=null;
   tripState.toStation=null;tripState.amount='';tripState.notes='';tripState.tripStart=null;tripState.tripEnd=null;
   resetSessionTimer();
   renderLog();toast('READY FOR NEXT TRIP');
@@ -735,14 +713,14 @@ function generateWhatsAppSummary(){
     return `  👤 ${d}: ${dt.length} trips · KES ${dr.toLocaleString()}`;
   }).join('\n');
 
-  const msg=`🚌 *FESTUS SACCO — DAILY REPORT*\n📅 ${today}\n\n`+
+  const msg=`🚌 *FELISHA SACCO — DAILY REPORT*\n📅 ${today}\n\n`+
     `📊 *SUMMARY*\n`+
     `• Total Trips: ${todayT.length}\n`+
     `• Total Revenue: KES ${total.toLocaleString()}\n`+
     `• Average/Trip: KES ${avg.toLocaleString()}\n\n`+
     `🚗 *BY CAR*\n${carLines}\n\n`+
     `👤 *BY DRIVER*\n${driverLines}\n\n`+
-    `_Generated by FESTUS SACCO App_`;
+    `_Generated by FELISHA SACCO App_`;
 
   // Try WhatsApp, fallback to clipboard
   const encoded=encodeURIComponent(msg);
@@ -819,7 +797,7 @@ function exportPDF(){
   const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
   const W=210,M=18;let y=M;
   doc.setFillColor(26,122,60);doc.rect(0,0,W,38,'F');
-  doc.setTextColor(255,255,255);doc.setFontSize(20);doc.setFont('helvetica','bold');doc.text('FESTUS SACCO',M,16);
+  doc.setTextColor(255,255,255);doc.setFontSize(20);doc.setFont('helvetica','bold');doc.text('FELISHA SACCO',M,16);
   doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text('TRIP REPORT — '+reportFilter.toUpperCase(),M,24);doc.text('Generated: '+new Date().toLocaleString(),M,31);
   y=46;
   const bw=(W-M*2-9)/4;
@@ -843,8 +821,8 @@ function exportPDF(){
     y+=7;
   });
   const pg=doc.internal.getNumberOfPages();
-  for(let i=1;i<=pg;i++){doc.setPage(i);doc.setFontSize(6);doc.setTextColor(150,150,150);doc.setFont('helvetica','normal');doc.text('FESTUS SACCO — CONFIDENTIAL',M,292);doc.text('Page '+i+' of '+pg,W-M,292,{align:'right'});}
-  doc.save('FESTUS-report-'+new Date().toISOString().slice(0,10)+'.pdf');
+  for(let i=1;i<=pg;i++){doc.setPage(i);doc.setFontSize(6);doc.setTextColor(150,150,150);doc.setFont('helvetica','normal');doc.text('FELISHA SACCO — CONFIDENTIAL',M,292);doc.text('Page '+i+' of '+pg,W-M,292,{align:'right'});}
+  doc.save('felisha-report-'+new Date().toISOString().slice(0,10)+'.pdf');
 }
 
 function exportExcel(){
@@ -859,7 +837,7 @@ function exportExcel(){
     return{'CAR':car,'TRIPS':ct.length,'REVENUE':ct.reduce((s,t)=>s+t.amount,0),'AVG':ct.length?Math.round(ct.reduce((s,t)=>s+t.amount,0)/ct.length):0};
   });
   if(carRevs.length)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(carRevs),'By Car');
-  XLSX.writeFile(wb,'FESTUS-'+new Date().toISOString().slice(0,10)+'.xlsx');
+  XLSX.writeFile(wb,'felisha-'+new Date().toISOString().slice(0,10)+'.xlsx');
 }
 
 // ══════════════════════════════════════════════
@@ -926,33 +904,32 @@ function renderLog(){
         <button class="bout" onclick="goSetup()">CHANGE CAR / DRIVER</button>`;
       return;
     }
-    const activeRoutes=ROUTES.filter(r=>r.active);
-    const showRoutePicker=useRoutes&&activeRoutes.length>0;
     el.innerHTML=`
       <div class="card">
         <div class="ctitle">START TRIP</div>
-        <div class="csub">// ${showRoutePicker?'SELECT YOUR ROUTE':'SELECT YOUR STARTING STATION'}</div>
-        ${showRoutePicker?`
-          <div class="field"><label>SELECT ROUTE</label></div>
-          <div class="rcards">
-            ${activeRoutes.map((r,i)=>`
-              <div class="rcard ${tripState.selectedRoute&&tripState.selectedRoute.from===r.from&&tripState.selectedRoute.to===r.to?'sel':''}" onclick="selectRoute(${i})">
-                <div>
-                  <div class="rc-route">${r.from} → ${r.to}</div>
-                  <div class="rc-sub">TAP TO SELECT</div>
-                </div>
-                <div class="rc-arr">→</div>
-              </div>`).join('')}
-          </div>
-          <div style="text-align:center;margin-bottom:10px">
-            <span onclick="useRoutes=false;save('fs_useroutes',false);renderLog()" style="font-family:var(--font-m);font-size:.52rem;color:var(--muted);cursor:pointer;text-decoration:underline;letter-spacing:1px">SWITCH TO STATION PICKER</span>
-          </div>`
-        :`
-          <div class="field"><label>FROM STATION</label></div>
-          <div class="sgrid">${STATIONS.map(s=>`<div class="sbtn ${tripState.fromStation===s?'sel':''}" onclick="selFrom('${s.replace(/'/g,"\\'")}')">${s}</div>`).join('')}</div>
-          ${activeRoutes.length?`<div style="text-align:center;margin-bottom:10px"><span onclick="useRoutes=true;save('fs_useroutes',true);renderLog()" style="font-family:var(--font-m);font-size:.52rem;color:var(--muted);cursor:pointer;text-decoration:underline;letter-spacing:1px">SWITCH TO ROUTE PICKER</span></div>`:''}`}
+        <div class="csub">// SELECT YOUR STARTING STATION</div>
+        <div class="field"><label>FROM STATION</label></div>
+        <div class="sgrid">${STATIONS.map(s=>`<div class="sbtn ${tripState.fromStation===s?'sel':''}" onclick="selFrom('${s.replace(/'/g,"\\'")}')">${s}</div>`).join('')}</div>
         <button class="bb bstart" onclick="startTrip()" ${!tripState.fromStation?'disabled':''}>🚌 START TRIP</button>
         <button class="bout" onclick="goSetup()">CHANGE DRIVER / CAR</button>
+      </div>
+      ${renderTodayHistory()}`;
+    return;
+  }
+
+  // ── WAITING FOR MOTION
+  if(tripState.phase==='waiting_motion'){
+    const speedText = tripState.speed ? `Current speed: ${tripState.speed.toFixed(1)} m/s` : 'Waiting for GPS...';
+    el.innerHTML=`
+      <div class="card">
+        <div class="ctitle">WAITING FOR VEHICLE TO MOVE</div>
+        <div class="csub">// Timer will start automatically when speed > ${MOTION_THRESHOLD} m/s</div>
+        <div style="background:var(--alight);padding:15px;text-align:center;margin-bottom:12px;border:1px solid var(--border)">
+          <div style="font-family:var(--font-m);font-size:.6rem;color:var(--accent);margin-bottom:4px">⏳ ${speedText}</div>
+          <div class="spinner" style="width:30px;height:30px;margin:8px auto"></div>
+        </div>
+        <button class="bb bend" onclick="manualStartTrip()">▶️ START TIMER MANUALLY</button>
+        <button class="bout" onclick="if(confirm('Cancel trip?')){stopMotionDetection();tripState.phase='idle';renderLog();}">CANCEL</button>
       </div>
       ${renderTodayHistory()}`;
     return;
@@ -968,7 +945,7 @@ function renderLog(){
         <div class="rdisp">
           <div class="rs"><div class="rl">FROM</div><div class="rn">${tripState.fromStation}</div></div>
           <div class="rarr">→</div>
-          <div class="rs"><div class="rl">TO</div><div class="rn" style="color:var(--muted)">${tripState.selectedRoute?tripState.selectedRoute.to:'DESTINATION'}</div></div>
+          <div class="rs"><div class="rl">TO</div><div class="rn" style="color:var(--muted)">DESTINATION</div></div>
         </div>
         <div class="tdisp">
           <div class="tl">TRIP DURATION</div>
@@ -983,8 +960,6 @@ function renderLog(){
 
   // ── ARRIVED (enter amount)
   if(tripState.phase==='arrived'){
-    const activeRoutes=ROUTES.filter(r=>r.active);
-    const showRouteTo=useRoutes&&activeRoutes.length>0&&tripState.selectedRoute;
     el.innerHTML=`
       <div class="card">
         <div class="ctitle">END TRIP</div>
@@ -994,21 +969,11 @@ function renderLog(){
           <div class="rarr">→</div>
           <div class="rs"><div class="rl">TO</div><div class="rn">${tripState.toStation||'???'}</div></div>
         </div>
-        ${showRouteTo?`
-          <div class="field"><label>ARRIVED AT (CONFIRM OR CHANGE)</label></div>
-          <div class="rcards" style="margin-bottom:12px">
-            ${activeRoutes.filter(r=>r.from===tripState.fromStation).concat(activeRoutes.filter(r=>r.from!==tripState.fromStation)).map((r,i)=>`
-              <div class="rcard ${tripState.toStation===r.to?'sel':''}" onclick="selTo('${r.to.replace(/'/g,"\\'")}')">
-                <div><div class="rc-route">${r.to}</div><div class="rc-sub">${r.from} → ${r.to}</div></div>
-                <div class="rc-arr">→</div>
-              </div>`).join('')}
-          </div>`
-        :`
-          <div class="field"><label>TO STATION</label></div>
-          <div class="sgrid">${STATIONS.map(s=>{
-            const same=s===tripState.fromStation;
-            return`<div class="sbtn ${tripState.toStation===s?'sel':''} ${same?'dis':''}" onclick="selTo('${s.replace(/'/g,"\\'")}')">${s}</div>`;
-          }).join('')}</div>`}
+        <div class="field"><label>TO STATION</label></div>
+        <div class="sgrid">${STATIONS.map(s=>{
+          const same=s===tripState.fromStation;
+          return`<div class="sbtn ${tripState.toStation===s?'sel':''} ${same?'dis':''}" onclick="selTo('${s.replace(/'/g,"\\'")}')">${s}</div>`;
+        }).join('')}</div>
         <div class="field"><label>AMOUNT COLLECTED IN KES</label></div>
         <div class="awrap">
           <span class="apfx">KES</span>
@@ -1019,7 +984,6 @@ function renderLog(){
         </div>
         <button class="bb bend" onclick="reviewTrip()" ${!tripState.toStation?'disabled':''}>REVIEW & CONFIRM →</button>
       </div>`;
-    if(showRouteTo&&tripState.selectedRoute&&!tripState.toStation)setTimeout(()=>selTo(tripState.selectedRoute.to.replace(/'/g,"\\'")),100);
     return;
   }
 
@@ -1281,7 +1245,7 @@ function renderAdmin(){
     el.innerHTML=`
       <div class="apinbox">
         <div class="apintitle">ADMIN ACCESS</div>
-        <div class="apinsub">ENTER PIN TO MANAGE SHIFTS,<br>ROUTES, DRIVERS & SETTINGS</div>
+        <div class="apinsub">ENTER PIN TO MANAGE SHIFTS,<br>STATIONS, DRIVERS & SETTINGS</div>
         <input type="password" class="pininput" id="pinIn" maxlength="6" placeholder="••••" onkeydown="if(event.key==='Enter')checkPin()">
         <button class="bb bstart" style="max-width:200px;margin:0 auto;display:block" onclick="checkPin()">UNLOCK</button>
       </div>`;
@@ -1296,7 +1260,6 @@ function renderAdmin(){
     </div>
     <div class="atabs">
       <button class="atab ${adminTab==='shifts'?'active':''}" onclick="adminTab='shifts';renderAdmin()">SHIFTS</button>
-      <button class="atab ${adminTab==='routes'?'active':''}" onclick="adminTab='routes';renderAdmin()">ROUTES</button>
       <button class="atab ${adminTab==='drivers'?'active':''}" onclick="adminTab='drivers';renderAdmin()">DRIVERS</button>
       <button class="atab ${adminTab==='cars'?'active':''}" onclick="adminTab='cars';renderAdmin()">CARS</button>
       <button class="atab ${adminTab==='stations'?'active':''}" onclick="adminTab='stations';renderAdmin()">STATIONS</button>
@@ -1334,46 +1297,6 @@ function renderAdmin(){
         <div style="display:flex;gap:7px">
           <button class="bsm bg" style="flex:1;padding:10px" onclick="openAllShifts()">OPEN ALL SHIFTS</button>
           <button class="bsm br" style="flex:1;padding:10px" onclick="closeAllShifts()">CLOSE ALL SHIFTS</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- ROUTES -->
-    <div class="asect ${adminTab==='routes'?'active':''}">
-      <div class="card">
-        <div class="ctitle">ROUTE MANAGEMENT <span class="pill">${ROUTES.filter(r=>r.active).length} ACTIVE</span></div>
-        <div class="csub">// DEFINE FIXED ROUTES DRIVERS CAN SELECT — TOGGLE ACTIVE/INACTIVE</div>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;padding:10px;background:var(--surface);border:1px solid var(--border)">
-          <div style="flex:1;font-family:var(--font-m);font-size:.58rem;color:var(--text)">ROUTE PICKER MODE</div>
-          <button class="bsm ${useRoutes?'bg':'bghost'}" onclick="useRoutes=!useRoutes;save('fs_useroutes',useRoutes);renderAdmin()">${useRoutes?'✅ ENABLED':'DISABLED'}</button>
-        </div>
-        ${ROUTES.map((r,i)=>`<div class="aitem" style="margin-bottom:7px">
-          <div style="flex:1">
-            <div class="aitem-name" style="font-size:.66rem">${r.from} → ${r.to}</div>
-            <div class="aitem-sub">${r.active?'<span class="shift-open">ACTIVE</span>':'<span class="shift-closed">INACTIVE</span>'}</div>
-          </div>
-          <div class="abtn-row">
-            <button class="aedit" onclick="toggleRoute(${i})">${r.active?'HIDE':'SHOW'}</button>
-            <button class="adel" onclick="removeRoute(${i})">✕</button>
-          </div>
-        </div>`).join('')}
-        <div class="divline"></div>
-        <div class="csub" style="margin:0 0 8px 0">ADD NEW ROUTE</div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:8px">
-          <div class="field" style="margin:0"><label>FROM</label>
-            <select id="newRFrom" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 9px;font-size:.82rem;outline:none;appearance:none">
-              <option value="">Select</option>${STATIONS.map(s=>`<option value="${s}">${s}</option>`).join('')}
-            </select>
-          </div>
-          <div class="field" style="margin:0"><label>TO</label>
-            <select id="newRTo" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 9px;font-size:.82rem;outline:none;appearance:none">
-              <option value="">Select</option>${STATIONS.map(s=>`<option value="${s}">${s}</option>`).join('')}
-            </select>
-          </div>
-        </div>
-        <div style="display:flex;gap:7px">
-          <button class="bsm bg" style="flex:1;padding:10px" onclick="addRoute()">ADD ROUTE</button>
-          <button class="bsm by" style="flex:1;padding:10px" onclick="addReturnRoute()">ADD + RETURN</button>
         </div>
       </div>
     </div>
@@ -1530,25 +1453,6 @@ function closeAllShifts(){
   save('fs_shifts',shifts);toast('🔴 ALL SHIFTS CLOSED');renderAdmin();
 }
 
-// ROUTES
-function toggleRoute(i){ROUTES[i].active=!ROUTES[i].active;save('fs_routes',ROUTES);renderAdmin();}
-function removeRoute(i){if(!confirm('Remove this route?'))return;ROUTES.splice(i,1);save('fs_routes',ROUTES);renderAdmin();}
-function addRoute(){
-  const from=document.getElementById('newRFrom')?.value,to=document.getElementById('newRTo')?.value;
-  if(!from||!to){toast('SELECT BOTH FROM AND TO');return;}
-  if(from===to){toast('FROM AND TO MUST BE DIFFERENT');return;}
-  if(ROUTES.find(r=>r.from===from&&r.to===to)){toast('ROUTE ALREADY EXISTS');return;}
-  ROUTES.push({from,to,active:true});save('fs_routes',ROUTES);toast('ROUTE ADDED ✅');renderAdmin();
-}
-function addReturnRoute(){
-  const from=document.getElementById('newRFrom')?.value,to=document.getElementById('newRTo')?.value;
-  if(!from||!to){toast('SELECT BOTH FROM AND TO');return;}
-  if(from===to){toast('FROM AND TO MUST BE DIFFERENT');return;}
-  if(!ROUTES.find(r=>r.from===from&&r.to===to))ROUTES.push({from,to,active:true});
-  if(!ROUTES.find(r=>r.from===to&&r.to===from))ROUTES.push({from:to,to:from,active:true});
-  save('fs_routes',ROUTES);toast('ROUTE + RETURN ADDED ✅');renderAdmin();
-}
-
 // DRIVERS & CARS
 function adminSetDriverPin(driver){
   const pin=prompt(`Set PIN for ${driver.split(' ')[0]} (blank to remove):`);
@@ -1576,7 +1480,7 @@ function addStation(){
 }
 function removeStation(i){if(!confirm('Remove '+STATIONS[i]+'?'))return;STATIONS.splice(i,1);save('fs_stations',STATIONS);renderAdmin();}
 function changePin(){const p=document.getElementById('newPin')?.value||'';if(p.length<4){toast('MIN 4 DIGITS');return;}localStorage.setItem(ADMIN_PIN_KEY,p);toast('PIN UPDATED ✅');}
-function resetToDefaults(){DRIVERS=[...DEFAULT_DRIVERS];CARS=[...DEFAULT_CARS];STATIONS=[...DEFAULT_STATIONS];ROUTES=[...DEFAULT_ROUTES];save('fs_drivers',DRIVERS);save('fs_cars',CARS);save('fs_stations',STATIONS);save('fs_routes',ROUTES);toast('RESET ✅');renderAdmin();}
+function resetToDefaults(){DRIVERS=[...DEFAULT_DRIVERS];CARS=[...DEFAULT_CARS];STATIONS=[...DEFAULT_STATIONS];save('fs_drivers',DRIVERS);save('fs_cars',CARS);save('fs_stations',STATIONS);toast('RESET ✅');renderAdmin();}
 
 // TRIPS
 function openEditTrip(id){
