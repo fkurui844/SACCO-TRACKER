@@ -383,6 +383,59 @@ main{padding:13px 13px 74px}
   </div>
 </div>
 
+<!-- GENERATE REPORT MODAL -->
+<div class="modal-overlay" id="reportModal">
+  <div class="modal" style="border-top-color:var(--accent2)">
+    <div class="modal-title" style="color:var(--accent2)">📋 GENERATE REPORT</div>
+    <div style="font-family:var(--font-m);font-size:.5rem;color:var(--muted);letter-spacing:1px;margin-bottom:12px">CHOOSE WHAT TO INCLUDE IN THIS REPORT</div>
+
+    <!-- PERIOD -->
+    <div style="font-family:var(--font-m);font-size:.5rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">PERIOD</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:5px;margin-bottom:14px" id="rModalPeriodBtns">
+      <div class="fchip active" data-period="today" onclick="setReportPeriod('today')">TODAY</div>
+      <div class="fchip" data-period="week" onclick="setReportPeriod('week')">WEEK</div>
+      <div class="fchip" data-period="month" onclick="setReportPeriod('month')">MONTH</div>
+      <div class="fchip" data-period="all" onclick="setReportPeriod('all')">ALL</div>
+    </div>
+
+    <!-- SCOPE -->
+    <div style="font-family:var(--font-m);font-size:.5rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px">SCOPE</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px;margin-bottom:10px" id="rModalScopeBtns">
+      <div class="fchip active" data-scope="all" onclick="setReportScope('all')">ALL</div>
+      <div class="fchip" data-scope="driver" onclick="setReportScope('driver')">BY DRIVER</div>
+      <div class="fchip" data-scope="car" onclick="setReportScope('car')">BY CAR</div>
+    </div>
+
+    <!-- DRIVER / CAR PICKER -->
+    <div id="rModalDriverPick" style="display:none;margin-bottom:10px">
+      <div style="font-family:var(--font-m);font-size:.5rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px">SELECT DRIVER</div>
+      <select id="rModalDriverSel" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 11px;font-family:var(--font-b);font-size:.86rem;outline:none;appearance:none">
+        <option value="">— All Drivers —</option>
+      </select>
+    </div>
+    <div id="rModalCarPick" style="display:none;margin-bottom:10px">
+      <div style="font-family:var(--font-m);font-size:.5rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:5px">SELECT CAR</div>
+      <select id="rModalCarSel" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 11px;font-family:var(--font-b);font-size:.86rem;outline:none;appearance:none">
+        <option value="">— All Cars —</option>
+      </select>
+    </div>
+
+    <!-- PREVIEW COUNT -->
+    <div id="rModalPreview" style="background:var(--surface);border:1px solid var(--border);padding:9px 12px;font-family:var(--font-m);font-size:.56rem;color:var(--accent);letter-spacing:1px;margin-bottom:14px;text-align:center">
+      — SELECT OPTIONS ABOVE —
+    </div>
+
+    <!-- FORMAT BUTTONS -->
+    <div style="font-family:var(--font-m);font-size:.5rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:7px">EXPORT AS</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:10px">
+      <button class="bb bstart" style="margin:0;font-size:.8rem;padding:11px" onclick="runReport('pdf')">📄 PDF</button>
+      <button class="bb" style="margin:0;background:#217346;color:#fff;font-size:.8rem;padding:11px" onclick="runReport('xls')">📊 XLS</button>
+      <button class="bb" style="margin:0;background:#25D366;color:#fff;font-size:.8rem;padding:11px" onclick="runReport('wa')">📱 WA</button>
+    </div>
+    <button class="bout" style="margin:0" onclick="closeReportModal()">CANCEL</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1336,9 +1389,7 @@ function renderReports(){
   el.innerHTML=`
     <div class="exprow">
       <button class="bsm bg" onclick="loadFirebaseData()">⟳</button>
-      <button class="bsm by" onclick="exportPDF()">PDF</button>
-      <button class="bsm" style="background:#217346;color:#fff" onclick="exportExcel()">XLS</button>
-      <button class="bsm bwa" onclick="generateWhatsAppSummary()">📱 WA</button>
+      <button class="bsm by" style="flex:3;letter-spacing:2px" onclick="openReportModal()">📋 GENERATE REPORT</button>
       <button class="bsm bgray" onclick="clearFilters()">✕</button>
     </div>
     <div class="sgrid2">
@@ -1818,6 +1869,180 @@ async function testFirebaseConnection(){
     await db.collection('_test').limit(1).get();
     toast('✅ FIREBASE CONNECTION OK!');
   }catch(e){toast('⚠ CONNECTION FAILED: '+e.message);}
+}
+
+// ══════════════════════════════════════════════
+// REPORT MODAL
+// ══════════════════════════════════════════════
+let rModalPeriod = 'today';
+let rModalScope  = 'all';
+
+function openReportModal(){
+  rModalPeriod='today'; rModalScope='all';
+  // Populate driver/car selects from current data
+  const all=allData();
+  const drivers=[...new Set(all.map(t=>t.driver).filter(Boolean))].sort();
+  const cars=[...new Set(all.map(t=>t.carPlate).filter(Boolean))].sort();
+  const dSel=document.getElementById('rModalDriverSel');
+  const cSel=document.getElementById('rModalCarSel');
+  dSel.innerHTML='<option value="">— All Drivers —</option>'+drivers.map(d=>`<option value="${d}">${d}</option>`).join('');
+  cSel.innerHTML='<option value="">— All Cars —</option>'+cars.map(c=>`<option value="${c}">${c}</option>`).join('');
+  // Reset chips
+  document.querySelectorAll('#rModalPeriodBtns .fchip').forEach(el=>el.classList.toggle('active',el.dataset.period==='today'));
+  document.querySelectorAll('#rModalScopeBtns .fchip').forEach(el=>el.classList.toggle('active',el.dataset.scope==='all'));
+  document.getElementById('rModalDriverPick').style.display='none';
+  document.getElementById('rModalCarPick').style.display='none';
+  updateReportPreview();
+  document.getElementById('reportModal').classList.add('open');
+}
+
+function closeReportModal(){
+  document.getElementById('reportModal').classList.remove('open');
+}
+
+function setReportPeriod(p){
+  rModalPeriod=p;
+  document.querySelectorAll('#rModalPeriodBtns .fchip').forEach(el=>el.classList.toggle('active',el.dataset.period===p));
+  updateReportPreview();
+}
+
+function setReportScope(s){
+  rModalScope=s;
+  document.querySelectorAll('#rModalScopeBtns .fchip').forEach(el=>el.classList.toggle('active',el.dataset.scope===s));
+  document.getElementById('rModalDriverPick').style.display=s==='driver'?'block':'none';
+  document.getElementById('rModalCarPick').style.display=s==='car'?'block':'none';
+  updateReportPreview();
+}
+
+function getReportTrips(){
+  const all=allData();
+  const now=new Date();
+  const todayStart=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const filtered=all.filter(t=>{
+    const d=parseDate(t.date); if(!d)return false;
+    if(rModalPeriod==='today'&&d<todayStart)return false;
+    if(rModalPeriod==='week'){const ws=new Date(todayStart);ws.setDate(todayStart.getDate()-todayStart.getDay());if(d<ws)return false;}
+    if(rModalPeriod==='month'&&(d.getMonth()!==now.getMonth()||d.getFullYear()!==now.getFullYear()))return false;
+    if(rModalScope==='driver'){const sel=document.getElementById('rModalDriverSel')?.value;if(sel&&t.driver!==sel)return false;}
+    if(rModalScope==='car'){const sel=document.getElementById('rModalCarSel')?.value;if(sel&&t.carPlate!==sel)return false;}
+    return true;
+  });
+  return filtered;
+}
+
+function getReportLabel(){
+  const period=rModalPeriod==='all'?'ALL TIME':rModalPeriod.toUpperCase();
+  if(rModalScope==='driver'){
+    const sel=document.getElementById('rModalDriverSel')?.value;
+    return sel?`${sel} · ${period}`:`ALL DRIVERS · ${period}`;
+  }
+  if(rModalScope==='car'){
+    const sel=document.getElementById('rModalCarSel')?.value;
+    return sel?`${sel} · ${period}`:`ALL CARS · ${period}`;
+  }
+  return `FULL REPORT · ${period}`;
+}
+
+function updateReportPreview(){
+  const trips=getReportTrips();
+  const total=trips.reduce((s,t)=>s+(t.amount||0),0);
+  const el=document.getElementById('rModalPreview');
+  if(!el)return;
+  if(!trips.length){el.textContent='NO TRIPS MATCH THIS SELECTION';el.style.color='var(--red)';return;}
+  el.style.color='var(--accent)';
+  el.innerHTML=`<strong style="font-size:.9rem">${trips.length}</strong> TRIPS &nbsp;·&nbsp; KES <strong>${total.toLocaleString()}</strong>`;
+}
+
+// Live preview when driver/car select changes
+document.addEventListener('change',e=>{
+  if(e.target.id==='rModalDriverSel'||e.target.id==='rModalCarSel')updateReportPreview();
+});
+
+function runReport(format){
+  const trips=getReportTrips();
+  if(!trips.length){toast('NO TRIPS FOR THIS SELECTION');return;}
+  const label=getReportLabel();
+  if(format==='pdf') runReportPDF(trips,label);
+  else if(format==='xls') runReportExcel(trips,label);
+  else if(format==='wa') runReportWA(trips,label);
+  closeReportModal();
+}
+
+function runReportPDF(filtered,label){
+  const {jsPDF}=window.jspdf;
+  const total=filtered.reduce((s,t)=>s+(t.amount||0),0);
+  const doc=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+  const W=210,M=18;let y=M;
+  doc.setFillColor(26,122,60);doc.rect(0,0,W,42,'F');
+  doc.setTextColor(255,255,255);doc.setFontSize(20);doc.setFont('helvetica','bold');doc.text('FESTUS SACCO',M,16);
+  doc.setFontSize(8);doc.setFont('helvetica','normal');doc.text(label,M,24);doc.text('Generated: '+new Date().toLocaleString(),M,31);
+  y=50;
+  const bw=(W-M*2-9)/4;
+  [{l:'TOTAL TRIPS',v:String(filtered.length)},{l:'TOTAL REVENUE',v:'KES '+total.toLocaleString()},{l:'AVG/TRIP',v:filtered.length?'KES '+Math.round(total/filtered.length).toLocaleString():'—'},{l:'UNIQUE CARS',v:String([...new Set(filtered.map(t=>t.carPlate))].length)}].forEach((b,i)=>{
+    const bx=M+i*(bw+3);doc.setFillColor(245,250,245);doc.rect(bx,y,bw,20,'F');doc.setFillColor(26,122,60);doc.rect(bx,y,bw,1.5,'F');
+    doc.setTextColor(130,130,130);doc.setFontSize(6);doc.setFont('helvetica','normal');doc.text(b.l,bx+3,y+8);
+    doc.setTextColor(20,20,20);doc.setFontSize(10);doc.setFont('helvetica','bold');doc.text(b.v,bx+3,y+17);
+  });
+  y+=28;
+  doc.setFillColor(26,46,26);doc.rect(M,y,W-M*2,7,'F');
+  doc.setTextColor(240,165,0);doc.setFontSize(6.5);doc.setFont('helvetica','bold');
+  doc.text('#',M+2,y+5);doc.text('DATE',M+10,y+5);doc.text('ROUTE',M+36,y+5);doc.text('DRIVER',M+90,y+5);doc.text('CAR',M+130,y+5);doc.text('KES',W-M-2,y+5,{align:'right'});
+  y+=7;
+  filtered.forEach((t,i)=>{
+    if(y>272){doc.addPage();y=M;}
+    doc.setFillColor(...(i%2===0?[250,253,250]:[244,248,244]));doc.rect(M,y,W-M*2,7,'F');
+    doc.setTextColor(80,80,80);doc.setFontSize(6.5);doc.setFont('helvetica','normal');doc.text(String(i+1),M+2,y+5);doc.text((t.date||'').slice(0,10),M+10,y+5);
+    doc.setTextColor(26,122,60);doc.setFont('helvetica','bold');doc.text((t.fromStation||'').slice(0,9)+'→'+(t.toStation||'').slice(0,9),M+36,y+5);
+    doc.setTextColor(60,60,60);doc.setFont('helvetica','normal');doc.text((t.driver||'').slice(0,18),M+90,y+5);doc.text(t.carPlate||'',M+130,y+5);
+    doc.setTextColor(20,100,60);doc.setFont('helvetica','bold');doc.text(Number(t.amount||0).toLocaleString(),W-M-2,y+5,{align:'right'});
+    y+=7;
+  });
+  const pg=doc.internal.getNumberOfPages();
+  for(let i=1;i<=pg;i++){doc.setPage(i);doc.setFontSize(6);doc.setTextColor(150,150,150);doc.setFont('helvetica','normal');doc.text('FESTUS SACCO — CONFIDENTIAL',M,292);doc.text('Page '+i+' of '+pg,W-M,292,{align:'right'});}
+  const fname='FESTUS-'+label.replace(/[^a-zA-Z0-9]/g,'-').replace(/-+/g,'-')+'-'+new Date().toISOString().slice(0,10)+'.pdf';
+  doc.save(fname);
+  toast('📄 PDF SAVED');
+}
+
+function runReportExcel(filtered,label){
+  const data=filtered.map(t=>({'DATE':t.date,'TIME':t.time,'FROM':t.fromStation,'TO':t.toStation,'DRIVER':t.driver,'CAR':t.carPlate,'AMOUNT':t.amount,'DURATION(MIN)':t.duration,'NOTES':t.notes||''}));
+  const ws=XLSX.utils.json_to_sheet(data);
+  ws['!cols']=[{wch:12},{wch:10},{wch:14},{wch:14},{wch:20},{wch:10},{wch:10},{wch:12},{wch:20}];
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,ws,'Trips');
+  // Summary sheet
+  const total=filtered.reduce((s,t)=>s+t.amount,0);
+  const cars=[...new Set(filtered.map(t=>t.carPlate).filter(Boolean))];
+  const carRows=cars.map(car=>{const ct=filtered.filter(t=>t.carPlate===car);return{'CAR':car,'TRIPS':ct.length,'REVENUE':ct.reduce((s,t)=>s+t.amount,0),'AVG/TRIP':ct.length?Math.round(ct.reduce((s,t)=>s+t.amount,0)/ct.length):0};});
+  if(carRows.length)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(carRows),'By Car');
+  const drivers=[...new Set(filtered.map(t=>t.driver).filter(Boolean))];
+  const drvRows=drivers.map(d=>{const dt=filtered.filter(t=>t.driver===d);return{'DRIVER':d,'TRIPS':dt.length,'REVENUE':dt.reduce((s,t)=>s+t.amount,0),'AVG/TRIP':dt.length?Math.round(dt.reduce((s,t)=>s+t.amount,0)/dt.length):0};});
+  if(drvRows.length)XLSX.utils.book_append_sheet(wb,XLSX.utils.json_to_sheet(drvRows),'By Driver');
+  const fname='FESTUS-'+label.replace(/[^a-zA-Z0-9]/g,'-').replace(/-+/g,'-')+'-'+new Date().toISOString().slice(0,10)+'.xlsx';
+  XLSX.writeFile(wb,fname);
+  toast('📊 EXCEL SAVED');
+}
+
+function runReportWA(filtered,label){
+  const total=filtered.reduce((s,t)=>s+t.amount,0);
+  const avg=filtered.length?Math.round(total/filtered.length):0;
+  const cars=[...new Set(filtered.map(t=>t.carPlate).filter(Boolean))];
+  const carLines=cars.map(car=>{
+    const ct=filtered.filter(t=>t.carPlate===car);
+    const cr=ct.reduce((s,t)=>s+t.amount,0);
+    const target=carTargets[car];
+    const pct=target?` (${Math.round((cr/target)*100)}% of target)`:'';
+    return`  🚗 ${car}: ${ct.length} trips · KES ${cr.toLocaleString()}${pct}`;
+  }).join('\n');
+  const drivers=[...new Set(filtered.map(t=>t.driver).filter(Boolean))];
+  const drvLines=drivers.map(d=>{
+    const dt=filtered.filter(t=>t.driver===d);
+    return`  👤 ${d}: ${dt.length} trips · KES ${dt.reduce((s,t)=>s+t.amount,0).toLocaleString()}`;
+  }).join('\n');
+  const msg=`🚌 *FESTUS SACCO — ${label}*\n📅 ${new Date().toLocaleDateString('en-GB')}\n\n📊 *SUMMARY*\n• Total Trips: ${filtered.length}\n• Total Revenue: KES ${total.toLocaleString()}\n• Average/Trip: KES ${avg.toLocaleString()}\n${cars.length>1?`\n🚗 *BY CAR*\n${carLines}\n`:''}${drivers.length>1?`\n👤 *BY DRIVER*\n${drvLines}\n`:''}\n_Generated by FESTUS SACCO App_`;
+  const encoded=encodeURIComponent(msg);
+  if(navigator.clipboard){navigator.clipboard.writeText(msg).then(()=>toast('📋 COPIED! OPENING WHATSAPP...')).catch(()=>{});}
+  setTimeout(()=>window.open(`https://wa.me/?text=${encoded}`,'_blank'),500);
 }
 
 // ══════════════════════════════════════════════
