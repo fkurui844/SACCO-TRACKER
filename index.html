@@ -582,22 +582,6 @@ function startAutoSync(){
 }
 
 // ══════════════════════════════════════════════
-// GPS
-// ══════════════════════════════════════════════
-function getGPS(){
-  tripState.gpsStatus='detecting';
-  if(!navigator.geolocation){tripState.gpsStatus='error';renderLog();return;}
-  navigator.geolocation.getCurrentPosition(
-    p=>{tripState.gpsLat=p.coords.latitude;tripState.gpsLng=p.coords.longitude;tripState.gpsStatus='ok';tripState.nearestStation=findNearest(tripState.gpsLat,tripState.gpsLng);renderLog();},
-    ()=>{tripState.gpsStatus='error';renderLog();},
-    {enableHighAccuracy:true,timeout:10000}
-  );
-}
-function hav(a,b,c,d){const R=6371,dL=(c-a)*Math.PI/180,dO=(d-b)*Math.PI/180,x=Math.sin(dL/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dO/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
-function findNearest(lat,lng){let b=null,bd=Infinity;STATIONS.forEach(s=>{const d=hav(lat,lng,s.lat,s.lng);if(d<bd){bd=d;b={...s,dist:d};}});return b;}
-function distKm(s){if(!tripState.gpsLat||!s)return null;return hav(tripState.gpsLat,tripState.gpsLng,s.lat,s.lng);}
-
-// ══════════════════════════════════════════════
 // TIMER
 // ══════════════════════════════════════════════
 function startTripTimer(){
