@@ -293,12 +293,54 @@ main{padding:13px 13px 74px}
 .queue-banner{background:var(--accent2);color:#fff;padding:7px 13px;font-family:var(--font-m);font-size:.56rem;letter-spacing:1px;display:none;align-items:center;justify-content:space-between;cursor:pointer}
 .queue-banner.show{display:flex}
 
+/* STATION SEARCH */
+.stsearch{width:100%;background:var(--bg);border:1px solid var(--border);border-bottom:2px solid var(--accent);color:var(--text);padding:9px 11px 9px 34px;font-family:var(--font-m);font-size:.72rem;outline:none;letter-spacing:1px;transition:border-color .2s;margin-bottom:9px}
+.stsearch::placeholder{color:var(--muted)}
+.stsearch-wrap{position:relative}
+.stsearch-ico{position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:.85rem;pointer-events:none;opacity:.5}
+.stsearch-clr{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:.75rem;cursor:pointer;color:var(--muted);background:none;border:none;padding:0;line-height:1}
+.st-none{font-family:var(--font-m);font-size:.56rem;color:var(--muted);letter-spacing:1px;text-align:center;padding:14px;grid-column:1/-1}
+
+/* LIVE TAB */
+.live-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-right:5px;animation:live-pulse 1.4s infinite}
+@keyframes live-pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.4;transform:scale(1.3)}}
+.live-badge{background:#22c55e;color:#fff;font-family:var(--font-m);font-size:.44rem;padding:2px 6px;letter-spacing:1px;margin-left:5px;vertical-align:middle;border-radius:2px}
+.live-item{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--accent);padding:10px 12px;margin-bottom:7px;animation:fadeUp .35s ease;transition:background .3s}
+.live-item.new{border-left-color:#22c55e;background:var(--alight)}
+.live-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px}
+.live-route{font-family:var(--font-m);font-size:.64rem;font-weight:700;color:var(--accent);letter-spacing:1px}
+.live-amt{font-family:var(--font-m);font-size:.61rem;color:#22c55e;font-weight:700}
+.live-bot{display:flex;justify-content:space-between;font-size:.62rem;color:var(--muted)}
+.live-time{font-family:var(--font-m);font-size:.48rem;color:var(--muted)}
+.live-car{font-family:var(--font-m);font-size:.5rem;background:var(--surface);padding:2px 6px;color:var(--accent)}
+.live-empty{text-align:center;padding:40px 14px;font-family:var(--font-m);font-size:.56rem;color:var(--muted);letter-spacing:1px;line-height:2.2}
+.live-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:12px}
+.live-stat{background:var(--card);border:1px solid var(--border);padding:10px;text-align:center}
+.live-stat .lsl{font-family:var(--font-m);font-size:.44rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:3px}
+.live-stat .lsv{font-family:var(--font-d);font-size:1.4rem;color:var(--accent)}
+.listener-status{display:flex;align-items:center;gap:7px;padding:7px 10px;font-family:var(--font-m);font-size:.5rem;letter-spacing:1px;margin-bottom:10px;border:1px solid var(--border)}
+.listener-status.on{color:#22c55e;border-color:#22c55e;background:rgba(34,197,94,.08)}
+.listener-status.off{color:var(--muted);border-color:var(--border)}
+
+/* TARGET ALERT OVERLAY */
+.target-overlay{position:fixed;inset:0;background:rgba(26,122,60,.97);z-index:400;display:none;flex-direction:column;align-items:center;justify-content:center;padding:30px;text-align:center}
+.target-overlay.open{display:flex;animation:fadeUp .4s ease}
+.target-trophy{font-size:4rem;margin-bottom:10px;animation:bounce 1s infinite}
+.target-hit{font-family:var(--font-d);font-size:2.8rem;color:#fff;letter-spacing:4px;margin-bottom:6px}
+.target-name{font-family:var(--font-m);font-size:.7rem;color:rgba(255,255,255,.8);letter-spacing:2px;margin-bottom:20px}
+.target-amount{font-family:var(--font-d);font-size:3.5rem;color:var(--accent2);letter-spacing:3px;margin-bottom:6px}
+.target-label{font-family:var(--font-m);font-size:.58rem;color:rgba(255,255,255,.6);letter-spacing:2px;margin-bottom:28px}
+.target-close{background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.4);color:#fff;font-family:var(--font-d);font-size:1.1rem;letter-spacing:3px;padding:13px 32px;cursor:pointer;transition:background .2s}
+.target-close:hover{background:rgba(255,255,255,.3)}
+@keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+
 @media print{
   .bnav,.hico,header .hright,.exprow,.fchips,.rtabs,.queue-banner,.timeout-overlay,.modal-overlay{display:none!important}
   body{background:#fff!important;color:#000!important;max-width:100%!important}
   main{padding:0!important}
   .page{display:block!important}
   #page-reports .rsect:not(#rsect-overview){display:none!important}
+  #rsect-live{display:none!important}
 }
 </style>
 </head>
@@ -381,6 +423,16 @@ main{padding:13px 13px 74px}
       <button class="bb" style="margin:0;background:var(--border);color:var(--text)" onclick="document.getElementById('shiftSummaryModal').classList.remove('open')">CANCEL</button>
     </div>
   </div>
+</div>
+
+<!-- TARGET ALERT OVERLAY -->
+<div class="target-overlay" id="targetOverlay">
+  <div class="target-trophy" id="targetTrophy">🏆</div>
+  <div class="target-hit">TARGET HIT!</div>
+  <div class="target-name" id="targetName"></div>
+  <div class="target-amount" id="targetAmount"></div>
+  <div class="target-label">DAILY TARGET REACHED</div>
+  <button class="target-close" onclick="closeTargetAlert()">KEEP GOING! 🚀</button>
 </div>
 
 <!-- GENERATE REPORT MODAL -->
@@ -476,7 +528,8 @@ let STATIONS   = load('fs_stations', DEFAULT_STATIONS);
 let localTrips = load('fs_trips', []);
 let offlineQ      = load('fs_queue', []);
 let driverPins    = load('fs_dpins', {});
-let carTargets    = load('fs_targets', {});
+let carTargets     = load('fs_targets', {});
+let driverTargets  = load('fs_dtargets', {});
 let shifts        = load('fs_shifts', {});
 let firestoreTrips = [];   // trips fetched from Firebase
 let appConfig     = load('fs_config', {
@@ -513,6 +566,10 @@ let timerInterval      = null;
 let syncInterval       = null;
 let syncCountdown      = 300;
 let db                 = null;   // Firestore instance
+let liveUnsubscribe    = null;   // Firestore onSnapshot unsubscriber
+let liveTrips          = [];     // real-time trips from listener
+let liveNewIds         = new Set(); // recently-arrived trip IDs for highlight
+let stationSearch      = '';     // filter text for station grid
 let sessionSecondsLeft = SESSION_TIMEOUT;
 let sessionInterval    = null;
 let showingTimeout     = false;
@@ -890,24 +947,64 @@ function selTo(n){
 }
 
 function stationGridHtml(selected, disabledName=null, mode='from'){
-  return STATIONS.map(s=>{
-    const d=tripState.gpsLat?hav(tripState.gpsLat,tripState.gpsLng,s.lat,s.lng):null;
-    const nearest=tripState.nearestStation?.name===s.name;
-    const isSel=selected===s.name;
-    const isDis=s.name===disabledName;
-    return`<div class="sbtn ${isSel?'sel':''} ${isDis?'dis':''} ${nearest&&!isSel?'nearest':''}"
-      onclick="${isDis?'':`sel${mode==='from'?'From':'To'}('${s.name.replace(/'/g,"\\'")}')` }"
-      title="${nearest?'Nearest to you':''}">
-      ${s.name}${nearest&&!isSel?' 📍':''}
-      ${d!==null?`<span class="dist">${d.toFixed(1)} km</span>`:''}
-    </div>`;
-  }).join('');
+  const q=stationSearch.trim().toUpperCase();
+  const visible=q ? STATIONS.filter(s=>s.name.includes(q)) : STATIONS;
+  const gridItems = visible.length
+    ? visible.map(s=>{
+        const d=tripState.gpsLat?hav(tripState.gpsLat,tripState.gpsLng,s.lat,s.lng):null;
+        const nearest=tripState.nearestStation?.name===s.name;
+        const isSel=selected===s.name;
+        const isDis=s.name===disabledName;
+        return`<div class="sbtn ${isSel?'sel':''} ${isDis?'dis':''} ${nearest&&!isSel?'nearest':''}"
+          onclick="${isDis?'':`sel${mode==='from'?'From':'To'}('${s.name.replace(/'/g,"\\'")}')` }"
+          title="${nearest?'Nearest to you':''}">
+          ${s.name}${nearest&&!isSel?' 📍':''}
+          ${d!==null?`<span class="dist">${d.toFixed(1)} km</span>`:''}
+        </div>`;
+      }).join('')
+    : `<div class="st-none">NO STATIONS MATCH "${q}"</div>`;
+  const esc=q.replace(/'/g,"\\'");
+  return`<div class="stsearch-wrap">
+    <span class="stsearch-ico">🔍</span>
+    <input class="stsearch" id="stSearch_${mode}" type="text" placeholder="SEARCH STATION..."
+      value="${esc}"
+      oninput="stationSearch=this.value.toUpperCase();renderLog()"
+      onfocus="this.select()">
+    ${q?`<button class="stsearch-clr" onclick="stationSearch='';renderLog()">✕</button>`:''}
+  </div>
+  <div class="sgrid" style="margin-bottom:0">${gridItems}</div>`;
+}
+
+// ══════════════════════════════════════════════
+// TARGET ALERT
+// ══════════════════════════════════════════════
+let targetAlertShown = {};  // {driver+date: true} — only alert once per day per driver
+
+function checkTargetAlert(driver, todayTotal){
+  const target = driverTargets[driver];
+  if(!target || todayTotal < target) return;
+  const key = driver + '_' + new Date().toLocaleDateString('en-GB');
+  if(targetAlertShown[key]) return;
+  targetAlertShown[key] = true;
+  document.getElementById('targetName').textContent = driver.split(' ')[0] + ' ' + (driver.split(' ')[1]||'');
+  document.getElementById('targetAmount').textContent = 'KES ' + todayTotal.toLocaleString();
+  // Trophy varies by how much they exceeded target
+  const pct = Math.round((todayTotal / target) * 100);
+  document.getElementById('targetTrophy').textContent = pct >= 150 ? '🏆' : pct >= 120 ? '🥇' : '🎯';
+  document.getElementById('targetOverlay').classList.add('open');
+  // Vibrate if supported
+  if(navigator.vibrate) navigator.vibrate([200, 100, 200, 100, 400]);
+}
+
+function closeTargetAlert(){
+  document.getElementById('targetOverlay').classList.remove('open');
 }
 
 // ══════════════════════════════════════════════
 // TRIP FLOW
 // ══════════════════════════════════════════════
 function startTrip(){
+  stationSearch='';
   if(!tripState.fromStation){toast('SELECT YOUR STARTING STATION');return;}
   if(!isShiftOpen(tripState.carPlate)){toast('⛔ SHIFT IS CLOSED FOR '+tripState.carPlate);return;}
   tripState.phase='active';
@@ -920,6 +1017,7 @@ function startTrip(){
 }
 
 function arrive(){
+  stationSearch='';
   tripState.phase='arrived';
   tripState.tripEnd=Date.now();
   clearInterval(timerInterval);
@@ -963,7 +1061,12 @@ function confirmAndSubmit(){
   localTrips.unshift(trip); save('fs_trips',localTrips.slice(0,200));
   tripState.phase='done';
   submitToFirebase(trip);
+  playSuccessSound();
   renderLog();
+  // Check driver target after render
+  const _today=_now.toLocaleDateString('en-GB');
+  const _todayTotal=localTrips.filter(t=>t.date===_today&&t.driver===tripState.driver).reduce((s,t)=>s+t.amount,0);
+  setTimeout(()=>checkTargetAlert(tripState.driver, _todayTotal), 600);
 }
 
 function backToEdit(){tripState.phase='arrived';renderLog();}
@@ -977,6 +1080,29 @@ function newTrip(){
   resetSessionTimer();
   renderLog();
   toast('READY FOR NEXT TRIP');
+}
+
+// ══════════════════════════════════════════════
+// CONFIRMATION SOUND
+// ══════════════════════════════════════════════
+function playSuccessSound(){
+  try{
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    // Three-note ascending chime: C5 → E5 → G5
+    const notes=[523.25, 659.25, 783.99];
+    notes.forEach((freq,i)=>{
+      const osc=ctx.createOscillator();
+      const gain=ctx.createGain();
+      osc.connect(gain); gain.connect(ctx.destination);
+      osc.type='sine';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime+i*0.13);
+      gain.gain.setValueAtTime(0, ctx.currentTime+i*0.13);
+      gain.gain.linearRampToValueAtTime(0.28, ctx.currentTime+i*0.13+0.04);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime+i*0.13+0.32);
+      osc.start(ctx.currentTime+i*0.13);
+      osc.stop(ctx.currentTime+i*0.13+0.35);
+    });
+  }catch(e){ /* AudioContext not supported — silent fail */ }
 }
 
 // ══════════════════════════════════════════════
@@ -1228,7 +1354,7 @@ function renderLog(){
         ${gpsBarHtml()}
         ${speedBadgeHtml()}
         <div class="field"><label>FROM STATION</label></div>
-        <div class="sgrid">${stationGridHtml(tripState.fromStation?.name||null, null, 'from')}</div>
+        ${stationGridHtml(tripState.fromStation?.name||null, null, 'from')}
         <button class="bb bstart" onclick="startTrip()" ${!tripState.fromStation?'disabled':''}>🚌 START TRIP</button>
         <button class="bout" onclick="goSetup()">CHANGE DRIVER / CAR</button>
       </div>
@@ -1274,7 +1400,7 @@ function renderLog(){
           <div class="rs"><div class="rl">TO</div><div class="rn">${tripState.toStation?tripState.toStation.name:'???'}</div></div>
         </div>
         <div class="field"><label>TO STATION</label></div>
-        <div class="sgrid">${stationGridHtml(tripState.toStation?.name||null, tripState.fromStation.name, 'to')}</div>
+        ${stationGridHtml(tripState.toStation?.name||null, tripState.fromStation.name, 'to')}
         <div class="field"><label>AMOUNT COLLECTED IN KES</label></div>
         <div class="awrap">
           <span class="apfx">KES</span>
@@ -1321,7 +1447,9 @@ function renderLog(){
     const today=new Date().toLocaleDateString('en-GB');
     const todayTrips=localTrips.filter(t=>t.date===today&&t.driver===tripState.driver);
     const todayTotal=todayTrips.reduce((s,t)=>s+t.amount,0);
-    const target=carTargets[tripState.carPlate];
+    const carTarget=carTargets[tripState.carPlate];
+    const driverTarget=driverTargets[tripState.driver];
+    const target=driverTarget||carTarget;  // driver target takes priority
     const tpct=target?Math.min(100,Math.round((todayTotal/target)*100)):null;
     el.innerHTML=`
       <div class="scard">
@@ -1343,7 +1471,7 @@ function renderLog(){
           <div class="sumrow"><span class="sumlbl">AVG PER TRIP</span><span class="sumval">KES ${todayTrips.length?Math.round(todayTotal/todayTrips.length).toLocaleString():'—'}</span></div>
           ${target?`<div class="sumrow"><span class="sumlbl">TARGET PROGRESS</span><span class="sumval" style="color:${tpct>=100?'#22c55e':'var(--red)'}">${tpct}%</span></div>
           <div style="margin-top:8px"><div class="target-bar"><div class="target-fill ${tpct>=100?'high':tpct>=50?'mid':'low'}" style="width:${tpct}%"></div></div>
-          <div style="font-family:var(--font-m);font-size:.48rem;color:var(--muted);margin-top:4px">KES ${todayTotal.toLocaleString()} of KES ${Number(target).toLocaleString()} TARGET</div></div>`:''}
+          <div style="font-family:var(--font-m);font-size:.48rem;color:var(--muted);margin-top:4px">KES ${todayTotal.toLocaleString()} of KES ${Number(target).toLocaleString()} ${driverTarget?'PERSONAL':'CAR'} TARGET</div></div>`:''}
         </div>
       </div>
       <button class="bb bstart" onclick="newTrip()">🚌 START NEXT TRIP</button>
@@ -1403,6 +1531,7 @@ function renderReports(){
       <button class="rtab ${reportTab==='charts'?'active':''}" onclick="reportTab='charts';renderReports();setTimeout(renderCharts,80)">CHARTS</button>
       <button class="rtab ${reportTab==='leaderboard'?'active':''}" onclick="reportTab='leaderboard';renderReports()">LEADERBOARD</button>
       <button class="rtab ${reportTab==='performance'?'active':''}" onclick="reportTab='performance';renderReports()">PERFORMANCE</button>
+      <button class="rtab ${reportTab==='live'?'active':''}" onclick="reportTab='live';renderReports()"><span class="live-dot" style="display:${liveUnsubscribe?'inline-block':'none'}"></span>LIVE</button>
     </div>
     <div id="rsect-overview" class="rsect ${reportTab==='overview'?'active':''}">
       <div class="card" style="padding:13px;margin-bottom:11px">
@@ -1453,7 +1582,9 @@ function renderReports(){
       <div class="chart-wrap"><div class="chart-title">DAILY TRIPS — 14 DAYS</div><div class="chart-canvas"><canvas id="chartTrips"></canvas></div></div>
     </div>
     <div class="rsect ${reportTab==='leaderboard'?'active':''}">${renderLeaderboard(filtered)}</div>
-    <div class="rsect ${reportTab==='performance'?'active':''}">${renderPerformance(all)}</div>`;
+    <div class="rsect ${reportTab==='performance'?'active':''}">${renderPerformance(all)}</div>
+    <div id="rsect-live" class="rsect ${reportTab==='live'?'active':''}"></div>`;
+  if(reportTab==='live')setTimeout(renderLiveTab,0);
 }
 
 function renderCarBars(filtered,total){
@@ -1482,12 +1613,23 @@ function renderLeaderboard(filtered){
   const cr=Object.entries(cm).sort((a,b)=>b[1].revenue-a[1].revenue);
   return`
     <div class="stitle2" style="margin-bottom:9px">🏆 TOP DRIVERS BY REVENUE</div>
-    ${dr.slice(0,7).map(([name,data],i)=>`<div class="lb-item">
-      <div class="lb-rank ${i===0?'g':i===1?'s':i===2?'b':''}">${i+1}</div>
-      <div><div class="lb-name">${name.split(' ')[0]} ${name.split(' ')[1]||''}</div><div class="lb-sub">${data.trips} trips</div>
-      <div class="bar-mini" style="width:80%"><div class="bar-fill" style="width:${Math.round((data.revenue/mr)*100)}%"></div></div></div>
-      <div><div class="lb-val">KES ${(data.revenue/1000).toFixed(1)}K</div><div class="lb-vsub">KES ${data.trips?Math.round(data.revenue/data.trips).toLocaleString():'—'}/trip</div></div>
-    </div>`).join('')}
+    ${dr.slice(0,7).map(([name,data],i)=>{
+      const dt=driverTargets[name];
+      const today=new Date().toLocaleDateString('en-GB');
+      const todayRev=filtered.filter(t=>t.driver===name&&t.date===today).reduce((s,t)=>s+t.amount,0);
+      const tpct=dt?Math.min(100,Math.round((todayRev/dt)*100)):null;
+      return`<div class="lb-item">
+        <div class="lb-rank ${i===0?'g':i===1?'s':i===2?'b':''}">${i+1}</div>
+        <div style="flex:1;min-width:0">
+          <div class="lb-name">${name.split(' ')[0]} ${name.split(' ')[1]||''}</div>
+          <div class="lb-sub">${data.trips} trips${dt?' · 🎯 KES '+Number(dt).toLocaleString():''}</div>
+          <div class="bar-mini" style="width:90%"><div class="bar-fill" style="width:${Math.round((data.revenue/mr)*100)}%"></div></div>
+          ${dt?`<div class="target-bar" style="margin-top:3px;width:90%"><div class="target-fill ${tpct>=100?'high':tpct>=50?'mid':'low'}" style="width:${tpct}%"></div></div>
+          <div style="font-family:var(--font-m);font-size:.42rem;color:var(--muted);margin-top:2px">TODAY ${tpct}% OF DAILY TARGET</div>`:''}
+        </div>
+        <div><div class="lb-val">KES ${(data.revenue/1000).toFixed(1)}K</div><div class="lb-vsub">KES ${data.trips?Math.round(data.revenue/data.trips).toLocaleString():'—'}/trip</div></div>
+      </div>`;
+    }).join('')}
     <div class="stitle2" style="margin-bottom:9px;margin-top:14px">🚗 TOP CARS BY REVENUE</div>
     ${cr.map(([plate,data],i)=>`<div class="lb-item">
       <div class="lb-rank ${i===0?'g':i===1?'s':i===2?'b':''}">${i+1}</div>
@@ -1603,13 +1745,31 @@ function renderAdmin(){
     <div class="asect ${adminTab==='drivers'?'active':''}">
       <div class="card">
         <div class="ctitle">DRIVERS <span class="pill">${DRIVERS.length}</span></div>
-        ${DRIVERS.map((d,i)=>`<div class="aitem">
-          <div><div class="aitem-name">${d}</div><div class="aitem-sub">PIN: ${driverPins[d]?'SET ✓':'NOT SET'}</div></div>
-          <div class="abtn-row">
-            <button class="aedit" onclick="adminSetDriverPin('${d.replace(/'/g,"\\'")}')">🔑 PIN</button>
-            <button class="adel" onclick="removeDriver(${i})">✕</button>
-          </div>
-        </div>`).join('')}
+        <div class="csub">// SET DAILY REVENUE TARGETS PER DRIVER</div>
+        ${DRIVERS.map((d,i)=>{
+          const esc=d.replace(/'/g,"\'");
+          const target=driverTargets[d];
+          return`<div class="aitem" style="flex-direction:column;align-items:stretch;gap:8px;padding:12px">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div>
+                <div class="aitem-name">${d}</div>
+                <div class="aitem-sub">PIN: ${driverPins[d]?'SET ✓':'NOT SET'} &nbsp;·&nbsp; Target: ${target?'KES '+Number(target).toLocaleString():'<span style="color:var(--muted)">Not set</span>'}</div>
+              </div>
+              <div class="abtn-row">
+                <button class="aedit" onclick="adminSetDriverPin('${esc}')">🔑</button>
+                <button class="adel" onclick="removeDriver(${i})">✕</button>
+              </div>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center">
+              <div style="font-family:var(--font-m);font-size:.48rem;color:var(--muted);white-space:nowrap;letter-spacing:1px">DAILY TARGET KES</div>
+              <input type="number" id="dt_${i}" placeholder="e.g. 5000" value="${target||''}"
+                style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 9px;font-family:var(--font-m);font-size:.78rem;outline:none;min-width:0"
+                onkeydown="if(event.key==='Enter')saveDriverTarget('${esc}',${i})">
+              <button class="bsm bg" onclick="saveDriverTarget('${esc}',${i})">SET</button>
+              ${target?`<button class="bsm br" onclick="removeDriverTarget('${esc}')">✕</button>`:''}
+            </div>
+          </div>`;
+        }).join('')}
         <div class="divline"></div>
         <div class="addrow">
           <div class="field"><label>New Driver Name</label><input type="text" id="newDriver" placeholder="FULL NAME IN CAPS"></div>
@@ -1801,6 +1961,23 @@ function closeAllShifts(){
 }
 
 // DRIVERS & CARS
+function saveDriverTarget(driver, idx){
+  const input=document.getElementById('dt_'+idx);
+  const val=(input?.value||'').trim();
+  if(val===''){delete driverTargets[driver];save('fs_dtargets',driverTargets);toast('TARGET REMOVED');renderAdmin();return;}
+  const n=parseFloat(val);
+  if(isNaN(n)||n<=0){toast('ENTER A VALID AMOUNT');return;}
+  driverTargets[driver]=n;
+  save('fs_dtargets',driverTargets);
+  toast('🎯 TARGET SET — KES '+n.toLocaleString()+' FOR '+driver.split(' ')[0]);
+  renderAdmin();
+}
+function removeDriverTarget(driver){
+  delete driverTargets[driver];
+  save('fs_dtargets',driverTargets);
+  toast('TARGET REMOVED');
+  renderAdmin();
+}
 function adminSetDriverPin(driver){
   const pin=prompt(`Set PIN for ${driver.split(' ')[0]} (blank to remove):`);
   if(pin===null)return;
@@ -1859,7 +2036,10 @@ function saveFirebaseConfig(){
   appConfig.appId       =(document.getElementById('fbAppId')?.value||'').trim();
   save('fs_config',appConfig);
   db=null; // force re-init with new config
-  if(appConfig.projectId&&initFirebase()){toast('✅ FIREBASE CONNECTED!');}
+  if(appConfig.projectId&&initFirebase()){
+    toast('✅ FIREBASE CONNECTED!');
+    startLiveListener();
+  }
   else{toast(appConfig.projectId?'⚠ CHECK CONFIG VALUES':'CONFIG SAVED — ENTER ALL 4 VALUES');}
   renderAdmin();
 }
@@ -2046,6 +2226,104 @@ function runReportWA(filtered,label){
 }
 
 // ══════════════════════════════════════════════
+// LIVE LISTENER — Firebase onSnapshot
+// ══════════════════════════════════════════════
+function startLiveListener(){
+  if(liveUnsubscribe){liveUnsubscribe();liveUnsubscribe=null;}
+  if(!initFirebase()){updateListenerStatus(false);return;}
+  updateListenerStatus('connecting');
+  // Listen to trips from last 12 hours so manager sees today's activity
+  const since=Date.now()-(12*60*60*1000);
+  try{
+    liveUnsubscribe=db.collection('trips')
+      .where('dateMs','>=',since)
+      .orderBy('dateMs','desc')
+      .onSnapshot(snap=>{
+        snap.docChanges().forEach(change=>{
+          if(change.type==='added'){
+            const trip={...change.doc.data(),_fbId:change.doc.id};
+            // Avoid duplicates
+            if(!liveTrips.find(t=>t._fbId===trip._fbId)){
+              liveTrips.unshift(trip);
+              liveNewIds.add(trip._fbId);
+              setTimeout(()=>{liveNewIds.delete(trip._fbId);renderLiveTab();},4000);
+            }
+          }
+        });
+        // Sort newest first
+        liveTrips.sort((a,b)=>(b.dateMs||0)-(a.dateMs||0));
+        // Keep last 200
+        if(liveTrips.length>200)liveTrips=liveTrips.slice(0,200);
+        updateListenerStatus(true);
+        if(currentPage==='reports'&&reportTab==='live')renderLiveTab();
+      }, err=>{
+        console.error('Live listener error:',err);
+        updateListenerStatus(false);
+      });
+  }catch(e){updateListenerStatus(false);}
+}
+
+function stopLiveListener(){
+  if(liveUnsubscribe){liveUnsubscribe();liveUnsubscribe=null;}
+  liveTrips=[];
+  updateListenerStatus(false);
+  if(currentPage==='reports'&&reportTab==='live')renderLiveTab();
+}
+
+function updateListenerStatus(state){
+  const el=document.getElementById('listenerStatusBar');
+  if(!el)return;
+  if(state===true){
+    el.className='listener-status on';
+    el.innerHTML=`<span class="live-dot"></span>LIVE — LISTENING FOR NEW TRIPS`;
+  }else if(state==='connecting'){
+    el.className='listener-status on';
+    el.innerHTML=`<span class="live-dot"></span>CONNECTING...`;
+  }else{
+    el.className='listener-status off';
+    el.innerHTML=`● LISTENER OFF — ${appConfig.projectId?'TAP START':'CONFIGURE FIREBASE IN ADMIN'}`;
+  }
+}
+
+function renderLiveTab(){
+  const el=document.getElementById('rsect-live');
+  if(!el)return;
+  const today=new Date().toLocaleDateString('en-GB');
+  const todayLive=liveTrips.filter(t=>t.date===today);
+  const totalRev=todayLive.reduce((s,t)=>s+(t.amount||0),0);
+  const activeCars=new Set(todayLive.map(t=>t.carPlate).filter(Boolean)).size;
+  const isOn=!!liveUnsubscribe;
+  el.innerHTML=`
+    <div class="listener-status ${isOn?'on':'off'}" id="listenerStatusBar">
+      ${isOn?`<span class="live-dot"></span>LIVE — LISTENING FOR NEW TRIPS`:`● LISTENER OFF — ${appConfig.projectId?'TAP START':'CONFIGURE FIREBASE IN ADMIN'}`}
+    </div>
+    <div style="display:flex;gap:7px;margin-bottom:12px">
+      ${isOn
+        ?`<button class="bsm br" style="flex:1;padding:10px" onclick="stopLiveListener()">⬛ STOP LISTENER</button>`
+        :`<button class="bsm bg" style="flex:1;padding:10px" onclick="startLiveListener()">▶ START LIVE LISTENER</button>`}
+    </div>
+    ${liveTrips.length?`
+    <div class="live-stats">
+      <div class="live-stat"><div class="lsl">TODAY TRIPS</div><div class="lsv">${todayLive.length}</div></div>
+      <div class="live-stat"><div class="lsl">TODAY REVENUE</div><div class="lsv" style="font-size:.9rem">KES ${(totalRev/1000).toFixed(1)}K</div></div>
+      <div class="live-stat"><div class="lsl">ACTIVE CARS</div><div class="lsv">${activeCars}</div></div>
+    </div>
+    <div class="stitle2" style="margin-bottom:8px">RECENT TRIPS — ALL CARS</div>
+    ${liveTrips.slice(0,60).map(t=>`
+      <div class="live-item ${liveNewIds.has(t._fbId)?'new':''}">
+        <div class="live-top">
+          <span class="live-route">${t.fromStation||'?'} → ${t.toStation||'?'}</span>
+          <span class="live-amt">KES ${Number(t.amount||0).toLocaleString()}</span>
+        </div>
+        <div class="live-bot">
+          <span>${t.driver?t.driver.split(' ')[0]:''} &nbsp;<span class="live-car">${t.carPlate||''}</span></span>
+          <span class="live-time">${t.time||t.date||''}</span>
+        </div>
+      </div>`).join('')}`
+    :`<div class="live-empty">${isOn?'⏳ WAITING FOR TRIPS...<br>TRIPS FROM ALL CARS WILL<br>APPEAR HERE IN REAL TIME':'▶ START THE LISTENER ABOVE<br>TO MONITOR ALL CARS IN REAL TIME<br><br>REQUIRES FIREBASE CONNECTION'}</div>`}`;
+}
+
+// ══════════════════════════════════════════════
 // INIT
 // ══════════════════════════════════════════════
 if(tripState.driver)document.getElementById('driverBadge').textContent=tripState.driver.split(' ')[0]+' · '+tripState.carPlate;
@@ -2054,7 +2332,10 @@ updateOfflineBadge();
 startAutoSync();
 initFirebase();  // connect to Firebase on load if config exists
 renderLog();
-if(appConfig.projectId&&isOnline())loadFirebaseData(true);
+if(appConfig.projectId&&isOnline()){
+  loadFirebaseData(true);
+  startLiveListener();
+}
 </script>
 </body>
 </html>
