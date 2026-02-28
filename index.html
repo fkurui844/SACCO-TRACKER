@@ -302,6 +302,34 @@ main{padding:13px 13px 74px}
 .queue-banner{background:var(--accent2);color:#fff;padding:7px 13px;font-family:var(--font-m);font-size:.56rem;letter-spacing:1px;display:none;align-items:center;justify-content:space-between;cursor:pointer}
 .queue-banner.show{display:flex}
 
+/* REPORT VIEWER */
+.rview-overlay{position:fixed;inset:0;background:var(--bg);z-index:300;display:none;flex-direction:column;overflow:hidden}
+.rview-overlay.open{display:flex;animation:fadeUp .25s ease}
+.rview-header{background:var(--card);border-bottom:2px solid var(--border);padding:11px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0}
+.rview-back{background:none;border:1px solid var(--border);color:var(--text);font-family:var(--font-m);font-size:.52rem;letter-spacing:1px;padding:6px 11px;cursor:pointer}
+.rview-title{flex:1;font-family:var(--font-d);font-size:1rem;letter-spacing:2px;color:var(--accent)}
+.rview-export-btn{background:var(--accent);border:none;color:#fff;font-family:var(--font-m);font-size:.48rem;letter-spacing:1px;padding:6px 10px;cursor:pointer;display:flex;align-items:center;gap:5px}
+.rview-body{flex:1;overflow-y:auto;padding:14px;padding-bottom:80px}
+.rview-summary{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:14px}
+.rview-stat{background:var(--card);border:1px solid var(--border);padding:12px;text-align:center}
+.rview-stat .rs-label{font-family:var(--font-m);font-size:.44rem;color:var(--muted);letter-spacing:1.5px;margin-bottom:4px}
+.rview-stat .rs-val{font-family:var(--font-d);font-size:1.5rem;color:var(--accent)}
+.rview-stat.wide{grid-column:1/-1}
+.rview-section-title{font-family:var(--font-m);font-size:.52rem;letter-spacing:2px;color:var(--muted);border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:8px;margin-top:14px}
+.rview-trip{background:var(--card);border:1px solid var(--border);padding:9px 12px;margin-bottom:6px}
+.rview-trip-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:3px}
+.rview-route{font-family:var(--font-m);font-size:.62rem;color:var(--accent);font-weight:700}
+.rview-amt{font-family:var(--font-d);font-size:.9rem;color:var(--text)}
+.rview-trip-bot{display:flex;justify-content:space-between;font-size:.56rem;color:var(--muted)}
+.rview-car-row{background:var(--card);border:1px solid var(--border);padding:10px 12px;margin-bottom:6px;display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
+.rview-car-badge{font-family:var(--font-m);font-size:.6rem;color:var(--accent);background:rgba(26,122,60,.1);padding:4px 8px;letter-spacing:1px}
+.rview-bar-wrap{height:5px;background:var(--border);border-radius:3px;overflow:hidden;margin-top:4px}
+.rview-bar{height:100%;background:var(--accent);border-radius:3px;transition:width .8s}
+.rview-export-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px}
+.rview-btn-pdf{background:#c0392b;border:none;color:#fff;font-family:var(--font-m);font-size:.54rem;letter-spacing:1px;padding:11px 6px;cursor:pointer;transition:opacity .2s}
+.rview-btn-xls{background:#217346;border:none;color:#fff;font-family:var(--font-m);font-size:.54rem;letter-spacing:1px;padding:11px 6px;cursor:pointer;transition:opacity .2s}
+.rview-btn-wa{background:#25D366;border:none;color:#fff;font-family:var(--font-m);font-size:.54rem;letter-spacing:1px;padding:11px 6px;cursor:pointer;transition:opacity .2s}
+
 /* ODOMETER / FUEL */
 .odom-wrap{background:var(--bg);border:2px solid var(--border);padding:14px;margin-bottom:10px;transition:border-color .2s}
 .odom-wrap.active{border-color:var(--accent)}
@@ -599,15 +627,28 @@ main{padding:13px 13px 74px}
       — SELECT OPTIONS ABOVE —
     </div>
 
-    <!-- FORMAT BUTTONS -->
-    <div style="font-family:var(--font-m);font-size:.5rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:7px">EXPORT AS</div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:7px;margin-bottom:10px">
-      <button class="bb bstart" style="margin:0;font-size:.8rem;padding:11px" onclick="runReport('pdf')">📄 PDF</button>
-      <button class="bb" style="margin:0;background:#217346;color:#fff;font-size:.8rem;padding:11px" onclick="runReport('xls')">📊 XLS</button>
-      <button class="bb" style="margin:0;background:#25D366;color:#fff;font-size:.8rem;padding:11px" onclick="runReport('wa')">📱 WA</button>
+    <!-- VIEW REPORT -->
+    <button class="bb bconfirm" style="margin:0 0 8px;font-size:.86rem;letter-spacing:2px;padding:13px" onclick="runReport('view')">👁 VIEW REPORT</button>
+
+    <!-- EXPORT -->
+    <div style="font-family:var(--font-m);font-size:.48rem;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;margin-bottom:6px;margin-top:2px">— OR EXPORT DIRECTLY —</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px">
+      <button style="background:#c0392b;border:none;color:#fff;font-family:var(--font-m);font-size:.54rem;letter-spacing:1px;padding:10px 4px;cursor:pointer" onclick="runReport('pdf')">📄 PDF</button>
+      <button style="background:#217346;border:none;color:#fff;font-family:var(--font-m);font-size:.54rem;letter-spacing:1px;padding:10px 4px;cursor:pointer" onclick="runReport('xls')">📊 XLS</button>
+      <button style="background:#25D366;border:none;color:#fff;font-family:var(--font-m);font-size:.54rem;letter-spacing:1px;padding:10px 4px;cursor:pointer" onclick="runReport('wa')">📱 WA</button>
     </div>
     <button class="bout" style="margin:0" onclick="closeReportModal()">CANCEL</button>
   </div>
+</div>
+
+<!-- REPORT VIEWER OVERLAY -->
+<div class="rview-overlay" id="rviewOverlay">
+  <div class="rview-header">
+    <button class="rview-back" onclick="closeReportViewer()">← BACK</button>
+    <div class="rview-title" id="rviewTitle">REPORT</div>
+    <button class="rview-export-btn" onclick="openExportMenuFromViewer()">⬆ EXPORT</button>
+  </div>
+  <div class="rview-body" id="rviewBody"></div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -2957,10 +2998,165 @@ function runReport(format){
   const trips=getReportTrips();
   if(!trips.length){toast('NO TRIPS FOR THIS SELECTION');return;}
   const label=getReportLabel();
+  if(format==='view'){
+    closeReportModal();
+    openReportViewer(trips,label);
+    return;
+  }
   if(format==='pdf') runReportPDF(trips,label);
   else if(format==='xls') runReportExcel(trips,label);
   else if(format==='wa') runReportWA(trips,label);
   closeReportModal();
+}
+
+// ══════════════════════════════════════════════
+// REPORT VIEWER
+// ══════════════════════════════════════════════
+let rviewTrips = [];
+let rviewLabel = '';
+
+function openReportViewer(trips, label){
+  rviewTrips = trips;
+  rviewLabel = label;
+  document.getElementById('rviewTitle').textContent = label;
+  renderReportViewer(trips, label);
+  document.getElementById('rviewOverlay').classList.add('open');
+}
+
+function closeReportViewer(){
+  document.getElementById('rviewOverlay').classList.remove('open');
+}
+
+function openExportMenuFromViewer(){
+  // Show a mini export picker sheet
+  const sheet = document.getElementById('rviewExportSheet');
+  if(sheet){ sheet.style.display = sheet.style.display==='none'?'block':'none'; return; }
+  // Inject it into viewer body
+  const body = document.getElementById('rviewBody');
+  const div = document.createElement('div');
+  div.id = 'rviewExportSheet';
+  div.style.cssText = 'position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--card);border-top:2px solid var(--border);padding:16px;z-index:400;animation:fadeUp .2s ease';
+  div.innerHTML = `
+    <div style="font-family:var(--font-m);font-size:.52rem;color:var(--muted);letter-spacing:1.5px;margin-bottom:10px">EXPORT THIS REPORT AS</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:10px">
+      <button class="rview-btn-pdf" onclick="runReportPDF(rviewTrips,rviewLabel);closeExportSheet()">📄 PDF</button>
+      <button class="rview-btn-xls" onclick="runReportExcel(rviewTrips,rviewLabel);closeExportSheet()">📊 XLS</button>
+      <button class="rview-btn-wa" onclick="runReportWA(rviewTrips,rviewLabel);closeExportSheet()">📱 WHATSAPP</button>
+    </div>
+    <button class="bout" style="margin:0;width:100%" onclick="closeExportSheet()">CANCEL</button>`;
+  document.body.appendChild(div);
+}
+
+function closeExportSheet(){
+  const s = document.getElementById('rviewExportSheet');
+  if(s) s.remove();
+}
+
+function renderReportViewer(trips, label){
+  const body = document.getElementById('rviewBody');
+  if(!body) return;
+
+  const total     = trips.reduce((s,t)=>s+(t.amount||0),0);
+  const avg       = trips.length ? Math.round(total/trips.length) : 0;
+  const totalKm   = trips.reduce((s,t)=>s+(t.distance||0),0);
+  const fuelTrips = trips.filter(t=>t.refueled&&t.fuelLiters>0);
+  const totalL    = fuelTrips.reduce((s,t)=>s+(t.fuelLiters||0),0);
+  const totalFuel = fuelTrips.reduce((s,t)=>s+(t.fuelCost||0),0);
+  const fleetEff  = fuelTrips.length&&totalKm
+    ? (totalKm/totalL).toFixed(2) : null;
+
+  // Group by car
+  const carMap = {};
+  trips.forEach(t=>{
+    const k = t.carPlate||'Unknown';
+    if(!carMap[k]) carMap[k]={trips:0,revenue:0,km:0};
+    carMap[k].trips++; carMap[k].revenue+=t.amount||0; carMap[k].km+=t.distance||0;
+  });
+  const cars = Object.entries(carMap).sort((a,b)=>b[1].revenue-a[1].revenue);
+  const maxRev = cars[0]?.[1].revenue||1;
+
+  // Group by driver
+  const drvMap = {};
+  trips.forEach(t=>{
+    const k = t.driver||'Unknown';
+    if(!drvMap[k]) drvMap[k]={trips:0,revenue:0};
+    drvMap[k].trips++; drvMap[k].revenue+=t.amount||0;
+  });
+  const drivers = Object.entries(drvMap).sort((a,b)=>b[1].revenue-a[1].revenue);
+
+  // Date range
+  const dates = trips.map(t=>t.date).filter(Boolean);
+  const dateRange = dates.length ? (dates[dates.length-1]===dates[0]?dates[0]:`${dates[dates.length-1]} — ${dates[0]}`) : '';
+
+  body.innerHTML = `
+    <!-- Export row at top of viewer -->
+    <div class="rview-export-row" style="margin-bottom:14px">
+      <button class="rview-btn-pdf" onclick="runReportPDF(rviewTrips,rviewLabel)">📄 PDF</button>
+      <button class="rview-btn-xls" onclick="runReportExcel(rviewTrips,rviewLabel)">📊 XLS</button>
+      <button class="rview-btn-wa" onclick="runReportWA(rviewTrips,rviewLabel)">📱 WHATSAPP</button>
+    </div>
+
+    <!-- Label + date range -->
+    <div style="background:var(--accent);padding:12px 14px;margin-bottom:12px">
+      <div style="font-family:var(--font-d);font-size:1.3rem;color:#fff;letter-spacing:2px">${label}</div>
+      ${dateRange?`<div style="font-family:var(--font-m);font-size:.5rem;color:rgba(255,255,255,.7);letter-spacing:1px;margin-top:3px">${dateRange}</div>`:''}
+    </div>
+
+    <!-- Summary stats -->
+    <div class="rview-summary">
+      <div class="rview-stat wide">
+        <div class="rs-label">TOTAL REVENUE</div>
+        <div class="rs-val" style="font-size:2rem">KES ${total.toLocaleString()}</div>
+      </div>
+      <div class="rview-stat"><div class="rs-label">TOTAL TRIPS</div><div class="rs-val">${trips.length}</div></div>
+      <div class="rview-stat"><div class="rs-label">AVG / TRIP</div><div class="rs-val" style="font-size:1.1rem">KES ${avg.toLocaleString()}</div></div>
+      ${totalKm?`<div class="rview-stat"><div class="rs-label">TOTAL KM</div><div class="rs-val">${totalKm.toLocaleString()}</div></div>`:''}
+      ${fleetEff?`<div class="rview-stat"><div class="rs-label">AVG EFFICIENCY</div><div class="rs-val" style="color:#f59e0b">${fleetEff}<span style="font-size:.7rem;font-family:var(--font-b)"> KM/L</span></div></div>`:''}
+      ${totalFuel?`<div class="rview-stat wide"><div class="rs-label">TOTAL FUEL COST</div><div class="rs-val" style="color:#f59e0b;font-size:1.2rem">KES ${totalFuel.toLocaleString()}</div></div>`:''}
+    </div>
+
+    <!-- By Car breakdown -->
+    ${cars.length>1?`
+    <div class="rview-section-title">BREAKDOWN BY CAR</div>
+    ${cars.map(([car,s])=>`
+      <div class="rview-car-row">
+        <span class="rview-car-badge">${car}</span>
+        <div>
+          <div style="font-size:.6rem;color:var(--muted)">${s.trips} trip${s.trips!==1?'s':''}${s.km?` · ${s.km.toLocaleString()} km`:''}</div>
+          <div class="rview-bar-wrap"><div class="rview-bar" style="width:${Math.round((s.revenue/maxRev)*100)}%"></div></div>
+        </div>
+        <div style="font-family:var(--font-m);font-size:.72rem;font-weight:700;color:var(--accent)">KES ${(s.revenue/1000).toFixed(1)}K</div>
+      </div>`).join('')}`:''}
+
+    <!-- By Driver breakdown -->
+    ${drivers.length>1?`
+    <div class="rview-section-title">BREAKDOWN BY DRIVER</div>
+    ${drivers.map(([drv,s],i)=>`
+      <div class="rview-car-row">
+        <div style="font-family:var(--font-d);font-size:1.1rem;color:${i===0?'#f0a500':i===1?'#aaa':i===2?'#cd7f32':'var(--border)'}">${i+1}</div>
+        <div>
+          <div style="font-family:var(--font-m);font-size:.62rem;font-weight:600">${drv}</div>
+          <div style="font-size:.54rem;color:var(--muted)">${s.trips} trip${s.trips!==1?'s':''} · avg KES ${Math.round(s.revenue/s.trips).toLocaleString()}</div>
+        </div>
+        <div style="font-family:var(--font-m);font-size:.72rem;font-weight:700;color:var(--accent)">KES ${(s.revenue/1000).toFixed(1)}K</div>
+      </div>`).join('')}`:''}
+
+    <!-- Trip list -->
+    <div class="rview-section-title">ALL TRIPS (${trips.length})</div>
+    ${trips.slice(0,100).map((t,i)=>`
+      <div class="rview-trip">
+        <div class="rview-trip-top">
+          <span class="rview-route">${t.fromStation||'?'} → ${t.toStation||'?'}</span>
+          <span class="rview-amt">KES ${Number(t.amount||0).toLocaleString()}</span>
+        </div>
+        <div class="rview-trip-bot">
+          <span>${t.driver?t.driver.split(' ')[0]:''} · ${t.carPlate||''}${t.distance?` · 📏 ${t.distance}km`:''}${t.fuelEfficiency?` · ⚡${t.fuelEfficiency}km/L`:''}</span>
+          <span>${t.date||''} ${t.time||''}</span>
+        </div>
+        ${t.notes?`<div style="font-size:.52rem;color:var(--muted);margin-top:3px;font-style:italic">📝 ${t.notes}</div>`:''}
+      </div>`).join('')}
+    ${trips.length>100?`<div style="text-align:center;font-family:var(--font-m);font-size:.52rem;color:var(--muted);padding:12px">SHOWING 100 OF ${trips.length} — EXPORT TO SEE ALL</div>`:''}
+  `;
 }
 
 function runReportPDF(filtered,label){
