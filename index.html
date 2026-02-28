@@ -445,6 +445,32 @@ main{padding:13px 13px 74px}
   </div>
 </div>
 
+<!-- ADMIN PIN RESET OVERLAY -->
+<div class="dev-pin-overlay" id="resetPinOverlay">
+  <div class="dev-pin-box" style="border-color:var(--accent2)">
+    <div style="font-size:2rem;margin-bottom:8px">🔑</div>
+    <div class="dev-pin-title" style="color:var(--accent2)">RESET ADMIN PIN</div>
+    <div class="dev-pin-sub">ENTER YOUR <strong style="color:var(--text)">DEVELOPER PIN</strong><br>TO VERIFY YOUR IDENTITY,<br>THEN SET A NEW ADMIN PIN</div>
+    <div id="resetStepVerify">
+      <div id="resetVerifyMsg"></div>
+      <input type="password" class="pininput" id="resetDevPinIn" maxlength="6" placeholder="DEV PIN"
+        style="border-color:var(--accent2)"
+        onkeydown="if(event.key==='Enter')verifyDevForReset()">
+      <button class="bb bconfirm" style="margin-top:10px;margin-bottom:6px;max-width:220px;margin-left:auto;margin-right:auto;display:block"
+        onclick="verifyDevForReset()">VERIFY IDENTITY</button>
+    </div>
+    <div id="resetStepNew" style="display:none">
+      <div style="font-family:var(--font-m);font-size:.52rem;color:#22c55e;letter-spacing:1px;margin-bottom:12px">✅ IDENTITY VERIFIED — SET NEW PIN</div>
+      <input type="password" class="pininput" id="resetNewPinIn" maxlength="6" placeholder="NEW PIN"
+        style="border-color:var(--accent)"
+        onkeydown="if(event.key==='Enter')commitResetPin()">
+      <button class="bb bstart" style="margin-top:10px;margin-bottom:6px;max-width:220px;margin-left:auto;margin-right:auto;display:block"
+        onclick="commitResetPin()">SET NEW PIN</button>
+    </div>
+    <button class="bghost" style="width:100%;margin-top:4px" onclick="closeResetOverlay()">CANCEL</button>
+  </div>
+</div>
+
 <!-- TARGET ALERT OVERLAY -->
 <div class="target-overlay" id="targetOverlay">
   <div class="target-trophy" id="targetTrophy">🏆</div>
@@ -1711,6 +1737,10 @@ function renderAdmin(){
           ${locked?'disabled':''} onkeydown="if(event.key==='Enter')checkPin()">
         <button class="bb bstart" style="max-width:200px;margin:0 auto;display:block"
           onclick="checkPin()" ${locked?'disabled':''}>UNLOCK</button>
+        <div style="margin-top:14px">
+          <button class="bghost" style="font-size:.48rem;letter-spacing:1px;padding:5px 12px;border:none;color:var(--muted)"
+            onclick="openResetOverlay()">🔑 FORGOT PIN?</button>
+        </div>
       </div>`;
     return;
   }
@@ -2267,6 +2297,74 @@ function runReportWA(filtered,label){
   const encoded=encodeURIComponent(msg);
   if(navigator.clipboard){navigator.clipboard.writeText(msg).then(()=>toast('📋 COPIED! OPENING WHATSAPP...')).catch(()=>{});}
   setTimeout(()=>window.open(`https://wa.me/?text=${encoded}`,'_blank'),500);
+}
+
+// ══════════════════════════════════════════════
+// ADMIN PIN RESET (via Dev PIN verification)
+// ══════════════════════════════════════════════
+let resetDevVerifyFailures = 0;
+
+function openResetOverlay(){
+  resetDevVerifyFailures = 0;
+  // Reset both steps
+  document.getElementById('resetStepVerify').style.display = 'block';
+  document.getElementById('resetStepNew').style.display = 'none';
+  const vm = document.getElementById('resetVerifyMsg');
+  if(vm) vm.innerHTML = '';
+  const di = document.getElementById('resetDevPinIn');
+  if(di){ di.value = ''; di.style.borderColor = 'var(--accent2)'; }
+  const ni = document.getElementById('resetNewPinIn');
+  if(ni){ ni.value = ''; }
+  document.getElementById('resetPinOverlay').classList.add('open');
+  setTimeout(()=>document.getElementById('resetDevPinIn')?.focus(), 120);
+}
+
+function closeResetOverlay(){
+  document.getElementById('resetPinOverlay').classList.remove('open');
+}
+
+function verifyDevForReset(){
+  const pin = (document.getElementById('resetDevPinIn')?.value || '').trim();
+  const correct = localStorage.getItem(DEV_PIN_KEY) || DEFAULT_DEV_PIN;
+  if(pin === correct){
+    // Identity confirmed — show new PIN step
+    document.getElementById('resetStepVerify').style.display = 'none';
+    document.getElementById('resetStepNew').style.display = 'block';
+    setTimeout(()=>document.getElementById('resetNewPinIn')?.focus(), 80);
+  } else {
+    resetDevVerifyFailures++;
+    const vm = document.getElementById('resetVerifyMsg');
+    const di = document.getElementById('resetDevPinIn');
+    if(di){ di.value = ''; di.style.borderColor = 'var(--red)'; setTimeout(()=>{if(di)di.style.borderColor='var(--accent2)';},600); }
+    if(resetDevVerifyFailures >= 3){
+      // Lock out and close
+      adminLockedUntil = Date.now() + PIN_LOCKOUT_SECS * 1000;
+      closeResetOverlay();
+      renderAdmin();
+      toast('🔒 TOO MANY FAILED ATTEMPTS — LOCKED FOR 5 MINUTES');
+    } else {
+      const left = 3 - resetDevVerifyFailures;
+      if(vm) vm.innerHTML = `<div class="pin-locked" style="margin-bottom:10px;font-size:.52rem">WRONG DEV PIN — ${left} ATTEMPT${left===1?'':'S'} LEFT</div>`;
+      di?.focus();
+    }
+  }
+}
+
+function commitResetPin(){
+  const newPin = (document.getElementById('resetNewPinIn')?.value || '').trim();
+  if(newPin.length < 4){
+    const ni = document.getElementById('resetNewPinIn');
+    if(ni){ ni.style.borderColor = 'var(--red)'; setTimeout(()=>{if(ni)ni.style.borderColor='var(--accent)';},600); }
+    toast('PIN MUST BE AT LEAST 4 DIGITS');
+    return;
+  }
+  localStorage.setItem(ADMIN_PIN_KEY, newPin);
+  // Clear any lockout
+  adminLockedUntil = 0;
+  adminPinFailures = 0;
+  closeResetOverlay();
+  renderAdmin();
+  toast('✅ ADMIN PIN RESET SUCCESSFULLY — USE YOUR NEW PIN TO LOGIN');
 }
 
 // ══════════════════════════════════════════════
