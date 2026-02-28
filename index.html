@@ -320,6 +320,28 @@ main{padding:13px 13px 74px}
 .odom-reason-label{font-family:var(--font-m);font-size:.48rem;color:var(--muted);letter-spacing:1.5px;margin-bottom:5px;margin-top:10px}
 .odom-reason{width:100%;background:var(--bg);border:1.5px solid var(--red);color:var(--text);padding:8px 10px;font-family:var(--font-b);font-size:.78rem;outline:none;resize:none;transition:border-color .2s}
 .odom-reason:focus{border-color:var(--accent)}
+.fuel-entry-toggle{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;border:2px solid var(--border);cursor:pointer;user-select:none;transition:all .2s;margin-bottom:0}
+.fuel-entry-toggle.on{border-color:#f59e0b;background:rgba(245,158,11,.06)}
+.fuel-toggle-label{font-family:var(--font-m);font-size:.58rem;letter-spacing:1.5px;color:var(--muted)}
+.fuel-toggle-label.on{color:#f59e0b}
+.fuel-toggle-pill{width:42px;height:24px;border-radius:12px;background:var(--border);position:relative;transition:background .2s;flex-shrink:0}
+.fuel-toggle-pill.on{background:#f59e0b}
+.fuel-toggle-pill::after{content:'';position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.fuel-toggle-pill.on::after{left:21px}
+.fuel-fields{border:2px solid #f59e0b;border-top:none;padding:13px;background:rgba(245,158,11,.03);margin-bottom:10px}
+.fuel-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px}
+.fuel-field-label{font-family:var(--font-m);font-size:.44rem;color:var(--muted);letter-spacing:1.5px;margin-bottom:5px;text-transform:uppercase}
+.fuel-input{width:100%;background:var(--bg);border:2px solid #f59e0b;color:var(--text);padding:10px 11px;font-family:var(--font-m);font-size:.9rem;font-weight:700;outline:none;letter-spacing:1px;transition:border-color .2s}
+.fuel-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.fuel-input:focus{border-color:var(--accent)}
+.fuel-input.full{width:100%;box-sizing:border-box}
+.fuel-efficiency-badge{display:flex;align-items:center;gap:8px;padding:10px 12px;background:linear-gradient(135deg,rgba(245,158,11,.12),rgba(26,122,60,.08));border:1px solid #f59e0b;margin-top:9px}
+.fuel-eff-ico{font-size:1.5rem}
+.fuel-eff-val{font-family:var(--font-d);font-size:1.6rem;color:#f59e0b;letter-spacing:1px}
+.fuel-eff-unit{font-family:var(--font-m);font-size:.48rem;color:var(--muted);letter-spacing:1px}
+.fuel-eff-sub{font-size:.52rem;color:var(--muted);margin-top:2px}
+.feff-good{color:#22c55e}.feff-avg{color:#f59e0b}.feff-poor{color:var(--red)}
+
 .fuel-stat{background:var(--card);border:1px solid var(--border);padding:11px 12px;margin-bottom:7px}
 .fuel-stat-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
 .fuel-stat-car{font-family:var(--font-m);font-size:.6rem;color:var(--accent);letter-spacing:1px}
@@ -658,6 +680,11 @@ let tripState = {
   odomEnd:null,       // reading at trip end (km)
   odomWorking:true,   // false if odometer is broken
   odomSkipReason:'',  // reason when not working
+  // Fuel log
+  refueled:false,     // did driver add fuel this trip?
+  fuelLiters:null,    // litres added
+  fuelCost:null,      // total KES paid for fuel
+  fuelStation:'',     // petrol station name (optional)
 };
 
 const sd = load('fs_driver', null);
@@ -1239,6 +1266,114 @@ function arrive(){
 
 
 
+// ══════════════════════════════════════════════
+// FUEL SECTION HELPERS
+// ══════════════════════════════════════════════
+function fuelSectionHtml(){
+  const dist = (tripState.odomWorking && tripState.odomStart && tripState.odomEnd && tripState.odomEnd > tripState.odomStart)
+    ? tripState.odomEnd - tripState.odomStart : null;
+  const eff  = (dist && tripState.fuelLiters && tripState.fuelLiters > 0)
+    ? (dist / tripState.fuelLiters).toFixed(2) : null;
+  const costPerKm = (dist && tripState.fuelCost && tripState.fuelCost > 0)
+    ? (tripState.fuelCost / dist).toFixed(1) : null;
+
+  return `
+  <div style="margin-bottom:${tripState.refueled?'0':'10px'}">
+    <div class="fuel-entry-toggle ${tripState.refueled?'on':''}" onclick="toggleRefuel()">
+      <div>
+        <div class="fuel-toggle-label ${tripState.refueled?'on':''}">⛽ DID YOU REFUEL THIS TRIP?</div>
+        <div style="font-family:var(--font-b);font-size:.62rem;color:var(--muted);margin-top:2px">${tripState.refueled?'TAP TO REMOVE':'TAP TO RECORD FUEL ADDED'}</div>
+      </div>
+      <div class="fuel-toggle-pill ${tripState.refueled?'on':''}"></div>
+    </div>
+  </div>
+  ${tripState.refueled ? `
+  <div class="fuel-fields">
+    <div class="fuel-grid">
+      <div>
+        <div class="fuel-field-label">LITRES ADDED *</div>
+        <input class="fuel-input" type="number" id="fuelLitresIn" placeholder="e.g. 40"
+          min="0.1" max="300" step="0.1" value="${tripState.fuelLiters||''}"
+          oninput="tripState.fuelLiters=parseFloat(this.value)||null;updateFuelEfficiency()">
+      </div>
+      <div>
+        <div class="fuel-field-label">TOTAL COST (KES) *</div>
+        <input class="fuel-input" type="number" id="fuelCostIn" placeholder="e.g. 6500"
+          min="1" max="999999" value="${tripState.fuelCost||''}"
+          oninput="tripState.fuelCost=parseFloat(this.value)||null;updateFuelEfficiency()">
+      </div>
+    </div>
+    <div>
+      <div class="fuel-field-label">PETROL STATION (optional)</div>
+      <input class="fuel-input full" type="text" id="fuelStationIn"
+        placeholder="e.g. Total Rongai, Shell Ngong Rd..."
+        value="${tripState.fuelStation||''}"
+        oninput="tripState.fuelStation=this.value">
+    </div>
+    ${tripState.fuelLiters?`
+    <div style="margin-top:7px;font-family:var(--font-m);font-size:.5rem;color:var(--muted);letter-spacing:1px">
+      COST PER LITRE: <strong style="color:#f59e0b">KES ${tripState.fuelCost&&tripState.fuelLiters?(tripState.fuelCost/tripState.fuelLiters).toFixed(0):'—'}</strong>
+    </div>`:''  }
+    <div id="fuelEffBadge">
+      ${eff?`
+      <div class="fuel-efficiency-badge">
+        <div class="fuel-eff-ico">⚡</div>
+        <div style="flex:1">
+          <div style="display:flex;align-items:baseline;gap:5px">
+            <span class="fuel-eff-val ${parseFloat(eff)>=10?'feff-good':parseFloat(eff)>=7?'feff-avg':'feff-poor'}">${eff}</span>
+            <span class="fuel-eff-unit">KM / LITRE</span>
+          </div>
+          <div class="fuel-eff-sub">
+            ${dist} km ÷ ${tripState.fuelLiters}L
+            ${costPerKm?`· KES ${costPerKm}/km`:''}
+            · ${parseFloat(eff)>=10?'✅ GOOD EFFICIENCY':parseFloat(eff)>=7?'⚠ AVERAGE':'🔴 POOR — CHECK ENGINE'}
+          </div>
+        </div>
+      </div>`:''}
+    </div>
+  </div>`:``}`;
+}
+
+function toggleRefuel(){
+  tripState.refueled = !tripState.refueled;
+  if(!tripState.refueled){ tripState.fuelLiters=null; tripState.fuelCost=null; tripState.fuelStation=''; }
+  renderLog();
+}
+
+function updateFuelEfficiency(){
+  const badge = document.getElementById('fuelEffBadge');
+  if(!badge) return;
+  const dist = (tripState.odomWorking && tripState.odomStart && tripState.odomEnd && tripState.odomEnd > tripState.odomStart)
+    ? tripState.odomEnd - tripState.odomStart : null;
+  const liters = parseFloat(document.getElementById('fuelLitresIn')?.value) || null;
+  const cost   = parseFloat(document.getElementById('fuelCostIn')?.value) || null;
+  if(liters) tripState.fuelLiters = liters;
+  if(cost)   tripState.fuelCost   = cost;
+  const eff = (dist && liters && liters > 0) ? (dist / liters).toFixed(2) : null;
+  const costPerKm = (dist && cost && cost > 0) ? (cost / dist).toFixed(1) : null;
+  if(eff){
+    const cls = parseFloat(eff)>=10?'feff-good':parseFloat(eff)>=7?'feff-avg':'feff-poor';
+    const tag = parseFloat(eff)>=10?'✅ GOOD EFFICIENCY':parseFloat(eff)>=7?'⚠ AVERAGE':'🔴 POOR — CHECK ENGINE';
+    badge.innerHTML = `
+      <div class="fuel-efficiency-badge">
+        <div class="fuel-eff-ico">⚡</div>
+        <div style="flex:1">
+          <div style="display:flex;align-items:baseline;gap:5px">
+            <span class="fuel-eff-val ${cls}">${eff}</span>
+            <span class="fuel-eff-unit">KM / LITRE</span>
+          </div>
+          <div class="fuel-eff-sub">
+            ${dist} km ÷ ${liters}L${costPerKm?` · KES ${costPerKm}/km`:''} · ${tag}
+          </div>
+        </div>
+      </div>`;
+  } else {
+    badge.innerHTML = '';
+  }
+  // Also update cost-per-litre display
+  const cplEl = badge.previousElementSibling;
+}
+
 function reviewTrip(){
   const amt=parseFloat(document.getElementById('amtIn')?.value||'0');
   const notes=(document.getElementById('notesIn')?.value||'').trim();
@@ -1254,6 +1389,17 @@ function reviewTrip(){
     if(tripState.odomEnd <= tripState.odomStart){
       toast('⚠ END ODOMETER MUST BE GREATER THAN START READING'); return;
     }
+  }
+  // Capture fuel inputs
+  const fuelL = parseFloat(document.getElementById('fuelLitresIn')?.value)||null;
+  const fuelC = parseFloat(document.getElementById('fuelCostIn')?.value)||null;
+  const fuelS = (document.getElementById('fuelStationIn')?.value||'').trim();
+  if(tripState.refueled){
+    if(!fuelL||fuelL<=0){toast('⛽ ENTER LITRES ADDED'); return;}
+    if(!fuelC||fuelC<=0){toast('⛽ ENTER FUEL COST (KES)'); return;}
+    tripState.fuelLiters = fuelL;
+    tripState.fuelCost   = fuelC;
+    tripState.fuelStation = fuelS;
   }
   tripState.amount=amt; tripState.notes=notes;
   tripState.phase='confirm';
@@ -1284,6 +1430,15 @@ function confirmAndSubmit(){
     odomWorking:tripState.odomWorking,
     odomSkipReason:tripState.odomSkipReason||null,
     distance:_odomDist,  // km covered this trip
+    // Fuel
+    refueled:tripState.refueled,
+    fuelLiters:tripState.refueled?tripState.fuelLiters:null,
+    fuelCost:tripState.refueled?tripState.fuelCost:null,
+    fuelStation:tripState.refueled?(tripState.fuelStation||null):null,
+    fuelEfficiency:(_odomDist&&tripState.refueled&&tripState.fuelLiters)
+      ? parseFloat((_odomDist/tripState.fuelLiters).toFixed(2)) : null,  // km/L
+    fuelCostPerKm:(_odomDist&&tripState.refueled&&tripState.fuelCost)
+      ? parseFloat((tripState.fuelCost/_odomDist).toFixed(2)) : null,   // KES/km
   };
   localTrips.unshift(trip); save('fs_trips',localTrips.slice(0,200));
   tripState.phase='done';
@@ -1308,6 +1463,8 @@ function newTrip(){
   tripState.odomStart = tripState.odomEnd || null;
   tripState.odomEnd = null;
   // Keep odomWorking and odomSkipReason — driver's car doesn't change between trips
+  // Reset fuel — each trip captures its own fuel event
+  tripState.refueled=false; tripState.fuelLiters=null; tripState.fuelCost=null; tripState.fuelStation='';
   resetSessionTimer();
   renderLog();
   toast('READY FOR NEXT TRIP');
@@ -1773,6 +1930,7 @@ function renderLog(){
           <input type="number" class="ainput" id="amtIn" placeholder="0" min="${AMOUNT_MIN}" max="${AMOUNT_MAX}" value="${tripState.amount||''}">
         </div>
         ${odomEndHtml()}
+        ${fuelSectionHtml()}
         <div class="field"><label>TRIP NOTES (optional)</label>
           <textarea id="notesIn" placeholder="e.g. Road closed, vehicle issue, extra passengers...">${tripState.notes||''}</textarea>
         </div>
@@ -1802,6 +1960,15 @@ function renderLog(){
           ${tripState.odomWorking&&tripState.odomStart&&tripState.odomEnd&&tripState.odomEnd>tripState.odomStart?
             `<div class="confirm-row"><span class="confirm-label">DISTANCE</span><span class="confirm-val" style="color:var(--accent)">📏 ${tripState.odomEnd-tripState.odomStart} KM</span></div>`:
             !tripState.odomWorking?`<div class="confirm-row"><span class="confirm-label">ODOMETER</span><span class="confirm-val" style="color:var(--red)">⚠ NOT WORKING</span></div>`:''}
+          ${tripState.refueled?`
+          <div class="confirm-row" style="border-top:1px dashed #f59e0b;padding-top:10px;margin-top:6px;border-bottom:none">
+            <span class="confirm-label" style="color:#f59e0b">⛽ FUEL ADDED</span>
+            <span class="confirm-val" style="color:#f59e0b">${tripState.fuelLiters} L</span>
+          </div>
+          <div class="confirm-row"><span class="confirm-label">FUEL COST</span><span class="confirm-val">KES ${Number(tripState.fuelCost).toLocaleString()}</span></div>
+          ${tripState.fuelStation?`<div class="confirm-row"><span class="confirm-label">STATION</span><span class="confirm-val">${tripState.fuelStation}</span></div>`:''}
+          ${tripState.fuelEfficiency?`<div class="confirm-row"><span class="confirm-label">EFFICIENCY</span><span class="confirm-val" style="color:${tripState.fuelEfficiency>=10?'#22c55e':tripState.fuelEfficiency>=7?'#f59e0b':'var(--red)'}">⚡ ${(tripState.distance/tripState.fuelLiters).toFixed(2)} KM/L</span></div>`:''}
+          `:''}
           <div class="confirm-row" style="padding-top:14px;margin-top:4px;border-top:2px solid var(--accent);border-bottom:none">
             <span class="confirm-label">AMOUNT COLLECTED</span>
             <span class="confirm-amount">KES ${Number(tripState.amount).toLocaleString()}</span>
@@ -1834,6 +2001,9 @@ function renderLog(){
           ${last.notes?`<div class="drow"><span>NOTES</span><span style="max-width:60%;text-align:right">${last.notes}</span></div>`:''}
           ${last.distance?`<div class="drow"><span>DISTANCE</span><span style="color:var(--accent)">📏 ${last.distance} KM</span></div>`:''}
           ${last.odomWorking===false?`<div class="drow"><span>ODOMETER</span><span style="color:var(--red)">⚠ NOT WORKING</span></div>`:''}
+          ${last.refueled?`<div class="drow" style="border-top:1px dashed #f59e0b;padding-top:8px;margin-top:4px"><span style="color:#f59e0b">⛽ FUEL ADDED</span><span style="color:#f59e0b">${last.fuelLiters} L · KES ${Number(last.fuelCost).toLocaleString()}</span></div>`:''}
+          ${last.fuelEfficiency?`<div class="drow"><span>EFFICIENCY</span><span style="color:${last.fuelEfficiency>=10?'#22c55e':last.fuelEfficiency>=7?'#f59e0b':'var(--red)'}">⚡ ${last.fuelEfficiency} KM/L</span></div>`:''}
+          ${last.fuelStation?`<div class="drow"><span>FUEL STATION</span><span>${last.fuelStation}</span></div>`:''}
         </div>
         <div class="ssub">${db&&isOnline()?'✅ SYNCED TO FIREBASE':offlineQ.length?'📦 QUEUED FOR SYNC':'💾 SAVED LOCALLY — CONFIGURE FIREBASE IN ADMIN'}</div>
       </div>
@@ -2032,93 +2202,149 @@ function renderFuelTab(){
   const el = document.getElementById('rsect-fuel');
   if(!el) return;
   const all = allData();
-  // Only trips that have valid odometer distance
-  const odomTrips  = all.filter(t => t.distance && t.distance > 0);
-  const noOdomTrips= all.filter(t => t.odomWorking === false);
+
+  // Trips with valid odometer distance
+  const odomTrips   = all.filter(t => t.distance && t.distance > 0);
+  // Trips where fuel was added
+  const fuelTrips   = all.filter(t => t.refueled && t.fuelLiters > 0 && t.fuelCost > 0);
+  // Trips with both distance AND fuel (efficiency computable)
+  const effTrips    = all.filter(t => t.fuelEfficiency && t.fuelEfficiency > 0);
+  // Trips where odometer broken
+  const noOdomTrips = all.filter(t => t.odomWorking === false);
+
   const allCars    = [...new Set(all.map(t=>t.carPlate).filter(Boolean))].sort();
+  const allDrivers = [...new Set(all.map(t=>t.driver).filter(Boolean))].sort();
+
+  // Fleet totals
+  const totalLitres   = fuelTrips.reduce((s,t)=>s+(t.fuelLiters||0),0);
+  const totalFuelCost = fuelTrips.reduce((s,t)=>s+(t.fuelCost||0),0);
+  const totalKm       = odomTrips.reduce((s,t)=>s+(t.distance||0),0);
+  const fleetEff      = effTrips.length
+    ? (effTrips.reduce((s,t)=>s+t.fuelEfficiency,0)/effTrips.length).toFixed(2) : null;
+  const capRate       = all.length ? Math.round((odomTrips.length/all.length)*100) : 0;
 
   // Per-car stats
   const carStats = allCars.map(car=>{
-    const cTrips    = odomTrips.filter(t=>t.carPlate===car);
-    const totalKm   = cTrips.reduce((s,t)=>s+(t.distance||0),0);
-    const totalTrips= cTrips.length;
-    const avgKm     = totalTrips ? (totalKm/totalTrips).toFixed(1) : null;
+    const cFuel = fuelTrips.filter(t=>t.carPlate===car);
+    const cOdom = odomTrips.filter(t=>t.carPlate===car);
+    const cEff  = effTrips.filter(t=>t.carPlate===car);
+    const litres    = cFuel.reduce((s,t)=>s+(t.fuelLiters||0),0);
+    const fuelCost  = cFuel.reduce((s,t)=>s+(t.fuelCost||0),0);
+    const km        = cOdom.reduce((s,t)=>s+(t.distance||0),0);
+    const avgEff    = cEff.length?(cEff.reduce((s,t)=>s+t.fuelEfficiency,0)/cEff.length).toFixed(2):null;
+    const costPerKm = (fuelCost&&km)?(fuelCost/km).toFixed(1):null;
+    const lastOdom  = [...cOdom].sort((a,b)=>b.dateMs-a.dateMs)[0]?.odomEnd;
     const noOdom    = noOdomTrips.filter(t=>t.carPlate===car).length;
-    const allCarTrips= all.filter(t=>t.carPlate===car).length;
-    const captureRate= allCarTrips ? Math.round((totalTrips/allCarTrips)*100) : 0;
-    // Last odometer reading
-    const lastOdom  = cTrips.sort((a,b)=>b.dateMs-a.dateMs)[0]?.odomEnd;
-    return {car, totalKm, totalTrips, avgKm, noOdom, captureRate, lastOdom};
-  }).filter(s=>s.totalTrips>0||s.noOdom>0);
+    const allCarT   = all.filter(t=>t.carPlate===car).length;
+    const capR      = allCarT?Math.round((cOdom.length/allCarT)*100):0;
+    const fuelEvents= cFuel.length;
+    return{car,litres,fuelCost,km,avgEff,costPerKm,lastOdom,noOdom,capR,fuelEvents,effCount:cEff.length};
+  }).filter(s=>s.km>0||s.litres>0||s.noOdom>0);
 
   // Per-driver stats
-  const allDrivers = [...new Set(all.map(t=>t.driver).filter(Boolean))].sort();
-  const driverStats= allDrivers.map(driver=>{
-    const dTrips  = odomTrips.filter(t=>t.driver===driver);
-    const totalKm = dTrips.reduce((s,t)=>s+(t.distance||0),0);
-    const avgKm   = dTrips.length?(totalKm/dTrips.length).toFixed(1):null;
-    const noOdom  = noOdomTrips.filter(t=>t.driver===driver).length;
-    return {driver, totalKm, trips:dTrips.length, avgKm, noOdom};
-  }).filter(s=>s.trips>0||s.noOdom>0);
+  const driverStats = allDrivers.map(driver=>{
+    const dFuel = fuelTrips.filter(t=>t.driver===driver);
+    const dOdom = odomTrips.filter(t=>t.driver===driver);
+    const dEff  = effTrips.filter(t=>t.driver===driver);
+    const litres   = dFuel.reduce((s,t)=>s+(t.fuelLiters||0),0);
+    const fuelCost = dFuel.reduce((s,t)=>s+(t.fuelCost||0),0);
+    const km       = dOdom.reduce((s,t)=>s+(t.distance||0),0);
+    const avgEff   = dEff.length?(dEff.reduce((s,t)=>s+t.fuelEfficiency,0)/dEff.length).toFixed(2):null;
+    return{driver,litres,fuelCost,km,avgEff,fuelEvents:dFuel.length};
+  }).filter(s=>s.km>0||s.litres>0);
 
-  // Skip-reason log
-  const skipLog = all.filter(t=>t.odomWorking===false&&t.odomSkipReason)
-    .sort((a,b)=>b.dateMs-a.dateMs).slice(0,20);
+  // Recent fuel log (last 20 fuel events)
+  const recentFuel = fuelTrips.sort((a,b)=>b.dateMs-a.dateMs).slice(0,20);
+  // Skip log
+  const skipLog    = all.filter(t=>t.odomWorking===false&&t.odomSkipReason)
+    .sort((a,b)=>b.dateMs-a.dateMs).slice(0,15);
 
-  // Overall summary
-  const totalKmAll  = odomTrips.reduce((s,t)=>s+(t.distance||0),0);
-  const capRate     = all.length ? Math.round((odomTrips.length/all.length)*100) : 0;
+  function effColor(v){ return v>=10?'#22c55e':v>=7?'#f59e0b':'var(--red)'; }
+  function effLabel(v){ return v>=10?'GOOD':v>=7?'AVG':'POOR'; }
 
   el.innerHTML = `
-    <!-- Summary strip -->
-    <div class="live-stats" style="margin-bottom:12px">
-      <div class="live-stat"><div class="lsl">TOTAL KM TRACKED</div><div class="lsv">${(totalKmAll/1000).toFixed(1)}K</div></div>
-      <div class="live-stat"><div class="lsl">ODOM CAPTURE RATE</div><div class="lsv" style="color:${capRate>=80?'#22c55e':capRate>=50?'var(--accent2)':'var(--red)'}">${capRate}%</div></div>
-      <div class="live-stat"><div class="lsl">SKIPPED TRIPS</div><div class="lsv" style="color:var(--red)">${noOdomTrips.length}</div></div>
+    <!-- ── FLEET SUMMARY ────────────────────── -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:12px">
+      <div class="live-stat" style="grid-column:1/-1">
+        <div class="lsl">FLEET FUEL COST (ALL TIME)</div>
+        <div class="lsv" style="font-size:1.1rem;color:#f59e0b">KES ${totalFuelCost.toLocaleString()}</div>
+      </div>
+      <div class="live-stat"><div class="lsl">TOTAL LITRES</div><div class="lsv" style="color:#f59e0b">${totalLitres.toFixed(1)}L</div></div>
+      <div class="live-stat"><div class="lsl">TOTAL KM TRACKED</div><div class="lsv">${(totalKm/1000).toFixed(1)}K</div></div>
+      <div class="live-stat"><div class="lsl">FLEET AVG EFFICIENCY</div>
+        <div class="lsv" style="color:${fleetEff?effColor(parseFloat(fleetEff)):'var(--muted)'}">${fleetEff||'—'}<span style="font-size:.7rem;font-family:var(--font-b);color:var(--muted)"> KM/L</span></div>
+      </div>
+      <div class="live-stat"><div class="lsl">ODOM CAPTURE RATE</div>
+        <div class="lsv" style="color:${capRate>=80?'#22c55e':capRate>=50?'#f59e0b':'var(--red)'}">${capRate}%</div>
+      </div>
     </div>
 
-    <!-- BY CAR -->
-    <div class="stitle2" style="margin-bottom:8px">⛽ EFFICIENCY BY CAR</div>
-    ${carStats.length ? carStats.map(s=>`
+    <!-- ── BY CAR ────────────────────────────── -->
+    <div class="stitle2" style="margin-bottom:8px">⛽ FUEL EFFICIENCY BY CAR</div>
+    ${carStats.length ? carStats.sort((a,b)=>parseFloat(b.avgEff||0)-parseFloat(a.avgEff||0)).map(s=>`
       <div class="fuel-stat">
         <div class="fuel-stat-top">
           <span class="fuel-stat-car">${s.car}</span>
-          <span class="fuel-stat-km">${s.totalKm.toLocaleString()} <span style="font-size:.7rem;font-family:var(--font-b)">KM</span></span>
+          <div style="text-align:right">
+            ${s.avgEff?`<span class="fuel-stat-km" style="color:${effColor(parseFloat(s.avgEff))}">${s.avgEff}<span style="font-size:.65rem;font-family:var(--font-b);color:var(--muted)"> KM/L</span></span>`
+            :`<span style="font-family:var(--font-m);font-size:.52rem;color:var(--muted)">NO EFF DATA</span>`}
+          </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:6px">
-          <div><div style="font-size:.44rem;color:var(--muted);font-family:var(--font-m);letter-spacing:1px">TRIPS TRACKED</div><div style="font-size:.76rem;font-family:var(--font-m)">${s.totalTrips}</div></div>
-          <div><div style="font-size:.44rem;color:var(--muted);font-family:var(--font-m);letter-spacing:1px">AVG KM/TRIP</div><div style="font-size:.76rem;font-family:var(--font-m)">${s.avgKm||'—'}</div></div>
-          <div><div style="font-size:.44rem;color:var(--muted);font-family:var(--font-m);letter-spacing:1px">CAPTURE RATE</div><div style="font-size:.76rem;font-family:var(--font-m);color:${s.captureRate>=80?'#22c55e':'var(--accent2)'}">${s.captureRate}%</div></div>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-bottom:7px">
+          <div><div style="font-size:.42rem;color:var(--muted);font-family:var(--font-m);letter-spacing:1px">TOTAL KM</div><div style="font-size:.72rem;font-family:var(--font-m)">${s.km.toLocaleString()}</div></div>
+          <div><div style="font-size:.42rem;color:var(--muted);font-family:var(--font-m);letter-spacing:1px">LITRES</div><div style="font-size:.72rem;font-family:var(--font-m)">${s.litres.toFixed(1)}</div></div>
+          <div><div style="font-size:.42rem;color:var(--muted);font-family:var(--font-m);letter-spacing:1px">FUEL COST</div><div style="font-size:.72rem;font-family:var(--font-m)">KES ${(s.fuelCost/1000).toFixed(1)}K</div></div>
+          <div><div style="font-size:.42rem;color:var(--muted);font-family:var(--font-m);letter-spacing:1px">KES/KM</div><div style="font-size:.72rem;font-family:var(--font-m)">${s.costPerKm||'—'}</div></div>
         </div>
-        ${s.lastOdom?`<div style="font-size:.52rem;color:var(--muted);font-family:var(--font-m);letter-spacing:1px">LAST READING: <strong style="color:var(--text)">${Number(s.lastOdom).toLocaleString()} KM</strong></div>`:''}
-        ${s.noOdom>0?`<div class="fuel-warn" style="margin-top:5px;margin-bottom:0">⚠ ${s.noOdom} TRIP${s.noOdom>1?'S':''} WITH ODOMETER NOT WORKING</div>`:''}
+        ${s.lastOdom?`<div style="font-size:.5rem;color:var(--muted);font-family:var(--font-m);margin-bottom:4px">LAST READING: <strong style="color:var(--text)">${Number(s.lastOdom).toLocaleString()} KM</strong> · CAPTURE RATE: <strong style="color:${s.capR>=80?'#22c55e':'#f59e0b'}">${s.capR}%</strong></div>`:''}
+        ${s.avgEff?`<div style="height:5px;background:var(--border);border-radius:3px;overflow:hidden"><div style="height:100%;width:${Math.min(100,(parseFloat(s.avgEff)/15)*100)}%;background:${effColor(parseFloat(s.avgEff))};border-radius:3px;transition:width 1s"></div></div>`:''}
+        ${s.noOdom>0?`<div class="fuel-warn" style="margin-top:6px;margin-bottom:0">⚠ ${s.noOdom} TRIP${s.noOdom>1?'S':''} WITH ODOMETER NOT WORKING</div>`:''}
       </div>`).join('')
-    : `<div style="text-align:center;padding:20px;color:var(--muted);font-family:var(--font-m);font-size:.56rem;letter-spacing:1px">NO ODOMETER DATA YET<br>DRIVERS NEED TO CAPTURE READINGS</div>`}
+    : `<div style="text-align:center;padding:24px;color:var(--muted);font-family:var(--font-m);font-size:.56rem;letter-spacing:1px;line-height:2">NO FUEL DATA YET<br>DRIVERS MUST TOGGLE "REFUEL" WHEN ADDING FUEL</div>`}
 
-    <!-- BY DRIVER -->
+    <!-- ── BY DRIVER ─────────────────────────── -->
     ${driverStats.length?`
-    <div class="stitle2" style="margin:12px 0 8px">👤 KM BY DRIVER</div>
-    ${driverStats.sort((a,b)=>b.totalKm-a.totalKm).map(s=>`
-      <div style="background:var(--card);border:1px solid var(--border);padding:9px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px">
-        <div style="flex:1">
-          <div style="font-family:var(--font-m);font-size:.6rem;color:var(--text);font-weight:600">${s.driver.split(' ')[0]} ${s.driver.split(' ')[1]||''}</div>
-          <div style="font-size:.52rem;color:var(--muted)">${s.trips} trips tracked · avg ${s.avgKm||'—'} km/trip</div>
-          ${s.noOdom?`<div style="font-size:.5rem;color:var(--red);font-family:var(--font-m)">${s.noOdom} skipped</div>`:''}
+    <div class="stitle2" style="margin:12px 0 8px">👤 EFFICIENCY BY DRIVER</div>
+    ${driverStats.filter(s=>s.avgEff).sort((a,b)=>parseFloat(b.avgEff)-parseFloat(a.avgEff)).map((s,i)=>`
+      <div style="background:var(--card);border:1px solid var(--border);padding:10px 12px;margin-bottom:6px;display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center">
+        <div style="font-family:var(--font-d);font-size:1.3rem;color:${i===0?'#f0a500':i===1?'var(--muted)':i===2?'#cd7f32':'var(--border)'}">${i+1}</div>
+        <div>
+          <div style="font-family:var(--font-m);font-size:.62rem;font-weight:600">${s.driver}</div>
+          <div style="font-size:.5rem;color:var(--muted)">${s.km.toLocaleString()} km · ${s.litres.toFixed(1)}L · ${s.fuelEvents} fill-up${s.fuelEvents!==1?'s':''}</div>
         </div>
-        <div style="font-family:var(--font-d);font-size:1.2rem;color:var(--accent)">${s.totalKm.toLocaleString()}<span style="font-family:var(--font-b);font-size:.6rem;color:var(--muted)"> KM</span></div>
+        <div style="text-align:right">
+          <div style="font-family:var(--font-d);font-size:1.25rem;color:${effColor(parseFloat(s.avgEff))}">${s.avgEff}</div>
+          <div style="font-family:var(--font-m);font-size:.42rem;color:var(--muted)">KM/L</div>
+        </div>
       </div>`).join('')}`:''}
 
-    <!-- SKIP REASON LOG -->
+    <!-- ── RECENT FUEL LOG ────────────────────── -->
+    ${recentFuel.length?`
+    <div class="stitle2" style="margin:12px 0 8px">⛽ RECENT FUEL EVENTS</div>
+    ${recentFuel.map(t=>`
+      <div style="background:var(--card);border:1px solid var(--border);border-left:3px solid #f59e0b;padding:9px 12px;margin-bottom:6px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <span style="font-family:var(--font-m);font-size:.6rem;font-weight:700;color:#f59e0b">⛽ ${t.fuelLiters}L · KES ${Number(t.fuelCost).toLocaleString()}</span>
+          <span style="font-size:.5rem;color:var(--muted)">${t.date||''} ${t.time||''}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:.58rem">
+          <span><strong style="color:var(--text)">${t.driver?t.driver.split(' ')[0]:''}</strong> · <span style="color:var(--accent)">${t.carPlate||''}</span>${t.fuelStation?` · ${t.fuelStation}`:''}</span>
+          ${t.fuelEfficiency?`<span style="font-family:var(--font-m);font-size:.56rem;font-weight:700;color:${effColor(t.fuelEfficiency)}">⚡ ${t.fuelEfficiency} KM/L</span>`:''}
+        </div>
+        ${t.distance?`<div style="font-size:.5rem;color:var(--muted);margin-top:2px">${t.fromStation||'?'} → ${t.toStation||'?'} · ${t.distance} km${t.fuelCostPerKm?` · KES ${t.fuelCostPerKm}/km`:''}</div>`:''}
+      </div>`).join('')}`:''}
+
+    <!-- ── ODOMETER SKIP LOG ───────────────────── -->
     ${skipLog.length?`
     <div class="stitle2" style="margin:12px 0 8px">⚠ ODOMETER SKIP LOG</div>
     ${skipLog.map(t=>`
       <div style="background:var(--card);border:1px solid var(--border);border-left:3px solid var(--red);padding:9px 12px;margin-bottom:6px">
         <div style="display:flex;justify-content:space-between;margin-bottom:3px">
           <span style="font-family:var(--font-m);font-size:.58rem;font-weight:600">${t.driver?t.driver.split(' ')[0]:''} · <span style="color:var(--accent)">${t.carPlate||''}</span></span>
-          <span style="font-size:.52rem;color:var(--muted)">${t.date||''} ${t.time||''}</span>
+          <span style="font-size:.5rem;color:var(--muted)">${t.date||''}</span>
         </div>
         <div style="font-size:.64rem;color:var(--text)">${t.odomSkipReason}</div>
-        <div style="font-size:.52rem;color:var(--muted);margin-top:2px">${t.fromStation||'?'} → ${t.toStation||'?'}</div>
+        <div style="font-size:.5rem;color:var(--muted);margin-top:2px">${t.fromStation||'?'} → ${t.toStation||'?'}</div>
       </div>`).join('')}`:''}
   `;
 }
