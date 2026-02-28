@@ -624,6 +624,9 @@ let sessionInterval    = null;
 let showingTimeout     = false;
 let darkMode           = load('fs_dark', false);
 let charts             = {};
+let chartTrendType     = 'driver';   // 'driver' | 'car'
+let chartTrendEntity   = '';         // specific driver/car name, '' = show all
+let chartTrendPeriod   = '30';       // '14' | '30' | 'weekly'
 let editingTripId      = null;
 
 if(darkMode){document.documentElement.setAttribute('data-theme','dark'); document.getElementById('darkBtn').textContent='☀️';}
@@ -1342,21 +1345,155 @@ function renderCharts(){
   const tc=isDark?'#5a8a6a':'#6a8a6a',gc=isDark?'#2a3e2e':'#dde8dd';
   Chart.defaults.color=tc;Chart.defaults.borderColor=gc;
   Chart.defaults.font.family="'Space Mono',monospace";Chart.defaults.font.size=10;
-  function mk(id,type,labels,datasets,legend=false){
+
+  const PALETTE=['#1a7a3c','#f0a500','#2196a8','#e53935','#6d4fc2','#22c55e','#fb923c','#ec4899','#0ea5e9','#84cc16'];
+
+  function mk(id,type,labels,datasets,legend=false,height=200){
     if(charts[id])charts[id].destroy();
     const canvas=document.getElementById(id);if(!canvas)return;
-    charts[id]=new Chart(canvas.getContext('2d'),{type,data:{labels,datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:legend,labels:{color:tc,font:{size:9}}}},scales:type!=='doughnut'?{x:{grid:{color:gc},ticks:{color:tc,maxRotation:45}},y:{grid:{color:gc},ticks:{color:tc},beginAtZero:true}}:undefined}});
+    const wrap=canvas.parentElement;if(wrap)wrap.style.height=height+'px';
+    charts[id]=new Chart(canvas.getContext('2d'),{
+      type,data:{labels,datasets},
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        interaction:{mode:'index',intersect:false},
+        plugins:{
+          legend:{display:legend,labels:{color:tc,font:{size:9},boxWidth:12,padding:10}},
+          tooltip:{backgroundColor:isDark?'#1a2820':'#fff',titleColor:isDark?'#e0f0e4':'#1a2e1a',bodyColor:isDark?'#5a8a6a':'#6a8a6a',borderColor:gc,borderWidth:1}
+        },
+        scales:type!=='doughnut'?{
+          x:{grid:{color:gc},ticks:{color:tc,maxRotation:45,font:{size:9}}},
+          y:{grid:{color:gc},ticks:{color:tc,beginAtZero:true,callback:v=>v>=1000?(v/1000).toFixed(0)+'K':v}}
+        }:undefined
+      }
+    });
   }
-  const days30=[];
-  for(let i=29;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);d.setHours(0,0,0,0);const n=new Date(d);n.setDate(d.getDate()+1);const dt=all.filter(t=>{const rd=parseDate(t.date);return rd&&rd>=d&&rd<n;});days30.push({label:d.toLocaleDateString('en-GB',{day:'numeric',month:'short'}),trips:dt.length,revenue:dt.reduce((s,t)=>s+t.amount,0)});}
-  const weeks=[];
-  for(let i=7;i>=0;i--){const ws=new Date();ws.setDate(ws.getDate()-ws.getDay()-i*7);ws.setHours(0,0,0,0);const we=new Date(ws);we.setDate(ws.getDate()+7);const wt=all.filter(t=>{const d=parseDate(t.date);return d&&d>=ws&&d<we;});weeks.push({label:'W'+(8-i),revenue:wt.reduce((s,t)=>s+t.amount,0)});}
-  mk('chartDaily','bar',days30.map(d=>d.label),[{label:'Revenue',data:days30.map(d=>d.revenue),backgroundColor:'rgba(26,122,60,0.7)',borderColor:'#1a7a3c',borderWidth:1,borderRadius:3}]);
-  mk('chartWeekly','bar',weeks.map(w=>w.label),[{label:'Revenue',data:weeks.map(w=>w.revenue),backgroundColor:weeks.map((_,i)=>i===weeks.length-1?'rgba(240,165,0,0.8)':'rgba(26,122,60,0.5)'),borderColor:weeks.map((_,i)=>i===weeks.length-1?'#f0a500':'#1a7a3c'),borderWidth:1,borderRadius:3}]);
+
+  // ── Build date labels ──────────────────────────────────────────
+  function buildDayLabels(n){
+    const arr=[];
+    for(let i=n-1;i>=0;i--){
+      const d=new Date();d.setDate(d.getDate()-i);d.setHours(0,0,0,0);arr.push(d);
+    }
+    return arr;
+  }
+  function buildWeekLabels(n){
+    const arr=[];
+    for(let i=n-1;i>=0;i--){
+      const ws=new Date();ws.setDate(ws.getDate()-ws.getDay()-i*7);ws.setHours(0,0,0,0);
+      const we=new Date(ws);we.setDate(ws.getDate()+7);arr.push({ws,we,label:'W'+(n-i)});
+    }
+    return arr;
+  }
+  function revForDay(trips,dayStart){
+    const dayEnd=new Date(dayStart);dayEnd.setDate(dayStart.getDate()+1);
+    return trips.filter(t=>{const d=parseDate(t.date);return d&&d>=dayStart&&d<dayEnd;}).reduce((s,t)=>s+(t.amount||0),0);
+  }
+  function revForWeek(trips,ws,we){
+    return trips.filter(t=>{const d=parseDate(t.date);return d&&d>=ws&&d<we;}).reduce((s,t)=>s+(t.amount||0),0);
+  }
+
+  // ── CHART 1: Daily revenue bar — 30 days ──────────────────────
+  const days30=buildDayLabels(30);
+  mk('chartDaily','bar',
+    days30.map(d=>d.toLocaleDateString('en-GB',{day:'numeric',month:'short'})),
+    [{label:'Revenue',data:days30.map(d=>revForDay(all,d)),backgroundColor:'rgba(26,122,60,0.7)',borderColor:'#1a7a3c',borderWidth:1,borderRadius:3}]
+  );
+
+  // ── CHART 2: Weekly comparison bar ────────────────────────────
+  const weeks=buildWeekLabels(8);
+  mk('chartWeekly','bar',
+    weeks.map(w=>w.label),
+    [{label:'Revenue',data:weeks.map(w=>revForWeek(all,w.ws,w.we)),
+      backgroundColor:weeks.map((_,i)=>i===weeks.length-1?'rgba(240,165,0,0.8)':'rgba(26,122,60,0.5)'),
+      borderColor:weeks.map((_,i)=>i===weeks.length-1?'#f0a500':'#1a7a3c'),borderWidth:1,borderRadius:3}]
+  );
+
+  // ── CHART 3: Revenue by car doughnut ──────────────────────────
   const cars=[...new Set(all.map(t=>t.carPlate).filter(Boolean))];
-  const colors=['#1a7a3c','#f0a500','#2196a8','#e53935','#6d4fc2','#22c55e','#fb923c'];
-  mk('chartCars','doughnut',cars,[{data:cars.map(c=>all.filter(t=>t.carPlate===c).reduce((s,t)=>s+t.amount,0)),backgroundColor:colors,borderColor:isDark?'#141f18':'#fff',borderWidth:2}],true);
-  mk('chartTrips','line',days30.slice(-14).map(d=>d.label),[{label:'Trips',data:days30.slice(-14).map(d=>d.trips),borderColor:'#f0a500',backgroundColor:'rgba(240,165,0,0.1)',borderWidth:2,fill:true,tension:0.4,pointRadius:3,pointBackgroundColor:'#f0a500'}]);
+  mk('chartCars','doughnut',cars,
+    [{data:cars.map(car=>all.filter(t=>t.carPlate===car).reduce((s,t)=>s+(t.amount||0),0)),
+      backgroundColor:PALETTE,borderColor:isDark?'#141f18':'#fff',borderWidth:2}],true
+  );
+
+  // ── CHART 4: Daily trips count — 14 days ──────────────────────
+  const days14=buildDayLabels(14);
+  mk('chartTrips','line',
+    days14.map(d=>d.toLocaleDateString('en-GB',{day:'numeric',month:'short'})),
+    [{label:'Trips',data:days14.map(d=>{
+        const de=new Date(d);de.setDate(d.getDate()+1);
+        return all.filter(t=>{const rd=parseDate(t.date);return rd&&rd>=d&&rd<de;}).length;
+      }),
+      borderColor:'#f0a500',backgroundColor:'rgba(240,165,0,0.08)',borderWidth:2,fill:true,tension:0.4,pointRadius:3,pointBackgroundColor:'#f0a500'}]
+  );
+
+  // ── CHARTS 5 & 6: Revenue trends per driver / per car ─────────
+  renderTrendCharts(all,isDark,tc,gc,PALETTE,mk,buildDayLabels,buildWeekLabels,revForDay,revForWeek);
+}
+
+function hexRgba(hex,a){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return`rgba(${r},${g},${b},${a})`;}
+
+function renderTrendCharts(all,isDark,tc,gc,PALETTE,mk,buildDayLabels,buildWeekLabels,revForDay,revForWeek){
+  const n   = chartTrendPeriod==='weekly' ? null : parseInt(chartTrendPeriod);
+  const isWeekly = chartTrendPeriod==='weekly';
+
+  // Build labels
+  const labels = isWeekly
+    ? buildWeekLabels(12).map(w=>w.label)
+    : buildDayLabels(n).map(d=>d.toLocaleDateString('en-GB',{day:'numeric',month:'short'}));
+  const periods = isWeekly ? buildWeekLabels(12) : buildDayLabels(n);
+
+  function revForPeriod(trips,p){
+    return isWeekly ? revForWeek(trips,p.ws,p.we) : revForDay(trips,p);
+  }
+
+  // ── Chart 5: DRIVER trend ──────────────────────────────────────
+  const allDrivers=[...new Set(all.map(t=>t.driver).filter(Boolean))].sort();
+  let driverDatasets=[];
+  if(chartTrendType==='driver'){
+    const selected = chartTrendEntity
+      ? allDrivers.filter(d=>d===chartTrendEntity)
+      : allDrivers.slice(0,6); // cap at 6 for readability
+    selected.forEach((driver,i)=>{
+      const dTrips=all.filter(t=>t.driver===driver);
+      const color=PALETTE[i%PALETTE.length];
+      driverDatasets.push({
+        label:driver.split(' ')[0]+(driver.split(' ')[1]?' '+driver.split(' ')[1].charAt(0)+'.':''),
+        data:periods.map(p=>revForPeriod(dTrips,p)),
+        borderColor:color,
+        backgroundColor:hexRgba(color,.08),
+        borderWidth:chartTrendEntity?2.5:1.8,
+        fill:!!chartTrendEntity,tension:0.4,
+        pointRadius:chartTrendEntity?4:2,pointHoverRadius:6,
+        pointBackgroundColor:color
+      });
+    });
+  }
+  mk('chartDriverTrend','line',labels,driverDatasets,true,220);
+
+  // ── Chart 6: CAR trend ────────────────────────────────────────
+  const allCars=[...new Set(all.map(t=>t.carPlate).filter(Boolean))].sort();
+  let carDatasets=[];
+  if(chartTrendType==='car'){
+    const selected = chartTrendEntity
+      ? allCars.filter(c=>c===chartTrendEntity)
+      : allCars.slice(0,6);
+    selected.forEach((car,i)=>{
+      const cTrips=all.filter(t=>t.carPlate===car);
+      const color=PALETTE[i%PALETTE.length];
+      carDatasets.push({
+        label:car,
+        data:periods.map(p=>revForPeriod(cTrips,p)),
+        borderColor:color,
+        backgroundColor:hexRgba(color,.08),
+        borderWidth:chartTrendEntity?2.5:1.8,
+        fill:!!chartTrendEntity,tension:0.4,
+        pointRadius:chartTrendEntity?4:2,pointHoverRadius:6,
+        pointBackgroundColor:color
+      });
+    });
+  }
+  mk('chartCarTrend','line',labels,carDatasets,true,220);
 }
 
 // ══════════════════════════════════════════════
@@ -1625,10 +1762,71 @@ function renderReports(){
       ${renderCarBars(filtered,total)}
     </div>
     <div class="rsect ${reportTab==='charts'?'active':''}">
+      <!-- Standard charts -->
       <div class="chart-wrap"><div class="chart-title">DAILY REVENUE — 30 DAYS</div><div class="chart-canvas"><canvas id="chartDaily"></canvas></div></div>
       <div class="chart-wrap"><div class="chart-title">WEEKLY COMPARISON</div><div class="chart-canvas"><canvas id="chartWeekly"></canvas></div></div>
-      <div class="chart-wrap"><div class="chart-title">REVENUE BY CAR</div><div class="chart-canvas"><canvas id="chartCars"></canvas></div></div>
+      <div class="chart-wrap"><div class="chart-title">REVENUE BY CAR — TOTAL SHARE</div><div class="chart-canvas"><canvas id="chartCars"></canvas></div></div>
       <div class="chart-wrap"><div class="chart-title">DAILY TRIPS — 14 DAYS</div><div class="chart-canvas"><canvas id="chartTrips"></canvas></div></div>
+
+      <!-- Trend charts with filter -->
+      <div class="card" style="padding:13px;margin-bottom:11px">
+        <div class="chart-title" style="margin-bottom:10px">📈 REVENUE TREND FILTER</div>
+
+        <!-- Type toggle -->
+        <div style="font-family:var(--font-m);font-size:.48rem;color:var(--muted);letter-spacing:1.5px;margin-bottom:5px">VIEW BY</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
+          <div class="fchip ${chartTrendType==='driver'?'active':''}"
+            onclick="chartTrendType='driver';chartTrendEntity='';renderReports();setTimeout(renderCharts,60)">👤 DRIVER</div>
+          <div class="fchip ${chartTrendType==='car'?'active':''}"
+            onclick="chartTrendType='car';chartTrendEntity='';renderReports();setTimeout(renderCharts,60)">🚗 CAR</div>
+        </div>
+
+        <!-- Entity selector -->
+        <div style="font-family:var(--font-m);font-size:.48rem;color:var(--muted);letter-spacing:1.5px;margin-bottom:5px">
+          ${chartTrendType==='driver'?'SELECT DRIVER (BLANK = ALL)':'SELECT CAR (BLANK = ALL)'}
+        </div>
+        <select style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 11px;font-family:var(--font-b);font-size:.82rem;outline:none;appearance:none;margin-bottom:10px"
+          onchange="chartTrendEntity=this.value;renderCharts()">
+          <option value="">— ${chartTrendType==='driver'?'All Drivers (compare top 6)':'All Cars (compare top 6)'} —</option>
+          ${chartTrendType==='driver'
+            ? [...new Set(allData().map(t=>t.driver).filter(Boolean))].sort().map(d=>`<option value="${d}" ${chartTrendEntity===d?'selected':''}>${d}</option>`).join('')
+            : [...new Set(allData().map(t=>t.carPlate).filter(Boolean))].sort().map(car=>`<option value="${car}" ${chartTrendEntity===car?'selected':''}>${car}</option>`).join('')
+          }
+        </select>
+
+        <!-- Period toggle -->
+        <div style="font-family:var(--font-m);font-size:.48rem;color:var(--muted);letter-spacing:1.5px;margin-bottom:5px">PERIOD</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+          <div class="fchip ${chartTrendPeriod==='14'?'active':''}"
+            onclick="chartTrendPeriod='14';renderCharts()">14 DAYS</div>
+          <div class="fchip ${chartTrendPeriod==='30'?'active':''}"
+            onclick="chartTrendPeriod='30';renderCharts()">30 DAYS</div>
+          <div class="fchip ${chartTrendPeriod==='weekly'?'active':''}"
+            onclick="chartTrendPeriod='weekly';renderCharts()">WEEKLY</div>
+        </div>
+      </div>
+
+      <!-- Driver trend chart -->
+      <div class="chart-wrap" style="${chartTrendType==='driver'?'':'display:none'}">
+        <div class="chart-title">
+          REVENUE TREND — ${chartTrendEntity?chartTrendEntity:'TOP DRIVERS'}
+          <span style="font-size:.44rem;color:var(--muted);font-family:var(--font-b);letter-spacing:0;font-weight:400;margin-left:6px">
+            ${chartTrendPeriod==='weekly'?'WEEKLY · 12 WEEKS':chartTrendPeriod+' DAYS'}
+          </span>
+        </div>
+        <div class="chart-canvas" style="height:220px"><canvas id="chartDriverTrend"></canvas></div>
+      </div>
+
+      <!-- Car trend chart -->
+      <div class="chart-wrap" style="${chartTrendType==='car'?'':'display:none'}">
+        <div class="chart-title">
+          REVENUE TREND — ${chartTrendEntity?chartTrendEntity:'ALL CARS'}
+          <span style="font-size:.44rem;color:var(--muted);font-family:var(--font-b);letter-spacing:0;font-weight:400;margin-left:6px">
+            ${chartTrendPeriod==='weekly'?'WEEKLY · 12 WEEKS':chartTrendPeriod+' DAYS'}
+          </span>
+        </div>
+        <div class="chart-canvas" style="height:220px"><canvas id="chartCarTrend"></canvas></div>
+      </div>
     </div>
     <div class="rsect ${reportTab==='leaderboard'?'active':''}">${renderLeaderboard(filtered)}</div>
     <div class="rsect ${reportTab==='performance'?'active':''}">${renderPerformance(all)}</div>
