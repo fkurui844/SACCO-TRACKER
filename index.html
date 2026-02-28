@@ -302,6 +302,22 @@ main{padding:13px 13px 74px}
 .queue-banner{background:var(--accent2);color:#fff;padding:7px 13px;font-family:var(--font-m);font-size:.56rem;letter-spacing:1px;display:none;align-items:center;justify-content:space-between;cursor:pointer}
 .queue-banner.show{display:flex}
 
+/* ACTIVE TRIP RECOVERY OVERLAY */
+.trip-recovery-overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:500;display:none;align-items:center;justify-content:center;padding:20px}
+.trip-recovery-overlay.show{display:flex;animation:fadeIn .3s ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.trip-recovery-box{background:var(--card);border:3px solid #f59e0b;width:100%;max-width:420px;overflow:hidden}
+.trip-recovery-alert{background:#f59e0b;padding:14px 16px;display:flex;align-items:center;gap:10px}
+.trip-recovery-alert-ico{font-size:2rem;flex-shrink:0}
+.trip-recovery-alert-txt{font-family:var(--font-d);font-size:1.1rem;color:#1a1a1a;letter-spacing:2px;line-height:1.3}
+.trip-recovery-body{padding:16px}
+.trip-recovery-info{background:var(--surface);border:1px solid var(--border);padding:11px 13px;margin-bottom:12px}
+.trip-recovery-row{display:flex;justify-content:space-between;font-size:.6rem;padding:4px 0;border-bottom:1px solid var(--border)}
+.trip-recovery-row:last-child{border-bottom:none}
+.trip-recovery-row span:first-child{font-family:var(--font-m);color:var(--muted);letter-spacing:1px}
+.trip-recovery-row span:last-child{font-family:var(--font-m);color:var(--text);font-weight:700}
+.trip-recovery-sub{font-family:var(--font-m);font-size:.52rem;color:var(--muted);letter-spacing:1px;line-height:1.8;margin-bottom:14px;text-align:center}
+
 /* REPORT VIEWER */
 .rview-overlay{position:fixed;inset:0;background:var(--bg);z-index:300;display:none;flex-direction:column;overflow:hidden}
 .rview-overlay.open{display:flex;animation:fadeUp .25s ease}
@@ -461,6 +477,30 @@ main{padding:13px 13px 74px}
     <span class="sync-timer" id="syncTimer"></span>
   </div>
 </header>
+
+<!-- ACTIVE TRIP RECOVERY OVERLAY -->
+<div class="trip-recovery-overlay" id="tripRecoveryOverlay">
+  <div class="trip-recovery-box">
+    <div class="trip-recovery-alert">
+      <div class="trip-recovery-alert-ico">⚠️</div>
+      <div class="trip-recovery-alert-txt">ACTIVE TRIP<br>DETECTED</div>
+    </div>
+    <div class="trip-recovery-body">
+      <div class="trip-recovery-info" id="tripRecoveryInfo"></div>
+      <div class="trip-recovery-sub">
+        YOU REFRESHED WHILE A TRIP WAS IN PROGRESS.<br>
+        YOUR TRIP HAS BEEN RESTORED — PLEASE END IT BEFORE REFRESHING.
+      </div>
+      <button class="bb barrive" style="margin-bottom:8px" onclick="resumeActiveTrip()">
+        ✅ CONTINUE TRIP
+      </button>
+      <button class="bout" style="margin:0;border-color:var(--red);color:var(--red)"
+        onclick="abandonTripAndReset()">
+        ✕ ABANDON TRIP &amp; LOGOUT
+      </button>
+    </div>
+  </div>
+</div>
 
 <!-- PWA INSTALL BANNER -->
 <div class="pwa-banner" id="pwaBanner">
@@ -869,6 +909,7 @@ function switchPage(p){
 function goSetup(){
   clearInterval(timerInterval);
   stopGpsWatch();
+  clearSavedTripState();
   tripState.phase='setup';
   switchPage('log');
 }
@@ -1184,6 +1225,26 @@ function closeTargetAlert(){
 // TRIP FLOW
 // ══════════════════════════════════════════════
 // ══════════════════════════════════════════════
+// TRIP STATE PERSISTENCE
+// ══════════════════════════════════════════════
+const FS_TRIPSTATE_KEY = 'fs_active_trip';
+const ACTIVE_PHASES    = ['active','arrived','confirm'];
+
+function saveTripState(){
+  if(ACTIVE_PHASES.includes(tripState.phase)){
+    // Save a snapshot — exclude GPS watch ID (not serialisable)
+    const snap = {...tripState, gpsWatchId:null};
+    save(FS_TRIPSTATE_KEY, snap);
+  } else {
+    localStorage.removeItem(FS_TRIPSTATE_KEY);
+  }
+}
+
+function clearSavedTripState(){
+  localStorage.removeItem(FS_TRIPSTATE_KEY);
+}
+
+// ══════════════════════════════════════════════
 // ODOMETER HELPERS
 // ══════════════════════════════════════════════
 function odomStartHtml(){
@@ -1310,6 +1371,7 @@ function startTrip(){
   tripState.tripStart=Date.now();
   tripState.toStation=null;
   tripState.notes='';
+  saveTripState();
   renderLog();
   startTripTimer();
   toast('TRIP STARTED — SAFE JOURNEY! 🚌');
@@ -1321,6 +1383,7 @@ function arrive(){
   tripState.tripEnd=Date.now();
   clearInterval(timerInterval);
   tripState.toStation=null;
+  saveTripState();
   renderLog();
   toast('ARRIVED — SELECT YOUR DESTINATION');
 }
@@ -1464,6 +1527,7 @@ function reviewTrip(){
   }
   tripState.amount=amt; tripState.notes=notes;
   tripState.phase='confirm';
+  saveTripState();
   renderLog();
 }
 
@@ -1503,6 +1567,7 @@ function confirmAndSubmit(){
   };
   localTrips.unshift(trip); save('fs_trips',localTrips.slice(0,200));
   tripState.phase='done';
+  clearSavedTripState();
   submitToFirebase(trip);
   playSuccessSound();
   renderLog();
@@ -3507,18 +3572,122 @@ function renderLiveTab(){
 }
 
 // ══════════════════════════════════════════════
-// INIT
+// INIT — with trip recovery + login reset on refresh
 // ══════════════════════════════════════════════
-if(tripState.driver)document.getElementById('driverBadge').textContent=tripState.driver.split(' ')[0]+' · '+tripState.carPlate;
-if(tripState.phase!=='setup'){startSessionTimer();startGpsWatch();}
-updateOfflineBadge();
-startAutoSync();
-initFirebase();  // connect to Firebase on load if config exists
-renderLog();
-if(appConfig.projectId&&isOnline()){
-  loadFirebaseData(true);
-  startLiveListener();
+(function initApp(){
+  const savedTrip = load(FS_TRIPSTATE_KEY, null);
+
+  if(savedTrip && ACTIVE_PHASES.includes(savedTrip.phase)){
+    // ── Restore the active trip ─────────────────
+    Object.assign(tripState, savedTrip);
+    // tripStart/tripEnd were saved as timestamps (numbers) — ensure they stay numbers
+    if(tripState.tripStart) tripState.tripStart = Number(tripState.tripStart);
+    if(tripState.tripEnd)   tripState.tripEnd   = Number(tripState.tripEnd);
+    tripState.gpsWatchId = null; // will be re-acquired below
+
+    // Show driver badge
+    document.getElementById('driverBadge').textContent =
+      tripState.driver.split(' ')[0] + ' · ' + tripState.carPlate;
+
+    // Show recovery overlay
+    showTripRecoveryOverlay(savedTrip);
+
+    // Start background services — trip is still going
+    startSessionTimer();
+    startGpsWatch();
+    if(tripState.phase === 'active') startTripTimer();
+
+  } else {
+    // ── No active trip — go back to Driver Login ─
+    clearSavedTripState();
+    // Reset tripState to setup regardless of what was saved
+    tripState.phase   = 'setup';
+    tripState.driver  = '';
+    tripState.carPlate= '';
+    tripState.fromStation = null;
+    tripState.toStation   = null;
+    tripState.amount  = '';
+    tripState.notes   = '';
+    tripState.tripStart = null;
+    tripState.tripEnd   = null;
+    // Clear persisted login so badge shows "LOGIN"
+    save('fs_driver', null);
+    document.getElementById('driverBadge').textContent = '— LOGIN —';
+  }
+
+  updateOfflineBadge();
+  startAutoSync();
+  initFirebase();
+  renderLog();
+  if(appConfig.projectId && isOnline()){
+    loadFirebaseData(true);
+    startLiveListener();
+  }
+})();
+
+function showTripRecoveryOverlay(snap){
+  const info = document.getElementById('tripRecoveryInfo');
+  if(!info) return;
+
+  const elapsed = snap.tripStart
+    ? Math.floor((Date.now() - Number(snap.tripStart)) / 60000) : null;
+
+  const phaseLabel = snap.phase==='active'
+    ? '🚌 IN PROGRESS'
+    : snap.phase==='arrived'
+    ? '📍 ARRIVED — AWAITING END DETAILS'
+    : snap.phase==='confirm'
+    ? '✅ READY TO SUBMIT'
+    : snap.phase.toUpperCase();
+
+  info.innerHTML = `
+    <div class="trip-recovery-row"><span>DRIVER</span><span>${snap.driver||'—'}</span></div>
+    <div class="trip-recovery-row"><span>CAR</span><span>${snap.carPlate||'—'}</span></div>
+    <div class="trip-recovery-row"><span>FROM</span><span>${snap.fromStation?.name||snap.fromStation||'—'}</span></div>
+    ${snap.toStation?`<div class="trip-recovery-row"><span>TO</span><span>${snap.toStation?.name||snap.toStation}</span></div>`:''}
+    <div class="trip-recovery-row"><span>STATUS</span><span style="color:#f59e0b">${phaseLabel}</span></div>
+    ${elapsed!==null?`<div class="trip-recovery-row"><span>TRIP TIME</span><span>${elapsed} MIN AGO</span></div>`:''}
+    ${snap.amount?`<div class="trip-recovery-row"><span>AMOUNT</span><span>KES ${Number(snap.amount).toLocaleString()}</span></div>`:''}`;
+
+  document.getElementById('tripRecoveryOverlay').classList.add('show');
 }
+
+function resumeActiveTrip(){
+  document.getElementById('tripRecoveryOverlay').classList.remove('show');
+  renderLog();
+  toast('✅ TRIP RESTORED — PLEASE COMPLETE AND SUBMIT');
+}
+
+function abandonTripAndReset(){
+  if(!confirm('⚠ ARE YOU SURE? THIS WILL DISCARD YOUR CURRENT TRIP AND LOG YOU OUT.')){return;}
+  clearSavedTripState();
+  save('fs_driver', null);
+  tripState.phase='setup';
+  tripState.driver=''; tripState.carPlate='';
+  tripState.fromStation=null; tripState.toStation=null;
+  tripState.amount=''; tripState.notes='';
+  tripState.tripStart=null; tripState.tripEnd=null;
+  clearInterval(timerInterval);
+  document.getElementById('driverBadge').textContent='— LOGIN —';
+  document.getElementById('tripRecoveryOverlay').classList.remove('show');
+  renderLog();
+  toast('LOGGED OUT — PLEASE LOG IN AGAIN');
+}
+
+// ══════════════════════════════════════════════
+// BEFOREUNLOAD — warn on active trip + save state
+// ══════════════════════════════════════════════
+window.addEventListener('beforeunload', e => {
+  if(ACTIVE_PHASES.includes(tripState.phase)){
+    // Always save latest state before the page unloads
+    saveTripState();
+    // Show browser-native warning dialog
+    const msg = 'YOU HAVE AN ACTIVE TRIP IN PROGRESS! Refresh now and your trip details will be restored, but please end it first.';
+    e.preventDefault();
+    e.returnValue = msg;
+    return msg;
+  }
+});
 
 // ══════════════════════════════════════════════
 // PWA — Service Worker + Install Prompt
