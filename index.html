@@ -1147,10 +1147,14 @@ function closeTargetAlert(){
 // ══════════════════════════════════════════════
 function odomStartHtml(){
   const working = tripState.odomWorking;
+  const hasReading = working ? !!tripState.odomStart : !!tripState.odomSkipReason;
   return `
-  <div class="odom-wrap ${!working?'':'active'}" id="odomStartWrap">
+  <div class="odom-wrap ${hasReading?'active':'required-odom'}" id="odomStartWrap"
+    style="border-color:${hasReading?'var(--accent)':'var(--red)'}">
     <div class="odom-title">
-      <span>⏲ ODOMETER READING — TRIP START</span>
+      <span>⏲ ODOMETER READING — TRIP START
+        <span style="font-family:var(--font-b);font-size:.44rem;color:var(--red);letter-spacing:1px;margin-left:5px">★ REQUIRED</span>
+      </span>
       <span class="odom-notwork ${!working?'on':''}" onclick="toggleOdomWorking()">
         <span class="odom-check">${!working?'✕':''}</span>
         NOT WORKING
@@ -1160,17 +1164,23 @@ function odomStartHtml(){
       <div class="odom-input-row" style="position:relative">
         <div style="position:relative">
           <span class="odom-pfx">KM</span>
-          <input class="odom-input" type="number" id="odomStartIn" placeholder="e.g. 24500"
+          <input class="odom-input" type="number" id="odomStartIn"
+            placeholder="e.g. 24500 — REQUIRED TO START"
             min="0" max="999999" value="${tripState.odomStart||''}"
-            oninput="tripState.odomStart=this.value?parseInt(this.value):null">
+            style="border-color:${tripState.odomStart?'var(--accent)':'var(--red)'}"
+            oninput="tripState.odomStart=this.value?parseInt(this.value):null;renderLog()">
         </div>
         <span class="odom-unit">KM</span>
-      </div>` : `
+      </div>
+      ${!tripState.odomStart?`<div style="font-family:var(--font-m);font-size:.5rem;color:var(--red);letter-spacing:1px;margin-top:6px">⚠ ENTER READING TO ENABLE TRIP START</div>`:`<div style="font-family:var(--font-m);font-size:.5rem;color:#22c55e;letter-spacing:1px;margin-top:5px">✅ READING CAPTURED</div>`}
+    ` : `
       <div class="odom-skip-badge">⚠ ODOMETER NOT WORKING<br>PLEASE PROVIDE A REASON BELOW</div>
-      <div class="odom-reason-label">REASON FOR NOT CAPTURING</div>
+      <div class="odom-reason-label">REASON FOR NOT CAPTURING <span style="color:var(--red)">★ REQUIRED</span></div>
       <textarea class="odom-reason" id="odomSkipReasonIn" rows="2"
+        style="border-color:${tripState.odomSkipReason?'var(--accent)':'var(--red)'}"
         placeholder="e.g. Odometer cable broken, digital display failed, odometer tampered..."
-        oninput="tripState.odomSkipReason=this.value">${tripState.odomSkipReason||''}</textarea>`}
+        oninput="tripState.odomSkipReason=this.value;renderLog()">${tripState.odomSkipReason||''}</textarea>
+      ${!tripState.odomSkipReason?`<div style="font-family:var(--font-m);font-size:.5rem;color:var(--red);letter-spacing:1px;margin-top:4px">⚠ REASON REQUIRED TO ENABLE TRIP START</div>`:`<div style="font-family:var(--font-m);font-size:.5rem;color:#22c55e;letter-spacing:1px;margin-top:4px">✅ REASON CAPTURED</div>`}`}
   </div>`;
 }
 
@@ -1237,13 +1247,23 @@ function startTrip(){
   stationSearch='';
   if(!tripState.fromStation){toast('SELECT YOUR STARTING STATION');return;}
   if(!isShiftOpen(tripState.carPlate)){toast('⛔ SHIFT IS CLOSED FOR '+tripState.carPlate);return;}
-  // Validate odometer
+  // Validate odometer — hard block
   const odomVal = document.getElementById('odomStartIn')?.value;
   if(odomVal) tripState.odomStart = parseInt(odomVal);
   const reasonVal = document.getElementById('odomSkipReasonIn')?.value?.trim();
   if(reasonVal) tripState.odomSkipReason = reasonVal;
+  if(tripState.odomWorking && !tripState.odomStart){
+    toast('⚠ ODOMETER READING REQUIRED — ENTER START KM TO PROCEED');
+    // Shake the odom input visually
+    const inp = document.getElementById('odomStartIn');
+    if(inp){ inp.style.borderColor='var(--red)'; inp.focus(); setTimeout(()=>inp.style.borderColor='var(--red)',600); }
+    return;
+  }
   if(!tripState.odomWorking && !tripState.odomSkipReason){
-    toast('⚠ PLEASE ENTER A REASON FOR ODOMETER NOT WORKING'); return;
+    toast('⚠ REASON REQUIRED — EXPLAIN WHY ODOMETER IS NOT WORKING');
+    const ta = document.getElementById('odomSkipReasonIn');
+    if(ta){ ta.style.borderColor='var(--red)'; ta.focus(); }
+    return;
   }
   tripState.phase='active';
   tripState.tripStart=Date.now();
@@ -1878,7 +1898,15 @@ function renderLog(){
         <div class="field"><label>FROM STATION</label></div>
         ${stationGridHtml(tripState.fromStation?.name||null, null, 'from')}
         ${odomStartHtml()}
-        <button class="bb bstart" onclick="startTrip()" ${!tripState.fromStation?'disabled':''}>🚌 START TRIP</button>
+        ${(()=>{
+          const odomReady = tripState.odomWorking ? !!tripState.odomStart : !!tripState.odomSkipReason;
+          const canStart  = !!tripState.fromStation && odomReady;
+          const why = !tripState.fromStation ? 'SELECT STATION' : !odomReady ? (tripState.odomWorking?'ENTER ODOMETER':'ENTER REASON') : '';
+          return `<button class="bb bstart" onclick="startTrip()" ${!canStart?'disabled':''}
+            style="opacity:${canStart?'1':'0.45'};cursor:${canStart?'pointer':'not-allowed'}">
+            🚌 ${canStart?'START TRIP':`BLOCKED — ${why}`}
+          </button>`;
+        })()}
         <button class="bout" onclick="goSetup()">CHANGE DRIVER / CAR</button>
       </div>
       ${renderTodayHistory()}`;
