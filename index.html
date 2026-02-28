@@ -2,8 +2,17 @@
 <html lang="en" data-theme="light">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>FESTUS SACCO v7</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="FESTUS SACCO">
+<meta name="theme-color" content="#1a7a3c" id="themeColorMeta">
+<meta name="description" content="SACCO trip logging and fleet management">
+<link rel="manifest" href="manifest.json">
+<!-- Apple Touch Icons (inline SVG fallback) -->
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect width='180' height='180' rx='40' fill='%231a7a3c'/><text x='50%' y='58%' dominant-baseline='middle' text-anchor='middle' font-family='Arial Black,sans-serif' font-weight='900' font-size='110' fill='%23f0a500'>F</text></svg>">
+<title>FESTUS SACCO</title>
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -293,6 +302,40 @@ main{padding:13px 13px 74px}
 .queue-banner{background:var(--accent2);color:#fff;padding:7px 13px;font-family:var(--font-m);font-size:.56rem;letter-spacing:1px;display:none;align-items:center;justify-content:space-between;cursor:pointer}
 .queue-banner.show{display:flex}
 
+/* ODOMETER / FUEL */
+.odom-wrap{background:var(--bg);border:2px solid var(--border);padding:14px;margin-bottom:10px;transition:border-color .2s}
+.odom-wrap.active{border-color:var(--accent)}
+.odom-title{font-family:var(--font-m);font-size:.52rem;letter-spacing:1.5px;color:var(--muted);margin-bottom:10px;display:flex;align-items:center;gap:7px}
+.odom-title span{flex:1}
+.odom-notwork{display:inline-flex;align-items:center;gap:6px;font-family:var(--font-m);font-size:.48rem;letter-spacing:1px;padding:4px 10px;border:1px solid var(--border);cursor:pointer;background:var(--bg);color:var(--muted);transition:all .2s;user-select:none}
+.odom-notwork.on{border-color:var(--red);color:var(--red);background:rgba(229,57,53,.06)}
+.odom-notwork .odom-check{width:12px;height:12px;border:1.5px solid currentColor;border-radius:2px;display:flex;align-items:center;justify-content:center;font-size:.5rem}
+.odom-input-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+.odom-input{width:100%;background:var(--bg);border:2px solid var(--accent);color:var(--text);padding:10px 12px 10px 44px;font-family:var(--font-m);font-size:1.05rem;font-weight:700;letter-spacing:1px;outline:none;transition:border-color .2s}
+.odom-input::-webkit-inner-spin-button{-webkit-appearance:none}
+.odom-pfx{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-family:var(--font-m);font-size:.5rem;color:var(--muted);letter-spacing:1px;pointer-events:none}
+.odom-unit{font-family:var(--font-m);font-size:.52rem;color:var(--muted);letter-spacing:1px;white-space:nowrap}
+.odom-dist-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(26,122,60,.1);border:1px solid var(--accent);padding:5px 10px;font-family:var(--font-m);font-size:.56rem;color:var(--accent);letter-spacing:1px;margin-top:8px}
+.odom-skip-badge{background:rgba(229,57,53,.08);border:1px solid var(--red);padding:9px 12px;font-family:var(--font-m);font-size:.52rem;color:var(--red);letter-spacing:1px;line-height:1.7;margin-bottom:0}
+.odom-reason-label{font-family:var(--font-m);font-size:.48rem;color:var(--muted);letter-spacing:1.5px;margin-bottom:5px;margin-top:10px}
+.odom-reason{width:100%;background:var(--bg);border:1.5px solid var(--red);color:var(--text);padding:8px 10px;font-family:var(--font-b);font-size:.78rem;outline:none;resize:none;transition:border-color .2s}
+.odom-reason:focus{border-color:var(--accent)}
+.fuel-stat{background:var(--card);border:1px solid var(--border);padding:11px 12px;margin-bottom:7px}
+.fuel-stat-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px}
+.fuel-stat-car{font-family:var(--font-m);font-size:.6rem;color:var(--accent);letter-spacing:1px}
+.fuel-stat-km{font-family:var(--font-d);font-size:1.4rem;color:var(--text)}
+.fuel-stat-sub{font-size:.6rem;color:var(--muted)}
+.fuel-warn{background:rgba(229,57,53,.08);border-left:3px solid var(--red);padding:7px 10px;font-size:.6rem;color:var(--red);font-family:var(--font-m);letter-spacing:1px;margin-bottom:6px}
+
+/* PWA INSTALL BANNER */
+.pwa-banner{position:fixed;bottom:74px;left:50%;transform:translateX(-50%);width:calc(100% - 24px);max-width:456px;background:var(--accent);color:#fff;padding:11px 14px;display:none;align-items:center;gap:10px;z-index:150;box-shadow:var(--shlg);animation:fadeUp .4s ease}
+.pwa-banner.show{display:flex}
+.pwa-banner-text{flex:1;font-family:var(--font-m);font-size:.54rem;letter-spacing:1px;line-height:1.7}
+.pwa-banner-text strong{display:block;font-size:.62rem;margin-bottom:2px}
+.pwa-install-btn{background:#fff;color:var(--accent);border:none;font-family:var(--font-d);font-size:.8rem;letter-spacing:2px;padding:8px 14px;cursor:pointer;flex-shrink:0;transition:background .2s}
+.pwa-install-btn:hover{background:rgba(255,255,255,.85)}
+.pwa-dismiss{background:none;border:none;color:rgba(255,255,255,.6);font-size:1rem;cursor:pointer;padding:4px;flex-shrink:0}
+
 /* STATION SEARCH */
 .stsearch{width:100%;background:var(--bg);border:1px solid var(--border);border-bottom:2px solid var(--accent);color:var(--text);padding:9px 11px 9px 34px;font-family:var(--font-m);font-size:.72rem;outline:none;letter-spacing:1px;transition:border-color .2s;margin-bottom:9px}
 .stsearch::placeholder{color:var(--muted)}
@@ -368,6 +411,17 @@ main{padding:13px 13px 74px}
     <span class="sync-timer" id="syncTimer"></span>
   </div>
 </header>
+
+<!-- PWA INSTALL BANNER -->
+<div class="pwa-banner" id="pwaBanner">
+  <div style="font-size:1.6rem;flex-shrink:0">📲</div>
+  <div class="pwa-banner-text">
+    <strong>INSTALL FESTUS SACCO</strong>
+    ADD TO HOME SCREEN FOR FULL APP EXPERIENCE
+  </div>
+  <button class="pwa-install-btn" id="pwaInstallBtn">INSTALL</button>
+  <button class="pwa-dismiss" onclick="dismissPwaBanner()" title="Dismiss">✕</button>
+</div>
 
 <div class="queue-banner" id="queueBanner" onclick="flushQueue()">
   <span id="queueMsg">📦 TRIPS QUEUED OFFLINE — TAP TO SYNC</span>
@@ -599,6 +653,11 @@ let tripState = {
   nearestStation:null,
   gpsWatchId:null,
   speed:null,         // m/s from GPS, null = unknown
+  // Odometer / fuel tracking
+  odomStart:null,     // reading at trip start (km)
+  odomEnd:null,       // reading at trip end (km)
+  odomWorking:true,   // false if odometer is broken
+  odomSkipReason:'',  // reason when not working
 };
 
 const sd = load('fs_driver', null);
@@ -639,6 +698,7 @@ function toggleDark(){
   document.documentElement.setAttribute('data-theme',darkMode?'dark':'light');
   document.getElementById('darkBtn').textContent=darkMode?'☀️':'🌙';
   if(currentPage==='reports'&&reportTab==='charts')setTimeout(renderCharts,100);
+  if(typeof updatePwaTheme==='function')updatePwaTheme();
 }
 
 // ══════════════════════════════════════════════
@@ -1055,10 +1115,109 @@ function closeTargetAlert(){
 // ══════════════════════════════════════════════
 // TRIP FLOW
 // ══════════════════════════════════════════════
+// ══════════════════════════════════════════════
+// ODOMETER HELPERS
+// ══════════════════════════════════════════════
+function odomStartHtml(){
+  const working = tripState.odomWorking;
+  return `
+  <div class="odom-wrap ${!working?'':'active'}" id="odomStartWrap">
+    <div class="odom-title">
+      <span>⏲ ODOMETER READING — TRIP START</span>
+      <span class="odom-notwork ${!working?'on':''}" onclick="toggleOdomWorking()">
+        <span class="odom-check">${!working?'✕':''}</span>
+        NOT WORKING
+      </span>
+    </div>
+    ${working ? `
+      <div class="odom-input-row" style="position:relative">
+        <div style="position:relative">
+          <span class="odom-pfx">KM</span>
+          <input class="odom-input" type="number" id="odomStartIn" placeholder="e.g. 24500"
+            min="0" max="999999" value="${tripState.odomStart||''}"
+            oninput="tripState.odomStart=this.value?parseInt(this.value):null">
+        </div>
+        <span class="odom-unit">KM</span>
+      </div>` : `
+      <div class="odom-skip-badge">⚠ ODOMETER NOT WORKING<br>PLEASE PROVIDE A REASON BELOW</div>
+      <div class="odom-reason-label">REASON FOR NOT CAPTURING</div>
+      <textarea class="odom-reason" id="odomSkipReasonIn" rows="2"
+        placeholder="e.g. Odometer cable broken, digital display failed, odometer tampered..."
+        oninput="tripState.odomSkipReason=this.value">${tripState.odomSkipReason||''}</textarea>`}
+  </div>`;
+}
+
+function odomEndHtml(){
+  const working = tripState.odomWorking;
+  const dist = (working && tripState.odomStart && tripState.odomEnd && tripState.odomEnd > tripState.odomStart)
+    ? tripState.odomEnd - tripState.odomStart : null;
+  return `
+  <div class="odom-wrap ${working&&tripState.odomEnd?'active':''}" id="odomEndWrap">
+    <div class="odom-title">
+      <span>⏲ ODOMETER READING — TRIP END</span>
+    </div>
+    ${!working ? `
+      <div class="odom-skip-badge">⚠ ODOMETER NOT WORKING<br>REASON: ${tripState.odomSkipReason||'Not specified'}</div>` : `
+      ${tripState.odomStart?`<div style="font-family:var(--font-m);font-size:.5rem;color:var(--muted);margin-bottom:7px;letter-spacing:1px">START READING: <strong style="color:var(--accent)">${Number(tripState.odomStart).toLocaleString()} KM</strong></div>`:''}
+      <div class="odom-input-row" style="position:relative">
+        <div style="position:relative">
+          <span class="odom-pfx">KM</span>
+          <input class="odom-input" type="number" id="odomEndIn" placeholder="e.g. 24547"
+            min="${tripState.odomStart||0}" max="999999" value="${tripState.odomEnd||''}"
+            oninput="tripState.odomEnd=this.value?parseInt(this.value):null;updateOdomDist()">
+        </div>
+        <span class="odom-unit">KM</span>
+      </div>
+      <div id="odomDistBadge">
+        ${dist!==null?`<div class="odom-dist-badge">📏 DISTANCE THIS TRIP: <strong>${dist} KM</strong></div>`:''}
+        ${tripState.odomEnd&&tripState.odomStart&&tripState.odomEnd<=tripState.odomStart?
+          `<div class="fuel-warn" style="margin-top:6px">⚠ END READING MUST BE GREATER THAN START READING (${Number(tripState.odomStart).toLocaleString()} KM)</div>`:''}
+      </div>`}
+  </div>`;
+}
+
+function updateOdomDist(){
+  const badge = document.getElementById('odomDistBadge');
+  if(!badge) return;
+  const start = tripState.odomStart;
+  const end   = tripState.odomEnd;
+  if(start && end && end > start){
+    badge.innerHTML = `<div class="odom-dist-badge">📏 DISTANCE THIS TRIP: <strong>${end-start} KM</strong></div>`;
+  } else if(end && start && end <= start){
+    badge.innerHTML = `<div class="fuel-warn" style="margin-top:6px">⚠ END READING MUST BE GREATER THAN START READING (${Number(start).toLocaleString()} KM)</div>`;
+  } else {
+    badge.innerHTML = '';
+  }
+}
+
+function toggleOdomWorking(){
+  tripState.odomWorking = !tripState.odomWorking;
+  if(tripState.odomWorking){ tripState.odomSkipReason=''; }
+  renderLog();
+}
+
+function saveOdomStart(){
+  const v = document.getElementById('odomStartIn')?.value;
+  tripState.odomStart = v ? parseInt(v) : null;
+}
+
+function saveOdomEnd(){
+  const v = document.getElementById('odomEndIn')?.value;
+  tripState.odomEnd = v ? parseInt(v) : null;
+}
+
 function startTrip(){
   stationSearch='';
   if(!tripState.fromStation){toast('SELECT YOUR STARTING STATION');return;}
   if(!isShiftOpen(tripState.carPlate)){toast('⛔ SHIFT IS CLOSED FOR '+tripState.carPlate);return;}
+  // Validate odometer
+  const odomVal = document.getElementById('odomStartIn')?.value;
+  if(odomVal) tripState.odomStart = parseInt(odomVal);
+  const reasonVal = document.getElementById('odomSkipReasonIn')?.value?.trim();
+  if(reasonVal) tripState.odomSkipReason = reasonVal;
+  if(!tripState.odomWorking && !tripState.odomSkipReason){
+    toast('⚠ PLEASE ENTER A REASON FOR ODOMETER NOT WORKING'); return;
+  }
   tripState.phase='active';
   tripState.tripStart=Date.now();
   tripState.toStation=null;
@@ -1088,6 +1247,14 @@ function reviewTrip(){
   if(amt<AMOUNT_MIN){toast(`AMOUNT TOO LOW — MINIMUM KES ${AMOUNT_MIN}`);return;}
   if(amt>AMOUNT_MAX){toast(`AMOUNT TOO HIGH — MAXIMUM KES ${AMOUNT_MAX.toLocaleString()}`);return;}
   if(tripState.toStation.name===tripState.fromStation.name){toast('TO STATION MUST BE DIFFERENT');return;}
+  // Capture odometer end reading
+  const odomEndVal = document.getElementById('odomEndIn')?.value;
+  if(odomEndVal) tripState.odomEnd = parseInt(odomEndVal);
+  if(tripState.odomWorking && tripState.odomStart && tripState.odomEnd){
+    if(tripState.odomEnd <= tripState.odomStart){
+      toast('⚠ END ODOMETER MUST BE GREATER THAN START READING'); return;
+    }
+  }
   tripState.amount=amt; tripState.notes=notes;
   tripState.phase='confirm';
   renderLog();
@@ -1102,6 +1269,8 @@ function confirmAndSubmit(){
   );
   if(dup&&!confirm('⚠ SIMILAR TRIP LOGGED WITHIN 10 MINUTES — SUBMIT ANYWAY?'))return;
   const _now=new Date();
+  const _odomDist=(tripState.odomWorking&&tripState.odomStart&&tripState.odomEnd&&tripState.odomEnd>tripState.odomStart)
+    ? tripState.odomEnd-tripState.odomStart : null;
   const trip={
     id:Date.now(),driver:tripState.driver,carPlate:tripState.carPlate,
     fromStation:tripState.fromStation.name,toStation:tripState.toStation.name,
@@ -1109,6 +1278,12 @@ function confirmAndSubmit(){
     notes:tripState.notes,date:_now.toLocaleDateString('en-GB'),
     time:_now.toLocaleTimeString(),timestamp:_now.toISOString(),
     dateMs:_now.getTime(),  // used for Firestore range queries
+    // Odometer
+    odomStart:tripState.odomStart||null,
+    odomEnd:tripState.odomEnd||null,
+    odomWorking:tripState.odomWorking,
+    odomSkipReason:tripState.odomSkipReason||null,
+    distance:_odomDist,  // km covered this trip
   };
   localTrips.unshift(trip); save('fs_trips',localTrips.slice(0,200));
   tripState.phase='done';
@@ -1129,6 +1304,10 @@ function newTrip(){
   tripState.fromStation=prev;
   tripState.toStation=null; tripState.amount=''; tripState.notes='';
   tripState.tripStart=null; tripState.tripEnd=null;
+  // For next trip: start odometer = previous end reading (auto-fill convenience)
+  tripState.odomStart = tripState.odomEnd || null;
+  tripState.odomEnd = null;
+  // Keep odomWorking and odomSkipReason — driver's car doesn't change between trips
   resetSessionTimer();
   renderLog();
   toast('READY FOR NEXT TRIP');
@@ -1541,6 +1720,7 @@ function renderLog(){
         ${speedBadgeHtml()}
         <div class="field"><label>FROM STATION</label></div>
         ${stationGridHtml(tripState.fromStation?.name||null, null, 'from')}
+        ${odomStartHtml()}
         <button class="bb bstart" onclick="startTrip()" ${!tripState.fromStation?'disabled':''}>🚌 START TRIP</button>
         <button class="bout" onclick="goSetup()">CHANGE DRIVER / CAR</button>
       </div>
@@ -1592,6 +1772,7 @@ function renderLog(){
           <span class="apfx">KES</span>
           <input type="number" class="ainput" id="amtIn" placeholder="0" min="${AMOUNT_MIN}" max="${AMOUNT_MAX}" value="${tripState.amount||''}">
         </div>
+        ${odomEndHtml()}
         <div class="field"><label>TRIP NOTES (optional)</label>
           <textarea id="notesIn" placeholder="e.g. Road closed, vehicle issue, extra passengers...">${tripState.notes||''}</textarea>
         </div>
@@ -1616,6 +1797,11 @@ function renderLog(){
           <div class="confirm-row"><span class="confirm-label">DURATION</span><span class="confirm-val">${dur} MIN</span></div>
           <div class="confirm-row"><span class="confirm-label">TIME</span><span class="confirm-val">${new Date().toLocaleTimeString()}</span></div>
           ${tripState.notes?`<div class="confirm-row"><span class="confirm-label">NOTES</span><span class="confirm-val">${tripState.notes}</span></div>`:''}
+          ${tripState.odomWorking&&tripState.odomStart?`<div class="confirm-row"><span class="confirm-label">ODOM START</span><span class="confirm-val">${Number(tripState.odomStart).toLocaleString()} KM</span></div>`:''}
+          ${tripState.odomWorking&&tripState.odomEnd?`<div class="confirm-row"><span class="confirm-label">ODOM END</span><span class="confirm-val">${Number(tripState.odomEnd).toLocaleString()} KM</span></div>`:''}
+          ${tripState.odomWorking&&tripState.odomStart&&tripState.odomEnd&&tripState.odomEnd>tripState.odomStart?
+            `<div class="confirm-row"><span class="confirm-label">DISTANCE</span><span class="confirm-val" style="color:var(--accent)">📏 ${tripState.odomEnd-tripState.odomStart} KM</span></div>`:
+            !tripState.odomWorking?`<div class="confirm-row"><span class="confirm-label">ODOMETER</span><span class="confirm-val" style="color:var(--red)">⚠ NOT WORKING</span></div>`:''}
           <div class="confirm-row" style="padding-top:14px;margin-top:4px;border-top:2px solid var(--accent);border-bottom:none">
             <span class="confirm-label">AMOUNT COLLECTED</span>
             <span class="confirm-amount">KES ${Number(tripState.amount).toLocaleString()}</span>
@@ -1646,6 +1832,8 @@ function renderLog(){
           <div class="drow"><span>DURATION</span><span>${last.duration} MIN</span></div>
           <div class="drow"><span>AMOUNT</span><span>KES ${Number(last.amount).toLocaleString()}</span></div>
           ${last.notes?`<div class="drow"><span>NOTES</span><span style="max-width:60%;text-align:right">${last.notes}</span></div>`:''}
+          ${last.distance?`<div class="drow"><span>DISTANCE</span><span style="color:var(--accent)">📏 ${last.distance} KM</span></div>`:''}
+          ${last.odomWorking===false?`<div class="drow"><span>ODOMETER</span><span style="color:var(--red)">⚠ NOT WORKING</span></div>`:''}
         </div>
         <div class="ssub">${db&&isOnline()?'✅ SYNCED TO FIREBASE':offlineQ.length?'📦 QUEUED FOR SYNC':'💾 SAVED LOCALLY — CONFIGURE FIREBASE IN ADMIN'}</div>
       </div>
@@ -1675,7 +1863,7 @@ function renderTodayHistory(){
   return`<div class="hsect"><div class="stitle2">MY TRIPS TODAY (${tt.length}) · KES ${tot.toLocaleString()}</div>
   ${tt.slice(0,8).map(t=>`<div class="hitem">
     <div class="htop"><span class="hroute">${t.fromStation} → ${t.toStation}</span><span class="hamt">KES ${Number(t.amount).toLocaleString()}</span></div>
-    <div class="hbot"><span>${t.carPlate}${t.notes?` · 📝 ${t.notes.slice(0,28)}`:''}</span><span class="htime">${t.time}</span></div>
+    <div class="hbot"><span>${t.carPlate}${t.distance?` · 📏 ${t.distance}km`:''}${t.notes?` · 📝 ${t.notes.slice(0,22)}`:''}</span><span class="htime">${t.time}</span></div>
   </div>`).join('')}</div>`;
 }
 
@@ -1718,6 +1906,7 @@ function renderReports(){
       <button class="rtab ${reportTab==='leaderboard'?'active':''}" onclick="reportTab='leaderboard';renderReports()">LEADERBOARD</button>
       <button class="rtab ${reportTab==='performance'?'active':''}" onclick="reportTab='performance';renderReports()">PERFORMANCE</button>
       <button class="rtab ${reportTab==='live'?'active':''}" onclick="reportTab='live';renderReports()"><span class="live-dot" style="display:${liveUnsubscribe?'inline-block':'none'}"></span>LIVE</button>
+      <button class="rtab ${reportTab==='fuel'?'active':''}" onclick="reportTab='fuel';renderReports()">⛽ FUEL</button>
     </div>
     <div id="rsect-overview" class="rsect ${reportTab==='overview'?'active':''}">
       <div class="card" style="padding:13px;margin-bottom:11px">
@@ -1830,8 +2019,108 @@ function renderReports(){
     </div>
     <div class="rsect ${reportTab==='leaderboard'?'active':''}">${renderLeaderboard(filtered)}</div>
     <div class="rsect ${reportTab==='performance'?'active':''}">${renderPerformance(all)}</div>
-    <div id="rsect-live" class="rsect ${reportTab==='live'?'active':''}"></div>`;
+    <div id="rsect-live" class="rsect ${reportTab==='live'?'active':''}" ></div>
+  <div id="rsect-fuel" class="rsect ${reportTab==='fuel'?'active':''}" ></div>`;
   if(reportTab==='live')setTimeout(renderLiveTab,0);
+  if(reportTab==='fuel')setTimeout(renderFuelTab,0);
+}
+
+// ══════════════════════════════════════════════
+// RENDER FUEL / ODOMETER TAB
+// ══════════════════════════════════════════════
+function renderFuelTab(){
+  const el = document.getElementById('rsect-fuel');
+  if(!el) return;
+  const all = allData();
+  // Only trips that have valid odometer distance
+  const odomTrips  = all.filter(t => t.distance && t.distance > 0);
+  const noOdomTrips= all.filter(t => t.odomWorking === false);
+  const allCars    = [...new Set(all.map(t=>t.carPlate).filter(Boolean))].sort();
+
+  // Per-car stats
+  const carStats = allCars.map(car=>{
+    const cTrips    = odomTrips.filter(t=>t.carPlate===car);
+    const totalKm   = cTrips.reduce((s,t)=>s+(t.distance||0),0);
+    const totalTrips= cTrips.length;
+    const avgKm     = totalTrips ? (totalKm/totalTrips).toFixed(1) : null;
+    const noOdom    = noOdomTrips.filter(t=>t.carPlate===car).length;
+    const allCarTrips= all.filter(t=>t.carPlate===car).length;
+    const captureRate= allCarTrips ? Math.round((totalTrips/allCarTrips)*100) : 0;
+    // Last odometer reading
+    const lastOdom  = cTrips.sort((a,b)=>b.dateMs-a.dateMs)[0]?.odomEnd;
+    return {car, totalKm, totalTrips, avgKm, noOdom, captureRate, lastOdom};
+  }).filter(s=>s.totalTrips>0||s.noOdom>0);
+
+  // Per-driver stats
+  const allDrivers = [...new Set(all.map(t=>t.driver).filter(Boolean))].sort();
+  const driverStats= allDrivers.map(driver=>{
+    const dTrips  = odomTrips.filter(t=>t.driver===driver);
+    const totalKm = dTrips.reduce((s,t)=>s+(t.distance||0),0);
+    const avgKm   = dTrips.length?(totalKm/dTrips.length).toFixed(1):null;
+    const noOdom  = noOdomTrips.filter(t=>t.driver===driver).length;
+    return {driver, totalKm, trips:dTrips.length, avgKm, noOdom};
+  }).filter(s=>s.trips>0||s.noOdom>0);
+
+  // Skip-reason log
+  const skipLog = all.filter(t=>t.odomWorking===false&&t.odomSkipReason)
+    .sort((a,b)=>b.dateMs-a.dateMs).slice(0,20);
+
+  // Overall summary
+  const totalKmAll  = odomTrips.reduce((s,t)=>s+(t.distance||0),0);
+  const capRate     = all.length ? Math.round((odomTrips.length/all.length)*100) : 0;
+
+  el.innerHTML = `
+    <!-- Summary strip -->
+    <div class="live-stats" style="margin-bottom:12px">
+      <div class="live-stat"><div class="lsl">TOTAL KM TRACKED</div><div class="lsv">${(totalKmAll/1000).toFixed(1)}K</div></div>
+      <div class="live-stat"><div class="lsl">ODOM CAPTURE RATE</div><div class="lsv" style="color:${capRate>=80?'#22c55e':capRate>=50?'var(--accent2)':'var(--red)'}">${capRate}%</div></div>
+      <div class="live-stat"><div class="lsl">SKIPPED TRIPS</div><div class="lsv" style="color:var(--red)">${noOdomTrips.length}</div></div>
+    </div>
+
+    <!-- BY CAR -->
+    <div class="stitle2" style="margin-bottom:8px">⛽ EFFICIENCY BY CAR</div>
+    ${carStats.length ? carStats.map(s=>`
+      <div class="fuel-stat">
+        <div class="fuel-stat-top">
+          <span class="fuel-stat-car">${s.car}</span>
+          <span class="fuel-stat-km">${s.totalKm.toLocaleString()} <span style="font-size:.7rem;font-family:var(--font-b)">KM</span></span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:6px">
+          <div><div style="font-size:.44rem;color:var(--muted);font-family:var(--font-m);letter-spacing:1px">TRIPS TRACKED</div><div style="font-size:.76rem;font-family:var(--font-m)">${s.totalTrips}</div></div>
+          <div><div style="font-size:.44rem;color:var(--muted);font-family:var(--font-m);letter-spacing:1px">AVG KM/TRIP</div><div style="font-size:.76rem;font-family:var(--font-m)">${s.avgKm||'—'}</div></div>
+          <div><div style="font-size:.44rem;color:var(--muted);font-family:var(--font-m);letter-spacing:1px">CAPTURE RATE</div><div style="font-size:.76rem;font-family:var(--font-m);color:${s.captureRate>=80?'#22c55e':'var(--accent2)'}">${s.captureRate}%</div></div>
+        </div>
+        ${s.lastOdom?`<div style="font-size:.52rem;color:var(--muted);font-family:var(--font-m);letter-spacing:1px">LAST READING: <strong style="color:var(--text)">${Number(s.lastOdom).toLocaleString()} KM</strong></div>`:''}
+        ${s.noOdom>0?`<div class="fuel-warn" style="margin-top:5px;margin-bottom:0">⚠ ${s.noOdom} TRIP${s.noOdom>1?'S':''} WITH ODOMETER NOT WORKING</div>`:''}
+      </div>`).join('')
+    : `<div style="text-align:center;padding:20px;color:var(--muted);font-family:var(--font-m);font-size:.56rem;letter-spacing:1px">NO ODOMETER DATA YET<br>DRIVERS NEED TO CAPTURE READINGS</div>`}
+
+    <!-- BY DRIVER -->
+    ${driverStats.length?`
+    <div class="stitle2" style="margin:12px 0 8px">👤 KM BY DRIVER</div>
+    ${driverStats.sort((a,b)=>b.totalKm-a.totalKm).map(s=>`
+      <div style="background:var(--card);border:1px solid var(--border);padding:9px 12px;margin-bottom:6px;display:flex;align-items:center;gap:10px">
+        <div style="flex:1">
+          <div style="font-family:var(--font-m);font-size:.6rem;color:var(--text);font-weight:600">${s.driver.split(' ')[0]} ${s.driver.split(' ')[1]||''}</div>
+          <div style="font-size:.52rem;color:var(--muted)">${s.trips} trips tracked · avg ${s.avgKm||'—'} km/trip</div>
+          ${s.noOdom?`<div style="font-size:.5rem;color:var(--red);font-family:var(--font-m)">${s.noOdom} skipped</div>`:''}
+        </div>
+        <div style="font-family:var(--font-d);font-size:1.2rem;color:var(--accent)">${s.totalKm.toLocaleString()}<span style="font-family:var(--font-b);font-size:.6rem;color:var(--muted)"> KM</span></div>
+      </div>`).join('')}`:''}
+
+    <!-- SKIP REASON LOG -->
+    ${skipLog.length?`
+    <div class="stitle2" style="margin:12px 0 8px">⚠ ODOMETER SKIP LOG</div>
+    ${skipLog.map(t=>`
+      <div style="background:var(--card);border:1px solid var(--border);border-left:3px solid var(--red);padding:9px 12px;margin-bottom:6px">
+        <div style="display:flex;justify-content:space-between;margin-bottom:3px">
+          <span style="font-family:var(--font-m);font-size:.58rem;font-weight:600">${t.driver?t.driver.split(' ')[0]:''} · <span style="color:var(--accent)">${t.carPlate||''}</span></span>
+          <span style="font-size:.52rem;color:var(--muted)">${t.date||''} ${t.time||''}</span>
+        </div>
+        <div style="font-size:.64rem;color:var(--text)">${t.odomSkipReason}</div>
+        <div style="font-size:.52rem;color:var(--muted);margin-top:2px">${t.fromStation||'?'} → ${t.toStation||'?'}</div>
+      </div>`).join('')}`:''}
+  `;
 }
 
 function renderCarBars(filtered,total){
@@ -2780,6 +3069,92 @@ if(appConfig.projectId&&isOnline()){
   loadFirebaseData(true);
   startLiveListener();
 }
+
+// ══════════════════════════════════════════════
+// PWA — Service Worker + Install Prompt
+// ══════════════════════════════════════════════
+let pwaInstallEvent = null;
+
+// Register service worker
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('sw.js')
+      .then(reg=>{
+        console.log('[PWA] Service worker registered:', reg.scope);
+        // Check for updates every time the app loads
+        reg.addEventListener('updatefound', ()=>{
+          const newWorker = reg.installing;
+          newWorker.addEventListener('statechange', ()=>{
+            if(newWorker.state==='installed' && navigator.serviceWorker.controller){
+              toast('🔄 APP UPDATE AVAILABLE — REFRESH TO UPDATE');
+            }
+          });
+        });
+      })
+      .catch(err => console.log('[PWA] Service worker registration failed:', err));
+  });
+}
+
+// Capture the install prompt (Android Chrome)
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  pwaInstallEvent = e;
+  // Show banner only if not already installed and not dismissed recently
+  const dismissed = localStorage.getItem('pwa_dismissed');
+  const isInstalled = window.matchMedia('(display-mode: standalone)').matches;
+  if(!isInstalled && (!dismissed || Date.now() - parseInt(dismissed) > 7*24*60*60*1000)){
+    setTimeout(()=>document.getElementById('pwaBanner')?.classList.add('show'), 3000);
+  }
+});
+
+// Handle install button tap
+document.getElementById('pwaInstallBtn')?.addEventListener('click', async ()=>{
+  if(!pwaInstallEvent){ toast('TO INSTALL: TAP BROWSER MENU → ADD TO HOME SCREEN'); return; }
+  pwaInstallEvent.prompt();
+  const { outcome } = await pwaInstallEvent.userChoice;
+  if(outcome === 'accepted'){
+    toast('✅ FESTUS SACCO INSTALLED!');
+    document.getElementById('pwaBanner')?.classList.remove('show');
+  }
+  pwaInstallEvent = null;
+});
+
+function dismissPwaBanner(){
+  document.getElementById('pwaBanner')?.classList.remove('show');
+  localStorage.setItem('pwa_dismissed', Date.now().toString());
+}
+
+// If already running as installed PWA, update theme color for dark mode
+function updatePwaTheme(){
+  const meta = document.getElementById('themeColorMeta');
+  if(meta) meta.setAttribute('content', darkMode ? '#0d1410' : '#1a7a3c');
+}
+updatePwaTheme();
+
+// Show iOS install instructions if Safari and not installed
+(function(){
+  const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isSafari = /safari/i.test(navigator.userAgent) && !/chrome/i.test(navigator.userAgent);
+  const isStandalone = window.navigator.standalone === true;
+  const dismissed = localStorage.getItem('pwa_ios_dismissed');
+  if(isIos && isSafari && !isStandalone && (!dismissed || Date.now()-parseInt(dismissed)>7*24*60*60*1000)){
+    setTimeout(()=>{
+      const banner = document.getElementById('pwaBanner');
+      const btn    = document.getElementById('pwaInstallBtn');
+      if(banner && btn){
+        banner.querySelector('.pwa-banner-text').innerHTML =
+          '<strong>INSTALL ON IPHONE</strong>TAP <strong>Share ⬆</strong> THEN <strong>"ADD TO HOME SCREEN"</strong>';
+        btn.style.display='none';
+        banner.classList.add('show');
+        // Auto dismiss after 8 seconds
+        setTimeout(()=>{
+          banner.classList.remove('show');
+          localStorage.setItem('pwa_ios_dismissed', Date.now().toString());
+        }, 8000);
+      }
+    }, 3000);
+  }
+})();
 </script>
 </body>
 </html>
