@@ -1251,7 +1251,7 @@ function odomStartHtml(){
   const working = tripState.odomWorking;
   const hasReading = working ? !!tripState.odomStart : !!tripState.odomSkipReason;
   return `
-  <div class="odom-wrap ${hasReading?'active':'required-odom'}" id="odomStartWrap"
+  <div class="odom-wrap" id="odomStartWrap"
     style="border-color:${hasReading?'var(--accent)':'var(--red)'}">
     <div class="odom-title">
       <span>⏲ ODOMETER READING — TRIP START
@@ -1270,20 +1270,63 @@ function odomStartHtml(){
             placeholder="e.g. 24500 — REQUIRED TO START"
             min="0" max="999999" value="${tripState.odomStart||''}"
             style="border-color:${tripState.odomStart?'var(--accent)':'var(--red)'}"
-            oninput="tripState.odomStart=this.value?parseInt(this.value):null;renderLog()">
+            oninput="updateOdomStartUI(this.value)">
         </div>
         <span class="odom-unit">KM</span>
       </div>
-      ${!tripState.odomStart?`<div style="font-family:var(--font-m);font-size:.5rem;color:var(--red);letter-spacing:1px;margin-top:6px">⚠ ENTER READING TO ENABLE TRIP START</div>`:`<div style="font-family:var(--font-m);font-size:.5rem;color:#22c55e;letter-spacing:1px;margin-top:5px">✅ READING CAPTURED</div>`}
+      <div id="odomStartStatus" style="font-family:var(--font-m);font-size:.5rem;letter-spacing:1px;margin-top:6px;color:${tripState.odomStart?'#22c55e':'var(--red)'}">${tripState.odomStart?'✅ READING CAPTURED':'⚠ ENTER READING TO ENABLE TRIP START'}</div>
     ` : `
       <div class="odom-skip-badge">⚠ ODOMETER NOT WORKING<br>PLEASE PROVIDE A REASON BELOW</div>
       <div class="odom-reason-label">REASON FOR NOT CAPTURING <span style="color:var(--red)">★ REQUIRED</span></div>
       <textarea class="odom-reason" id="odomSkipReasonIn" rows="2"
         style="border-color:${tripState.odomSkipReason?'var(--accent)':'var(--red)'}"
         placeholder="e.g. Odometer cable broken, digital display failed, odometer tampered..."
-        oninput="tripState.odomSkipReason=this.value;renderLog()">${tripState.odomSkipReason||''}</textarea>
-      ${!tripState.odomSkipReason?`<div style="font-family:var(--font-m);font-size:.5rem;color:var(--red);letter-spacing:1px;margin-top:4px">⚠ REASON REQUIRED TO ENABLE TRIP START</div>`:`<div style="font-family:var(--font-m);font-size:.5rem;color:#22c55e;letter-spacing:1px;margin-top:4px">✅ REASON CAPTURED</div>`}`}
+        oninput="updateOdomReasonUI(this.value)">${tripState.odomSkipReason||''}</textarea>
+      <div id="odomReasonStatus" style="font-family:var(--font-m);font-size:.5rem;letter-spacing:1px;margin-top:4px;color:${tripState.odomSkipReason?'#22c55e':'var(--red)'}">${tripState.odomSkipReason?'✅ REASON CAPTURED':'⚠ REASON REQUIRED TO ENABLE TRIP START'}</div>`}
   </div>`;
+}
+
+// Update odometer start UI without re-rendering the whole page
+function updateOdomStartUI(val){
+  tripState.odomStart = val ? parseInt(val) : null;
+  const has = !!tripState.odomStart;
+  // Border on input
+  const inp = document.getElementById('odomStartIn');
+  if(inp) inp.style.borderColor = has ? 'var(--accent)' : 'var(--red)';
+  // Border on wrap
+  const wrap = document.getElementById('odomStartWrap');
+  if(wrap) wrap.style.borderColor = has ? 'var(--accent)' : 'var(--red)';
+  // Status message
+  const status = document.getElementById('odomStartStatus');
+  if(status){ status.textContent = has ? '✅ READING CAPTURED' : '⚠ ENTER READING TO ENABLE TRIP START'; status.style.color = has ? '#22c55e' : 'var(--red)'; }
+  // Update START TRIP button without full re-render
+  updateStartTripBtn();
+}
+
+// Update reason textarea UI without re-rendering
+function updateOdomReasonUI(val){
+  tripState.odomSkipReason = val;
+  const has = !!val.trim();
+  const ta = document.getElementById('odomSkipReasonIn');
+  if(ta) ta.style.borderColor = has ? 'var(--accent)' : 'var(--red)';
+  const wrap = document.getElementById('odomStartWrap');
+  if(wrap) wrap.style.borderColor = has ? 'var(--accent)' : 'var(--red)';
+  const status = document.getElementById('odomReasonStatus');
+  if(status){ status.textContent = has ? '✅ REASON CAPTURED' : '⚠ REASON REQUIRED TO ENABLE TRIP START'; status.style.color = has ? '#22c55e' : 'var(--red)'; }
+  updateStartTripBtn();
+}
+
+// Update only the START TRIP button state — no re-render
+function updateStartTripBtn(){
+  const btn = document.getElementById('startTripBtn');
+  if(!btn) return;
+  const odomReady = tripState.odomWorking ? !!tripState.odomStart : !!tripState.odomSkipReason;
+  const canStart  = !!tripState.fromStation && odomReady;
+  const why = !tripState.fromStation ? 'SELECT STATION' : !odomReady ? (tripState.odomWorking?'ENTER ODOMETER':'ENTER REASON') : '';
+  btn.disabled = !canStart;
+  btn.style.opacity = canStart ? '1' : '0.45';
+  btn.style.cursor = canStart ? 'pointer' : 'not-allowed';
+  btn.textContent = canStart ? '🚌 START TRIP' : `🚌 BLOCKED — ${why}`;
 }
 
 function odomEndHtml(){
@@ -2008,7 +2051,7 @@ function renderLog(){
           const odomReady = tripState.odomWorking ? !!tripState.odomStart : !!tripState.odomSkipReason;
           const canStart  = !!tripState.fromStation && odomReady;
           const why = !tripState.fromStation ? 'SELECT STATION' : !odomReady ? (tripState.odomWorking?'ENTER ODOMETER':'ENTER REASON') : '';
-          return `<button class="bb bstart" onclick="startTrip()" ${!canStart?'disabled':''}
+          return `<button id="startTripBtn" class="bb bstart" onclick="startTrip()" ${!canStart?'disabled':''}
             style="opacity:${canStart?'1':'0.45'};cursor:${canStart?'pointer':'not-allowed'}">
             🚌 ${canStart?'START TRIP':`BLOCKED — ${why}`}
           </button>`;
@@ -3537,26 +3580,104 @@ function renderLiveTab(){
   const el=document.getElementById('rsect-live');
   if(!el)return;
   const today=new Date().toLocaleDateString('en-GB');
+  const now=Date.now();
   const todayLive=liveTrips.filter(t=>t.date===today);
   const totalRev=todayLive.reduce((s,t)=>s+(t.amount||0),0);
-  const activeCars=new Set(todayLive.map(t=>t.carPlate).filter(Boolean)).size;
   const isOn=!!liveUnsubscribe;
+
+  // ── Who is driving NOW ──────────────────────────
+  // Build per-car latest-trip map from today's trips
+  const carMap = {};
+  todayLive.forEach(t=>{
+    const p = t.carPlate||'';
+    if(!p) return;
+    if(!carMap[p] || (t.dateMs||0) > (carMap[p].dateMs||0)) carMap[p] = t;
+  });
+  // "Active" = submitted a trip within the last 90 minutes
+  const ACTIVE_WINDOW_MS = 90 * 60 * 1000;
+  const activeVehicles = Object.values(carMap)
+    .filter(t => (now - (t.dateMs||0)) < ACTIVE_WINDOW_MS)
+    .sort((a,b)=>(b.dateMs||0)-(a.dateMs||0));
+  // "Seen today" but not in last 90 min
+  const seenToday = Object.values(carMap)
+    .filter(t => (now - (t.dateMs||0)) >= ACTIVE_WINDOW_MS)
+    .sort((a,b)=>(b.dateMs||0)-(a.dateMs||0));
+
+  function minsAgo(ms){ const m=Math.floor((now-(ms||0))/60000); return m<1?'JUST NOW':m<60?m+'M AGO':Math.floor(m/60)+'H '+m%60+'M AGO'; }
+
   el.innerHTML=`
     <div class="listener-status ${isOn?'on':'off'}" id="listenerStatusBar">
-      ${isOn?`<span class="live-dot"></span>LIVE — LISTENING FOR NEW TRIPS`:`● LISTENER OFF — ${appConfig.projectId?'TAP START':'CONFIGURE FIREBASE IN ADMIN'}`}
+      ${isOn?`<span class="live-dot"></span>LIVE — MONITORING ALL VEHICLES`:`● LISTENER OFF — ${appConfig.projectId?'TAP START':'CONFIGURE FIREBASE IN ADMIN'}`}
     </div>
     <div style="display:flex;gap:7px;margin-bottom:12px">
       ${isOn
-        ?`<button class="bsm br" style="flex:1;padding:10px" onclick="stopLiveListener()">⬛ STOP LISTENER</button>`
+        ?`<button class="bsm br" style="flex:1;padding:10px" onclick="stopLiveListener()">⬛ STOP</button>`
         :`<button class="bsm bg" style="flex:1;padding:10px" onclick="startLiveListener()">▶ START LIVE LISTENER</button>`}
     </div>
-    ${liveTrips.length?`
-    <div class="live-stats">
+
+    ${todayLive.length?`
+    <!-- Summary stats -->
+    <div class="live-stats" style="margin-bottom:12px">
       <div class="live-stat"><div class="lsl">TODAY TRIPS</div><div class="lsv">${todayLive.length}</div></div>
       <div class="live-stat"><div class="lsl">TODAY REVENUE</div><div class="lsv" style="font-size:.9rem">KES ${(totalRev/1000).toFixed(1)}K</div></div>
-      <div class="live-stat"><div class="lsl">ACTIVE CARS</div><div class="lsv">${activeCars}</div></div>
+      <div class="live-stat"><div class="lsl">ACTIVE NOW</div><div class="lsv" style="color:${activeVehicles.length?'#22c55e':'var(--muted)'}">${activeVehicles.length}</div></div>
+      <div class="live-stat"><div class="lsl">SEEN TODAY</div><div class="lsv">${Object.keys(carMap).length}</div></div>
     </div>
-    <div class="stitle2" style="margin-bottom:8px">RECENT TRIPS — ALL CARS</div>
+
+    <!-- WHO IS DRIVING NOW -->
+    ${activeVehicles.length?`
+    <div class="stitle2" style="margin-bottom:8px;display:flex;align-items:center;gap:7px">
+      <span class="live-dot" style="display:inline-block"></span>ACTIVE VEHICLES — LAST 90 MIN
+    </div>
+    ${activeVehicles.map(t=>`
+      <div style="background:var(--card);border:2px solid #22c55e;padding:11px 13px;margin-bottom:8px;position:relative;overflow:hidden">
+        <div style="position:absolute;top:0;right:0;background:#22c55e;padding:2px 8px;font-family:var(--font-m);font-size:.42rem;color:#fff;letter-spacing:1px">ACTIVE</div>
+        <div style="display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center">
+          <!-- Plate badge -->
+          <div style="background:#22c55e;color:#fff;font-family:var(--font-d);font-size:1.2rem;letter-spacing:3px;padding:6px 12px;text-align:center;min-width:80px">${t.carPlate||'?'}</div>
+          <!-- Driver info -->
+          <div>
+            <div style="font-family:var(--font-m);font-size:.68rem;font-weight:700;color:var(--text);letter-spacing:1px">${t.driver||'Unknown Driver'}</div>
+            <div style="font-size:.56rem;color:var(--muted);margin-top:2px">${t.fromStation||'?'} → ${t.toStation||'?'}</div>
+            <div style="font-size:.5rem;color:#22c55e;margin-top:2px;font-family:var(--font-m)">🕐 ${minsAgo(t.dateMs)}</div>
+          </div>
+          <!-- Last trip amount -->
+          <div style="text-align:right">
+            <div style="font-family:var(--font-m);font-size:.62rem;font-weight:700;color:#22c55e">KES ${Number(t.amount||0).toLocaleString()}</div>
+            <div style="font-size:.48rem;color:var(--muted);margin-top:2px">LAST TRIP</div>
+            ${t.distance?`<div style="font-size:.48rem;color:var(--muted)">📏 ${t.distance}km</div>`:''}
+          </div>
+        </div>
+        <!-- Today's stats for this car -->
+        ${(()=>{
+          const cTrips=todayLive.filter(x=>x.carPlate===t.carPlate);
+          const cRev=cTrips.reduce((s,x)=>s+(x.amount||0),0);
+          return cTrips.length>1?`<div style="border-top:1px solid var(--border);margin-top:8px;padding-top:7px;display:flex;gap:14px;font-family:var(--font-m);font-size:.52rem;color:var(--muted)">
+            <span>TRIPS TODAY: <strong style="color:var(--text)">${cTrips.length}</strong></span>
+            <span>REVENUE: <strong style="color:var(--accent)">KES ${cRev.toLocaleString()}</strong></span>
+          </div>`:'';
+        })()}
+      </div>`).join('')}`
+    :''}
+
+    <!-- SEEN TODAY (not active now) -->
+    ${seenToday.length?`
+    <div class="stitle2" style="margin:12px 0 8px;color:var(--muted)">● SEEN TODAY — NOT RECENTLY ACTIVE</div>
+    ${seenToday.map(t=>`
+      <div style="background:var(--card);border:1px solid var(--border);padding:10px 12px;margin-bottom:6px;display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;opacity:.7">
+        <div style="background:var(--border);color:var(--text);font-family:var(--font-d);font-size:1rem;letter-spacing:2px;padding:5px 10px;text-align:center;min-width:72px">${t.carPlate||'?'}</div>
+        <div>
+          <div style="font-family:var(--font-m);font-size:.62rem;font-weight:600;color:var(--text)">${t.driver||'Unknown'}</div>
+          <div style="font-size:.5rem;color:var(--muted);margin-top:2px">Last: ${t.fromStation||'?'} → ${t.toStation||'?'}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:.5rem;color:var(--muted)">${minsAgo(t.dateMs)}</div>
+          ${(()=>{const ct=todayLive.filter(x=>x.carPlate===t.carPlate);return`<div style="font-size:.52rem;color:var(--muted)">${ct.length} trips</div>`;})()}
+        </div>
+      </div>`).join('')}`:''}
+
+    <!-- Recent trip feed -->
+    <div class="stitle2" style="margin:12px 0 8px">📋 TRIP FEED — ALL CARS</div>
     ${liveTrips.slice(0,60).map(t=>`
       <div class="live-item ${liveNewIds.has(t._fbId)?'new':''}">
         <div class="live-top">
@@ -3564,11 +3685,15 @@ function renderLiveTab(){
           <span class="live-amt">KES ${Number(t.amount||0).toLocaleString()}</span>
         </div>
         <div class="live-bot">
-          <span>${t.driver?t.driver.split(' ')[0]:''} &nbsp;<span class="live-car">${t.carPlate||''}</span></span>
+          <span style="display:flex;align-items:center;gap:6px">
+            <span style="font-family:var(--font-m);font-size:.52rem;background:var(--accent);color:#fff;padding:1px 7px;letter-spacing:1px">${t.carPlate||'—'}</span>
+            <span>${t.driver||'—'}</span>
+          </span>
           <span class="live-time">${t.time||t.date||''}</span>
         </div>
+        ${t.distance?`<div style="font-size:.5rem;color:var(--muted);margin-top:3px">📏 ${t.distance}km${t.fuelEfficiency?` · ⚡ ${t.fuelEfficiency}km/L`:''}</div>`:''}
       </div>`).join('')}`
-    :`<div class="live-empty">${isOn?'⏳ WAITING FOR TRIPS...<br>TRIPS FROM ALL CARS WILL<br>APPEAR HERE IN REAL TIME':'▶ START THE LISTENER ABOVE<br>TO MONITOR ALL CARS IN REAL TIME<br><br>REQUIRES FIREBASE CONNECTION'}</div>`}`;
+    :`<div class="live-empty">${isOn?'⏳ WAITING FOR TRIPS...<br>VEHICLES WILL APPEAR HERE<br>AS TRIPS ARE SUBMITTED':'▶ START THE LISTENER ABOVE<br>TO MONITOR ALL VEHICLES IN REAL TIME<br><br>REQUIRES FIREBASE CONNECTION'}</div>`}`;
 }
 
 // ══════════════════════════════════════════════
