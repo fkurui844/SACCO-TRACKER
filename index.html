@@ -635,6 +635,10 @@ main{padding:13px 13px 74px}
         </div>
         <button class="auth-btn" id="authLoginBtn" onclick="authLogin()">LOG IN</button>
         <button class="auth-link" onclick="showAuthPanel('forgot')">Forgot your password?</button>
+        <button class="auth-link" style="font-size:.42rem;color:var(--muted);margin-top:4px"
+          onclick="showAuthPanel('setup')" id="createAdminLink" style="display:none">
+          First time? Create admin account →
+        </button>
       </div>
     </div>
 
@@ -3938,22 +3942,31 @@ function hideAuthOverlay(){
 }
 
 function showAuthPanel(panel){
-  ['authPanelSetup','authPanelLogin','authPanelForgot'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(el) el.style.display = id.includes(panel.charAt(0).toUpperCase()+panel.slice(1)) ? 'block' : 'none';
-  });
-  clearAuthErrors();
+  // Alias for switchToPanel — kept for compatibility
+  switchToPanel(panel);
 }
 
 // Better panel switcher that uses exact panel names
 function switchToPanel(panel){
   // panel: 'setup' | 'login' | 'forgot'
   const map={setup:'authPanelSetup', login:'authPanelLogin', forgot:'authPanelForgot'};
+  let found = false;
   Object.keys(map).forEach(k=>{
     const el=document.getElementById(map[k]);
-    if(el) el.style.display = (k===panel) ? 'block' : 'none';
+    if(el){
+      const show = (k===panel);
+      el.style.display = show ? 'block' : 'none';
+      if(show) found = true;
+    }
   });
+  if(!found) console.warn('switchToPanel: unknown panel', panel);
   clearAuthErrors();
+  // Autofocus the right input
+  setTimeout(()=>{
+    if(panel==='login')  document.getElementById('authPass')?.focus();
+    if(panel==='setup')  document.getElementById('setupName')?.focus();
+    if(panel==='forgot') document.getElementById('authForgotEmail')?.focus();
+  }, 150);
 }
 
 function switchAuthRole(role){
@@ -4014,30 +4027,37 @@ async function authSetupAdmin(){
 
   try{
     if(!auth) initFirebase();
-    // Create the admin Firebase Auth account
+
+    // STEP 1: Create the Firebase Auth account
+    btn.innerHTML='<span class="auth-spinner"></span>STEP 1/3 — CREATING AUTH...';
     const cred = await auth.createUserWithEmailAndPassword(email, pass);
     const uid  = cred.user.uid;
 
-    // Save admin profile to Firestore
-    await db.collection('drivers').doc(uid).set({
-      uid, name, email,
-      role: 'admin',
-      saccoName,
-      active: true,
-      createdAt: Date.now()
-    });
+    // STEP 2: Immediately write profile to Firestore BEFORE anything else
+    // Set a flag so onAuthStateChanged knows the profile is being written
+    window._pendingProfileWrite = true;
+    btn.innerHTML='<span class="auth-spinner"></span>STEP 2/3 — SAVING PROFILE...';
+    const profile = { uid, name, email, role:'admin', saccoName, active:true, createdAt:Date.now() };
+    await db.collection('drivers').doc(uid).set(profile);
+    window._pendingProfileWrite = false;
 
-    // Save sacco name to local config
+    // STEP 3: Save config + mark setup done
+    btn.innerHTML='<span class="auth-spinner"></span>STEP 3/3 — FINISHING...';
     appConfig.saccoName = saccoName;
     save('fs_config', appConfig);
     updateSaccoName(saccoName);
-
-    // Mark setup as done
     localStorage.setItem('fs_setup_done','1');
+    localStorage.setItem('fs_last_email', email);
+    localStorage.setItem('fs_last_role', 'admin');
+    window._adminAuthCred = {email, password:pass};
 
-    btn.disabled=false; btn.innerHTML='🚀 CREATE ADMIN ACCOUNT';
-    // onAuthStateChanged will fire and route to admin panel
+    btn.disabled=false; btn.innerHTML='✅ ACCOUNT CREATED!';
+
+    // Now manually trigger routing since onAuthStateChanged may have already fired
+    onDriverAuthenticated(cred.user, profile);
+
   } catch(e){
+    window._pendingProfileWrite = false;
     btn.disabled=false; btn.innerHTML='🚀 CREATE ADMIN ACCOUNT';
     const msgs={
       'auth/email-already-in-use': '⚠ THAT EMAIL IS ALREADY REGISTERED — USE ADMIN LOGIN TAB',
@@ -4065,30 +4085,38 @@ async function authLogin(){
   if(!pass){  showAuthError('authLoginError','⚠ ENTER YOUR PASSWORD'); return; }
 
   const btn=document.getElementById('authLoginBtn');
+  const resetBtn=()=>{
+    if(btn){
+      btn.disabled=false;
+      btn.textContent = currentAuthRole==='admin' ? '👑 ADMIN LOGIN' : '🚌 DRIVER LOGIN';
+      btn.style.background = currentAuthRole==='admin' ? 'var(--accent2)' : 'var(--accent)';
+    }
+  };
+
   btn.disabled=true;
-  const label = currentAuthRole==='admin' ? '👑 LOGGING IN...' : '🚌 LOGGING IN...';
-  btn.innerHTML='<span class="auth-spinner"></span>'+label;
+  btn.innerHTML='<span class="auth-spinner"></span>'+(currentAuthRole==='admin'?'LOGGING IN...':'LOGGING IN...');
 
   try{
-    if(!auth) initFirebase();
+    if(!auth){ initFirebase(); }
+    if(!auth){ showAuthError('authLoginError','⚠ FIREBASE NOT READY — REFRESH PAGE'); resetBtn(); return; }
+
     await auth.signInWithEmailAndPassword(email, pass);
     localStorage.setItem('fs_last_email', email);
     localStorage.setItem('fs_last_role', currentAuthRole);
-    // Temporarily store for re-auth after driver registration
     if(currentAuthRole==='admin') window._adminAuthCred={email,password:pass};
-    // onAuthStateChanged handles routing based on role
+    // onAuthStateChanged will load profile and route — button will be reset there if needed
+
   } catch(e){
-    btn.disabled=false;
-    btn.textContent = currentAuthRole==='admin' ? '👑 ADMIN LOGIN' : '🚌 DRIVER LOGIN';
+    resetBtn();
     const msgs={
-      'auth/user-not-found':    '⚠ NO ACCOUNT FOUND — CONTACT YOUR MANAGER',
-      'auth/wrong-password':    '⚠ INCORRECT PASSWORD',
+      'auth/user-not-found':    '⚠ NO ACCOUNT FOUND — CONTACT YOUR ADMIN',
+      'auth/wrong-password':    '⚠ INCORRECT PASSWORD — TRY AGAIN',
       'auth/invalid-email':     '⚠ INVALID EMAIL ADDRESS',
       'auth/user-disabled':     '⚠ YOUR ACCOUNT HAS BEEN DISABLED',
       'auth/too-many-requests': '⚠ TOO MANY ATTEMPTS — WAIT A FEW MINUTES',
       'auth/invalid-credential':'⚠ EMAIL OR PASSWORD IS INCORRECT',
     };
-    showAuthError('authLoginError', msgs[e.code]||('⚠ '+e.message));
+    showAuthError('authLoginError', msgs[e.code]||('⚠ ERROR: '+e.message));
   }
 }
 
@@ -4146,15 +4174,20 @@ async function authLogout(){
 
 // ── LOAD USER PROFILE ─────────────────────────────────────────
 async function loadDriverProfile(uid){
+  if(!db || !uid) return null;
   try{
     const snap = await db.collection('drivers').doc(uid).get();
     if(snap.exists){
-      currentDriverDoc = snap.data();
+      currentDriverDoc = {...snap.data(), _docId: snap.id};
       return currentDriverDoc;
     }
+    // Fallback: query by uid field
     const q = await db.collection('drivers').where('uid','==',uid).limit(1).get();
-    if(!q.empty){ currentDriverDoc = q.docs[0].data(); return currentDriverDoc; }
-  } catch(e){ console.error('loadDriverProfile error:', e); }
+    if(!q.empty){
+      currentDriverDoc = {...q.docs[0].data(), _docId: q.docs[0].id};
+      return currentDriverDoc;
+    }
+  } catch(e){ console.warn('loadDriverProfile attempt failed:', e.message); }
   return null;
 }
 
@@ -4203,19 +4236,38 @@ function startAuthListener(){
   if(!auth) return;
   auth.onAuthStateChanged(async (user)=>{
     if(user){
+      // If profile is currently being written (setup flow), wait for it
+      if(window._pendingProfileWrite){
+        // The setup function will call onDriverAuthenticated directly
+        return;
+      }
       currentAuthUser = user;
-      const profile = await loadDriverProfile(user.uid);
+
+      // Retry loading profile up to 4 times (handles race conditions + slow Firestore)
+      let profile = null;
+      for(let attempt=0; attempt<4; attempt++){
+        profile = await loadDriverProfile(user.uid);
+        if(profile) break;
+        if(attempt<3) await new Promise(r=>setTimeout(r, 800*(attempt+1)));
+      }
+
       if(profile){
         onDriverAuthenticated(user, profile);
       } else {
-        // Account exists in Auth but no Firestore profile
-        showAuthError('authLoginError','⚠ NO DRIVER PROFILE — CONTACT YOUR ADMIN');
+        // Still no profile after retries — likely their account exists but profile missing
+        // Reset the login button so user isn't stuck
+        const btn=document.getElementById('authLoginBtn');
+        if(btn){ btn.disabled=false; btn.textContent = currentAuthRole==='admin'?'👑 ADMIN LOGIN':'🚌 DRIVER LOGIN'; }
+        showAuthError('authLoginError','⚠ ACCOUNT FOUND BUT NO PROFILE — CONTACT YOUR ADMIN');
         await auth.signOut();
         showAuthOverlay();
         switchToPanel('login');
+        // Mark setup as needed if this might be a fresh admin whose profile write failed
+        const setupDone = localStorage.getItem('fs_setup_done');
+        if(!setupDone) switchToPanel('setup');
       }
     } else {
-      // No user signed in
+      // No user signed in — reset everything
       currentAuthUser  = null;
       currentDriverDoc = null;
       isAdminUser      = false;
@@ -4225,15 +4277,17 @@ function startAuthListener(){
       save('fs_driver', null);
       document.getElementById('driverBadge').textContent = '— LOGIN —';
 
-      // Check if this is first-ever launch (no admin registered yet)
+      // Always reset button state
+      const btn=document.getElementById('authLoginBtn');
+      if(btn){ btn.disabled=false; }
+
       const setupDone = localStorage.getItem('fs_setup_done');
       showAuthOverlay();
       if(!setupDone){
         switchToPanel('setup');
       } else {
         switchToPanel('login');
-        // Restore last role tab
-        const lastRole = localStorage.getItem('fs_last_role')||'driver';
+        const lastRole = localStorage.getItem('fs_last_role')||'admin';
         switchAuthRole(lastRole);
         const saved = localStorage.getItem('fs_last_email');
         if(saved) document.getElementById('authEmail').value = saved;
@@ -4243,7 +4297,6 @@ function startAuthListener(){
 }
 
 // ══════════════════════════════════════════════
-// SESSION TRACKING// ══════════════════════════════════════════════
 // SESSION TRACKING — writes driver login/phase to Firestore
 // So the admin can see who is logged in and what they're doing
 // ══════════════════════════════════════════════
