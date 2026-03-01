@@ -302,6 +302,28 @@ main{padding:13px 13px 74px}
 .queue-banner{background:var(--accent2);color:#fff;padding:7px 13px;font-family:var(--font-m);font-size:.56rem;letter-spacing:1px;display:none;align-items:center;justify-content:space-between;cursor:pointer}
 .queue-banner.show{display:flex}
 
+/* FLEET STATUS BOARD */
+.fleet-board{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:14px}
+.fleet-card{background:var(--card);border:2px solid var(--border);padding:10px 11px;position:relative;overflow:hidden;transition:border-color .3s}
+.fleet-card.status-active{border-color:#22c55e}
+.fleet-card.status-arrived{border-color:#f59e0b}
+.fleet-card.status-idle{border-color:var(--border);opacity:.8}
+.fleet-card.status-offline{border-color:var(--border);opacity:.45}
+.fleet-card-plate{font-family:var(--font-d);font-size:1.05rem;letter-spacing:3px;color:var(--text);margin-bottom:2px}
+.fleet-card-driver{font-family:var(--font-m);font-size:.52rem;color:var(--muted);letter-spacing:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px}
+.fleet-card-status{display:inline-flex;align-items:center;gap:4px;font-family:var(--font-m);font-size:.44rem;letter-spacing:1px;padding:2px 7px;margin-bottom:5px}
+.fleet-card-status.active{background:rgba(34,197,94,.15);color:#22c55e}
+.fleet-card-status.arrived{background:rgba(245,158,11,.15);color:#f59e0b}
+.fleet-card-status.idle{background:rgba(100,100,100,.12);color:var(--muted)}
+.fleet-card-route{font-family:var(--font-b);font-size:.58rem;color:var(--text);line-height:1.4}
+.fleet-card-route .arrow{color:var(--accent);margin:0 3px}
+.fleet-card-time{font-size:.46rem;color:var(--muted);margin-top:3px}
+.fleet-card-trips{position:absolute;top:7px;right:8px;font-family:var(--font-d);font-size:1.1rem;color:var(--border)}
+.fleet-dot{width:7px;height:7px;border-radius:50%;display:inline-block;flex-shrink:0}
+.fleet-dot.active{background:#22c55e;animation:live-pulse 1.5s infinite}
+.fleet-dot.arrived{background:#f59e0b}
+.fleet-dot.idle{background:var(--muted)}
+
 /* ACTIVE TRIP RECOVERY OVERLAY */
 .trip-recovery-overlay{position:fixed;inset:0;background:rgba(0,0,0,.82);z-index:500;display:none;align-items:center;justify-content:center;padding:20px}
 .trip-recovery-overlay.show{display:flex;animation:fadeIn .3s ease}
@@ -788,6 +810,9 @@ let db                 = null;   // Firestore instance
 let liveUnsubscribe    = null;   // Firestore onSnapshot unsubscriber
 let liveTrips          = [];     // real-time trips from listener
 let liveNewIds         = new Set(); // recently-arrived trip IDs for highlight
+let liveSessionSub     = null;   // Firestore onSnapshot for sessions collection
+let liveSessions       = {};     // {carPlate: sessionDoc} — keyed by plate
+let mySessionId        = null;   // Firestore doc ID of this driver's session
 let stationSearch      = '';     // filter text for station grid
 let sessionSecondsLeft = SESSION_TIMEOUT;
 let sessionInterval    = null;
@@ -913,6 +938,8 @@ function goSetup(){
   clearInterval(timerInterval);
   stopGpsWatch();
   clearSavedTripState();
+  endSession(); // Mark driver as offline in Firebase
+  mySessionId = null;
   tripState.phase='setup';
   switchPage('log');
 }
@@ -1154,6 +1181,8 @@ function finishLogin(d,p){
   document.getElementById('driverBadge').textContent=d.split(' ')[0]+' · '+p;
   startSessionTimer();
   startGpsWatch();
+  // Write login session to Firebase so admin can see who is online
+  setTimeout(()=>writeSession('online',{loginTime:Date.now()}),500);
   renderLog();
 }
 
@@ -1167,6 +1196,11 @@ function selFrom(n){
 function selTo(n){
   if(tripState.phase!=='arrived')return;
   tripState.toStation=STATIONS.find(s=>s.name===n)||{name:n,lat:0,lng:0};
+  // Update session so admin sees the destination in real time
+  writeSession('arrived',{
+    from: tripState.fromStation?.name||'',
+    to:   tripState.toStation.name
+  });
   renderLog();
 }
 
@@ -1418,6 +1452,12 @@ function startTrip(){
   tripState.toStation=null;
   tripState.notes='';
   saveTripState();
+  // Tell admin: this car is now driving
+  writeSession('driving', {
+    from: tripState.fromStation?.name || '',
+    to: '',
+    tripStartMs: tripState.tripStart
+  });
   renderLog();
   startTripTimer();
   toast('TRIP STARTED — SAFE JOURNEY! 🚌');
@@ -1430,6 +1470,12 @@ function arrive(){
   clearInterval(timerInterval);
   tripState.toStation=null;
   saveTripState();
+  // Tell admin: vehicle has arrived, logging details
+  writeSession('arrived', {
+    from: tripState.fromStation?.name || '',
+    to: '',
+    arrivedMs: tripState.tripEnd
+  });
   renderLog();
   toast('ARRIVED — SELECT YOUR DESTINATION');
 }
@@ -1615,6 +1661,13 @@ function confirmAndSubmit(){
   tripState.phase='done';
   clearSavedTripState();
   submitToFirebase(trip);
+  // Tell admin: trip complete, car is idle again
+  writeSession('idle', {
+    from: '',
+    to: '',
+    lastTrip: tripState.fromStation?.name + ' → ' + tripState.toStation?.name,
+    lastTripMs: Date.now()
+  });
   playSuccessSound();
   renderLog();
   // Check driver target after render
@@ -2255,7 +2308,7 @@ function renderReports(){
       <button class="rtab ${reportTab==='charts'?'active':''}" onclick="reportTab='charts';renderReports();setTimeout(renderCharts,80)">CHARTS</button>
       <button class="rtab ${reportTab==='leaderboard'?'active':''}" onclick="reportTab='leaderboard';renderReports()">LEADERBOARD</button>
       <button class="rtab ${reportTab==='performance'?'active':''}" onclick="reportTab='performance';renderReports()">PERFORMANCE</button>
-      <button class="rtab ${reportTab==='live'?'active':''}" onclick="reportTab='live';renderReports()"><span class="live-dot" style="display:${liveUnsubscribe?'inline-block':'none'}"></span>LIVE</button>
+      <button class="rtab ${reportTab==='live'?'active':''}" onclick="reportTab='live';renderReports();if(!liveSessionSub&&db)startSessionListener();"><span class="live-dot" style="display:${liveUnsubscribe?'inline-block':'none'}"></span>LIVE</button>
       <button class="rtab ${reportTab==='fuel'?'active':''}" onclick="reportTab='fuel';renderReports()">⛽ FUEL</button>
     </div>
     <div id="rsect-overview" class="rsect ${reportTab==='overview'?'active':''}">
@@ -3520,12 +3573,78 @@ function changeDevPin(){
 }
 
 // ══════════════════════════════════════════════
+// SESSION TRACKING — writes driver login/phase to Firestore
+// So the admin can see who is logged in and what they're doing
+// ══════════════════════════════════════════════
+
+async function writeSession(status, extra){
+  // status: 'online' | 'driving' | 'arrived' | 'idle' | 'offline'
+  if(!db || !tripState.driver || !tripState.carPlate) return;
+  try{
+    const doc = {
+      driver:    tripState.driver,
+      carPlate:  tripState.carPlate,
+      status:    status,
+      updatedAt: Date.now(),
+      date:      new Date().toLocaleDateString('en-GB'),
+      ...extra
+    };
+    if(mySessionId){
+      // Update existing session document
+      await db.collection('sessions').doc(mySessionId).set(doc, {merge:true});
+    } else {
+      // Create new session document
+      const ref = await db.collection('sessions').add(doc);
+      mySessionId = ref.id;
+    }
+  } catch(e){ console.warn('Session write failed:', e); }
+}
+
+async function endSession(){
+  if(!db || !mySessionId) return;
+  try{
+    await db.collection('sessions').doc(mySessionId).set({
+      status:'offline',
+      updatedAt: Date.now(),
+      driver: tripState.driver,
+      carPlate: tripState.carPlate
+    }, {merge:true});
+    mySessionId = null;
+  } catch(e){}
+}
+
+// ── Listener for ALL sessions (admin side) ─────────────
+function startSessionListener(){
+  if(!db) return;
+  if(liveSessionSub){ liveSessionSub(); liveSessionSub=null; }
+  try{
+    // Only sessions updated in last 14 hours (today's shift)
+    const since = Date.now() - (14*60*60*1000);
+    liveSessionSub = db.collection('sessions')
+      .where('updatedAt','>=',since)
+      .onSnapshot(snap=>{
+        snap.forEach(doc=>{
+          const s = {...doc.data(), _id: doc.id};
+          liveSessions[s.carPlate] = s; // latest doc per plate
+        });
+        if(currentPage==='reports' && reportTab==='live') renderLiveTab();
+      }, err=>{ console.warn('Session listener error:', err); });
+  } catch(e){}
+}
+
+function stopSessionListener(){
+  if(liveSessionSub){ liveSessionSub(); liveSessionSub=null; }
+  liveSessions = {};
+}
+
+// ══════════════════════════════════════════════
 // LIVE LISTENER — Firebase onSnapshot
 // ══════════════════════════════════════════════
 function startLiveListener(){
   if(liveUnsubscribe){liveUnsubscribe();liveUnsubscribe=null;}
   if(!initFirebase()){updateListenerStatus(false);return;}
   updateListenerStatus('connecting');
+  startSessionListener(); // Also listen for driver sessions
   // Listen to trips from last 12 hours so manager sees today's activity
   const since=Date.now()-(12*60*60*1000);
   try{
@@ -3560,6 +3679,7 @@ function startLiveListener(){
 function stopLiveListener(){
   if(liveUnsubscribe){liveUnsubscribe();liveUnsubscribe=null;}
   liveTrips=[];
+  stopSessionListener();
   updateListenerStatus(false);
   if(currentPage==='reports'&&reportTab==='live')renderLiveTab();
 }
@@ -3588,117 +3708,159 @@ function renderLiveTab(){
   const totalRev=todayLive.reduce((s,t)=>s+(t.amount||0),0);
   const isOn=!!liveUnsubscribe;
 
-  // ── Who is driving NOW ──────────────────────────
-  // Build per-car latest-trip map from today's trips
-  const carMap = {};
-  todayLive.forEach(t=>{
-    const p = t.carPlate||'';
-    if(!p) return;
-    if(!carMap[p] || (t.dateMs||0) > (carMap[p].dateMs||0)) carMap[p] = t;
-  });
-  // "Active" = submitted a trip within the last 90 minutes
-  const ACTIVE_WINDOW_MS = 90 * 60 * 1000;
-  const activeVehicles = Object.values(carMap)
-    .filter(t => (now - (t.dateMs||0)) < ACTIVE_WINDOW_MS)
-    .sort((a,b)=>(b.dateMs||0)-(a.dateMs||0));
-  // "Seen today" but not in last 90 min
-  const seenToday = Object.values(carMap)
-    .filter(t => (now - (t.dateMs||0)) >= ACTIVE_WINDOW_MS)
-    .sort((a,b)=>(b.dateMs||0)-(a.dateMs||0));
+  // ── Build per-car data combining sessions + trips ──────────────
+  // Get all known cars from sessions + today's trips
+  const knownPlates = new Set([
+    ...Object.keys(liveSessions),
+    ...todayLive.map(t=>t.carPlate).filter(Boolean)
+  ]);
+
+  // For each plate, merge session info with trip stats
+  const STALE_MS = 14 * 60 * 60 * 1000; // 14h — same as listener window
+  const fleetData = [...knownPlates].map(plate=>{
+    const sess   = liveSessions[plate] || null;
+    const cTrips = todayLive.filter(t=>t.carPlate===plate);
+    const lastTrip = cTrips.length ? cTrips.reduce((a,b)=>((a.dateMs||0)>(b.dateMs||0)?a:b)) : null;
+    const cRev   = cTrips.reduce((s,t)=>s+(t.amount||0),0);
+
+    // Determine status: session doc wins, fallback to trips
+    let status = 'offline';
+    if(sess){
+      const age = now - (sess.updatedAt||0);
+      if(age < STALE_MS) status = sess.status || 'online';
+      if(age > 3*60*60*1000) status = 'offline'; // 3h no update = offline
+    } else if(lastTrip && (now-(lastTrip.dateMs||0)) < 90*60*1000){
+      status = 'idle'; // had a trip <90min ago, no session = older app version
+    }
+
+    return {
+      plate,
+      driver:   sess?.driver || lastTrip?.driver || '—',
+      status,
+      from:     sess?.from   || lastTrip?.fromStation || '',
+      to:       sess?.to     || lastTrip?.toStation   || '',
+      updatedAt: sess?.updatedAt || lastTrip?.dateMs || 0,
+      loginTime: sess?.loginTime || null,
+      lastTrip,
+      trips:    cTrips.length,
+      revenue:  cRev
+    };
+  }).filter(v=>v.status!=='offline' || v.trips>0 ) // hide truly offline + no trips today
+    .sort((a,b)=>{
+      const order={driving:0,arrived:1,idle:2,online:3,offline:4};
+      return (order[a.status]??5)-(order[b.status]??5) || b.updatedAt-a.updatedAt;
+    });
+
+  const onlineCount   = fleetData.filter(v=>v.status==='driving'||v.status==='arrived'||v.status==='online').length;
+  const drivingCount  = fleetData.filter(v=>v.status==='driving').length;
+  const idleCount     = fleetData.filter(v=>v.status==='idle').length;
 
   function minsAgo(ms){ const m=Math.floor((now-(ms||0))/60000); return m<1?'JUST NOW':m<60?m+'M AGO':Math.floor(m/60)+'H '+m%60+'M AGO'; }
+  function statusLabel(s){return{driving:'🚌 ON THE ROAD',arrived:'📍 ARRIVED',idle:'⏸ IDLE',online:'✅ LOGGED IN',offline:'○ OFFLINE'}[s]||s.toUpperCase();}
+  function statusColor(s){return{driving:'#22c55e',arrived:'#f59e0b',idle:'var(--muted)',online:'var(--accent)',offline:'var(--border)'}[s]||'var(--muted)';}
+  function statusBorder(s){return{driving:'#22c55e',arrived:'#f59e0b',idle:'var(--border)',online:'var(--accent)',offline:'var(--border)'}[s]||'var(--border)';}
 
   el.innerHTML=`
+    <!-- Listener bar -->
     <div class="listener-status ${isOn?'on':'off'}" id="listenerStatusBar">
-      ${isOn?`<span class="live-dot"></span>LIVE — MONITORING ALL VEHICLES`:`● LISTENER OFF — ${appConfig.projectId?'TAP START':'CONFIGURE FIREBASE IN ADMIN'}`}
+      ${isOn?`<span class="live-dot"></span>LIVE — FLEET MONITORING ACTIVE`:`● LISTENER OFF — ${appConfig.projectId?'TAP START':'CONFIGURE FIREBASE IN ADMIN'}`}
     </div>
     <div style="display:flex;gap:7px;margin-bottom:12px">
       ${isOn
         ?`<button class="bsm br" style="flex:1;padding:10px" onclick="stopLiveListener()">⬛ STOP</button>`
-        :`<button class="bsm bg" style="flex:1;padding:10px" onclick="startLiveListener()">▶ START LIVE LISTENER</button>`}
+        :`<button class="bsm bg" style="flex:1;padding:10px" onclick="startLiveListener()">▶ START LIVE MONITORING</button>`}
     </div>
 
-    ${todayLive.length?`
-    <!-- Summary stats -->
-    <div class="live-stats" style="margin-bottom:12px">
+    <!-- Fleet summary strip -->
+    <div class="live-stats" style="margin-bottom:14px">
+      <div class="live-stat"><div class="lsl">ON THE ROAD</div><div class="lsv" style="color:#22c55e">${drivingCount}</div></div>
+      <div class="live-stat"><div class="lsl">ONLINE TODAY</div><div class="lsv" style="color:var(--accent)">${onlineCount}</div></div>
       <div class="live-stat"><div class="lsl">TODAY TRIPS</div><div class="lsv">${todayLive.length}</div></div>
-      <div class="live-stat"><div class="lsl">TODAY REVENUE</div><div class="lsv" style="font-size:.9rem">KES ${(totalRev/1000).toFixed(1)}K</div></div>
-      <div class="live-stat"><div class="lsl">ACTIVE NOW</div><div class="lsv" style="color:${activeVehicles.length?'#22c55e':'var(--muted)'}">${activeVehicles.length}</div></div>
-      <div class="live-stat"><div class="lsl">SEEN TODAY</div><div class="lsv">${Object.keys(carMap).length}</div></div>
+      <div class="live-stat"><div class="lsl">TODAY REVENUE</div><div class="lsv" style="font-size:.8rem">KES ${(totalRev/1000).toFixed(1)}K</div></div>
     </div>
 
-    <!-- WHO IS DRIVING NOW -->
-    ${activeVehicles.length?`
-    <div class="stitle2" style="margin-bottom:8px;display:flex;align-items:center;gap:7px">
-      <span class="live-dot" style="display:inline-block"></span>ACTIVE VEHICLES — LAST 90 MIN
+    ${fleetData.length?`
+    <!-- ── FLEET STATUS BOARD ────────────────── -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:9px">
+      <div class="stitle2" style="margin:0">🚌 FLEET STATUS</div>
+      <div style="font-family:var(--font-m);font-size:.46rem;color:var(--muted);letter-spacing:1px">${new Date().toLocaleTimeString()}</div>
     </div>
-    ${activeVehicles.map(t=>`
-      <div style="background:var(--card);border:2px solid #22c55e;padding:11px 13px;margin-bottom:8px;position:relative;overflow:hidden">
-        <div style="position:absolute;top:0;right:0;background:#22c55e;padding:2px 8px;font-family:var(--font-m);font-size:.42rem;color:#fff;letter-spacing:1px">ACTIVE</div>
-        <div style="display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center">
-          <!-- Plate badge -->
-          <div style="background:#22c55e;color:#fff;font-family:var(--font-d);font-size:1.2rem;letter-spacing:3px;padding:6px 12px;text-align:center;min-width:80px">${t.carPlate||'?'}</div>
-          <!-- Driver info -->
-          <div>
-            <div style="font-family:var(--font-m);font-size:.68rem;font-weight:700;color:var(--text);letter-spacing:1px">${t.driver||'Unknown Driver'}</div>
-            <div style="font-size:.56rem;color:var(--muted);margin-top:2px">${t.fromStation||'?'} → ${t.toStation||'?'}</div>
-            <div style="font-size:.5rem;color:#22c55e;margin-top:2px;font-family:var(--font-m)">🕐 ${minsAgo(t.dateMs)}</div>
-          </div>
-          <!-- Last trip amount -->
-          <div style="text-align:right">
-            <div style="font-family:var(--font-m);font-size:.62rem;font-weight:700;color:#22c55e">KES ${Number(t.amount||0).toLocaleString()}</div>
-            <div style="font-size:.48rem;color:var(--muted);margin-top:2px">LAST TRIP</div>
-            ${t.distance?`<div style="font-size:.48rem;color:var(--muted)">📏 ${t.distance}km</div>`:''}
+
+    ${fleetData.map(v=>`
+    <div style="background:var(--card);border:2px solid ${statusBorder(v.status)};margin-bottom:9px;overflow:hidden;transition:border-color .4s">
+
+      <!-- TOP ROW: plate + driver + status badge -->
+      <div style="display:grid;grid-template-columns:auto 1fr auto;gap:0;align-items:stretch">
+
+        <!-- Plate -->
+        <div style="background:${statusBorder(v.status)};padding:10px 14px;display:flex;align-items:center;justify-content:center;min-width:88px;transition:background .4s">
+          <div style="text-align:center">
+            <div style="font-family:var(--font-d);font-size:1.05rem;letter-spacing:3px;color:${v.status==='offline'?'var(--muted)':'#fff'};line-height:1">${v.plate}</div>
+            ${v.status==='driving'?`<div style="font-family:var(--font-m);font-size:.38rem;color:rgba(255,255,255,.8);letter-spacing:1px;margin-top:3px">IN MOTION</div>`:''}
           </div>
         </div>
-        <!-- Today's stats for this car -->
-        ${(()=>{
-          const cTrips=todayLive.filter(x=>x.carPlate===t.carPlate);
-          const cRev=cTrips.reduce((s,x)=>s+(x.amount||0),0);
-          return cTrips.length>1?`<div style="border-top:1px solid var(--border);margin-top:8px;padding-top:7px;display:flex;gap:14px;font-family:var(--font-m);font-size:.52rem;color:var(--muted)">
-            <span>TRIPS TODAY: <strong style="color:var(--text)">${cTrips.length}</strong></span>
-            <span>REVENUE: <strong style="color:var(--accent)">KES ${cRev.toLocaleString()}</strong></span>
-          </div>`:'';
-        })()}
-      </div>`).join('')}`
-    :''}
 
-    <!-- SEEN TODAY (not active now) -->
-    ${seenToday.length?`
-    <div class="stitle2" style="margin:12px 0 8px;color:var(--muted)">● SEEN TODAY — NOT RECENTLY ACTIVE</div>
-    ${seenToday.map(t=>`
-      <div style="background:var(--card);border:1px solid var(--border);padding:10px 12px;margin-bottom:6px;display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;opacity:.7">
-        <div style="background:var(--border);color:var(--text);font-family:var(--font-d);font-size:1rem;letter-spacing:2px;padding:5px 10px;text-align:center;min-width:72px">${t.carPlate||'?'}</div>
-        <div>
-          <div style="font-family:var(--font-m);font-size:.62rem;font-weight:600;color:var(--text)">${t.driver||'Unknown'}</div>
-          <div style="font-size:.5rem;color:var(--muted);margin-top:2px">Last: ${t.fromStation||'?'} → ${t.toStation||'?'}</div>
-        </div>
-        <div style="text-align:right">
-          <div style="font-size:.5rem;color:var(--muted)">${minsAgo(t.dateMs)}</div>
-          ${(()=>{const ct=todayLive.filter(x=>x.carPlate===t.carPlate);return`<div style="font-size:.52rem;color:var(--muted)">${ct.length} trips</div>`;})()}
-        </div>
-      </div>`).join('')}`:''}
+        <!-- Driver + route -->
+        <div style="padding:9px 11px">
+          <div style="font-family:var(--font-m);font-size:.66rem;font-weight:700;color:var(--text);letter-spacing:1px;margin-bottom:3px">${v.driver}</div>
 
-    <!-- Recent trip feed -->
-    <div class="stitle2" style="margin:12px 0 8px">📋 TRIP FEED — ALL CARS</div>
-    ${liveTrips.slice(0,60).map(t=>`
+          ${v.status==='driving'?`
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
+            <span style="font-family:var(--font-m);font-size:.54rem;color:var(--muted)">${v.from||'?'}</span>
+            <span style="color:#22c55e;font-size:.6rem">→</span>
+            <span style="font-family:var(--font-m);font-size:.54rem;color:#22c55e;font-weight:700">DESTINATION</span>
+          </div>
+          <div style="font-size:.46rem;color:#22c55e;font-family:var(--font-m)">🚌 DEPARTED ${minsAgo(v.updatedAt)}</div>
+          `:v.status==='arrived'?`
+          <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
+            <span style="font-family:var(--font-m);font-size:.54rem;color:var(--muted)">${v.from||'?'}</span>
+            <span style="color:#f59e0b;font-size:.6rem">→</span>
+            <span style="font-family:var(--font-m);font-size:.54rem;color:#f59e0b;font-weight:700">${v.to||'LOGGING...'}</span>
+          </div>
+          <div style="font-size:.46rem;color:#f59e0b;font-family:var(--font-m)">📍 ARRIVED ${minsAgo(v.updatedAt)}</div>
+          `:v.status==='idle'?`
+          <div style="font-size:.52rem;color:var(--muted);margin-bottom:2px">LAST: ${v.from||'?'} → ${v.to||'?'}</div>
+          <div style="font-size:.46rem;color:var(--muted)">${minsAgo(v.updatedAt)}</div>
+          `:v.status==='online'?`
+          <div style="font-size:.52rem;color:var(--accent);margin-bottom:2px">✅ LOGGED IN — READY</div>
+          <div style="font-size:.46rem;color:var(--muted)">${v.loginTime?'SINCE '+minsAgo(v.loginTime):minsAgo(v.updatedAt)}</div>
+          `:`
+          <div style="font-size:.52rem;color:var(--muted)">LAST SEEN ${minsAgo(v.updatedAt)}</div>
+          `}
+        </div>
+
+        <!-- Right: trips + revenue -->
+        <div style="padding:9px 11px;text-align:right;display:flex;flex-direction:column;justify-content:center;border-left:1px solid var(--border)">
+          <div style="font-family:var(--font-d);font-size:1.3rem;color:var(--accent);line-height:1">${v.trips}</div>
+          <div style="font-family:var(--font-m);font-size:.42rem;color:var(--muted);letter-spacing:1px">TRIPS</div>
+          ${v.revenue?`<div style="font-family:var(--font-m);font-size:.52rem;color:var(--accent);margin-top:4px;font-weight:700">KES ${(v.revenue/1000).toFixed(1)}K</div>`:''}
+        </div>
+      </div>
+
+      <!-- PROGRESS BAR for driving/arrived -->
+      ${v.status==='driving'?`<div style="height:3px;background:rgba(34,197,94,.15)"><div style="height:100%;background:#22c55e;width:60%;animation:none"></div></div>`:
+        v.status==='arrived'?`<div style="height:3px;background:rgba(245,158,11,.15)"><div style="height:100%;background:#f59e0b;width:85%"></div></div>`:''}
+    </div>`).join('')}
+
+    <!-- ── TRIP FEED ─────────────────────────── -->
+    ${todayLive.length?`
+    <div class="stitle2" style="margin:14px 0 8px">📋 TODAY'S TRIP FEED</div>
+    ${liveTrips.slice(0,50).map(t=>`
       <div class="live-item ${liveNewIds.has(t._fbId)?'new':''}">
         <div class="live-top">
-          <span class="live-route">${t.fromStation||'?'} → ${t.toStation||'?'}</span>
+          <span style="display:flex;align-items:center;gap:6px">
+            <span style="font-family:var(--font-m);font-size:.52rem;background:var(--accent);color:#fff;padding:2px 8px;letter-spacing:1px">${t.carPlate||'—'}</span>
+            <span class="live-route">${t.fromStation||'?'} → ${t.toStation||'?'}</span>
+          </span>
           <span class="live-amt">KES ${Number(t.amount||0).toLocaleString()}</span>
         </div>
         <div class="live-bot">
-          <span style="display:flex;align-items:center;gap:6px">
-            <span style="font-family:var(--font-m);font-size:.52rem;background:var(--accent);color:#fff;padding:1px 7px;letter-spacing:1px">${t.carPlate||'—'}</span>
-            <span>${t.driver||'—'}</span>
-          </span>
+          <span>${t.driver||'—'}${t.distance?` · 📏 ${t.distance}km`:''}</span>
           <span class="live-time">${t.time||t.date||''}</span>
         </div>
-        ${t.distance?`<div style="font-size:.5rem;color:var(--muted);margin-top:3px">📏 ${t.distance}km${t.fuelEfficiency?` · ⚡ ${t.fuelEfficiency}km/L`:''}</div>`:''}
-      </div>`).join('')}`
-    :`<div class="live-empty">${isOn?'⏳ WAITING FOR TRIPS...<br>VEHICLES WILL APPEAR HERE<br>AS TRIPS ARE SUBMITTED':'▶ START THE LISTENER ABOVE<br>TO MONITOR ALL VEHICLES IN REAL TIME<br><br>REQUIRES FIREBASE CONNECTION'}</div>`}`;
+      </div>`).join('')}`:''}
+    `:`<div class="live-empty">${isOn?'⏳ WAITING FOR DRIVERS TO LOG IN...<br><br>EACH VEHICLE WILL APPEAR HERE<br>WHEN THE DRIVER STARTS THE APP':'▶ START THE LISTENER ABOVE<br>TO MONITOR ALL VEHICLES IN REAL TIME<br><br>REQUIRES FIREBASE CONNECTION'}</div>`}`;
 }
-
 // ══════════════════════════════════════════════
 // INIT — with trip recovery + login reset on refresh
 // ══════════════════════════════════════════════
