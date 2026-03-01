@@ -20,6 +20,7 @@
 <!-- Firebase v9 compat -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -302,6 +303,46 @@ main{padding:13px 13px 74px}
 .queue-banner{background:var(--accent2);color:#fff;padding:7px 13px;font-family:var(--font-m);font-size:.56rem;letter-spacing:1px;display:none;align-items:center;justify-content:space-between;cursor:pointer}
 .queue-banner.show{display:flex}
 
+/* AUTH SCREENS */
+.auth-overlay{position:fixed;inset:0;background:var(--bg);z-index:600;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
+.auth-overlay.hidden{display:none}
+.auth-box{width:100%;max-width:400px}
+.auth-logo{text-align:center;margin-bottom:28px}
+.auth-logo-ico{font-size:3rem;margin-bottom:6px}
+.auth-logo-name{font-family:var(--font-d);font-size:2.2rem;letter-spacing:4px;color:var(--accent);line-height:1}
+.auth-logo-sub{font-family:var(--font-m);font-size:.52rem;color:var(--muted);letter-spacing:2px;margin-top:4px}
+.auth-card{background:var(--card);border:2px solid var(--border);padding:22px 20px}
+.auth-card-title{font-family:var(--font-d);font-size:1.4rem;letter-spacing:3px;color:var(--accent);margin-bottom:4px}
+.auth-card-sub{font-family:var(--font-m);font-size:.5rem;color:var(--muted);letter-spacing:1.5px;margin-bottom:20px;line-height:1.7}
+.auth-field{margin-bottom:14px}
+.auth-field label{display:block;font-family:var(--font-m);font-size:.48rem;color:var(--muted);letter-spacing:1.5px;margin-bottom:5px;text-transform:uppercase}
+.auth-input{width:100%;background:var(--bg);border:2px solid var(--border);color:var(--text);padding:12px 13px;font-family:var(--font-m);font-size:.9rem;outline:none;transition:border-color .2s;letter-spacing:1px}
+.auth-input:focus{border-color:var(--accent)}
+.auth-input.error{border-color:var(--red)}
+.auth-input-wrap{position:relative}
+.auth-eye{position:absolute;right:11px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--muted);cursor:pointer;font-size:1rem;padding:4px}
+.auth-btn{width:100%;background:var(--accent);border:none;color:#fff;font-family:var(--font-d);font-size:1.1rem;letter-spacing:3px;padding:14px;cursor:pointer;transition:opacity .2s;margin-top:6px}
+.auth-btn:hover{opacity:.88}
+.auth-btn:disabled{opacity:.4;cursor:not-allowed}
+.auth-btn.secondary{background:transparent;border:2px solid var(--border);color:var(--muted);font-size:.7rem;letter-spacing:2px;margin-top:8px;padding:11px}
+.auth-btn.secondary:hover{border-color:var(--accent);color:var(--accent)}
+.auth-error{background:var(--rlight);border:1px solid var(--red);color:var(--red);font-family:var(--font-m);font-size:.54rem;padding:10px 12px;letter-spacing:1px;margin-bottom:12px;display:none}
+.auth-error.show{display:block}
+.auth-success{background:#e8f5ed;border:1px solid var(--accent);color:var(--accent);font-family:var(--font-m);font-size:.54rem;padding:10px 12px;letter-spacing:1px;margin-bottom:12px;display:none}
+.auth-success.show{display:block}
+.auth-divider{display:flex;align-items:center;gap:10px;margin:14px 0}
+.auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.auth-divider-txt{font-family:var(--font-m);font-size:.46rem;color:var(--muted);letter-spacing:1px}
+.auth-link{font-family:var(--font-m);font-size:.52rem;color:var(--accent);cursor:pointer;text-decoration:underline;background:none;border:none;padding:0;display:block;text-align:center;margin-top:12px;letter-spacing:1px}
+.auth-spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.driver-reg-card{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--accent);padding:11px 13px;margin-bottom:8px}
+.driver-reg-name{font-family:var(--font-m);font-size:.65rem;font-weight:700;color:var(--text)}
+.driver-reg-email{font-size:.54rem;color:var(--muted);margin-top:2px}
+.driver-reg-status{display:inline-block;font-family:var(--font-m);font-size:.44rem;letter-spacing:1px;padding:2px 7px;margin-top:4px}
+.driver-reg-status.active{background:rgba(34,197,94,.12);color:#22c55e}
+.driver-reg-status.pending{background:rgba(240,165,0,.12);color:#f59e0b}
+
 /* FLEET STATUS BOARD */
 .fleet-board{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:14px}
 .fleet-card{background:var(--card);border:2px solid var(--border);padding:10px 11px;position:relative;overflow:hidden;transition:border-color .3s}
@@ -499,6 +540,73 @@ main{padding:13px 13px 74px}
     <span class="sync-timer" id="syncTimer"></span>
   </div>
 </header>
+
+<!-- ════════════════════════════════════════════
+     DRIVER AUTH OVERLAY
+     Shows when driver is not logged in via Firebase Auth
+════════════════════════════════════════════ -->
+<div class="auth-overlay hidden" id="authOverlay">
+  <div class="auth-box">
+
+    <!-- LOGO -->
+    <div class="auth-logo">
+      <div class="auth-logo-ico">🚌</div>
+      <div class="auth-logo-name">FESTUS SACCO</div>
+      <div class="auth-logo-sub">FLEET MANAGEMENT SYSTEM</div>
+    </div>
+
+    <!-- LOGIN PANEL -->
+    <div id="authPanelLogin">
+      <div class="auth-card">
+        <div class="auth-card-title">DRIVER LOGIN</div>
+        <div class="auth-card-sub">ENTER YOUR REGISTERED EMAIL AND PASSWORD<br>TO ACCESS YOUR ACCOUNT</div>
+        <div class="auth-error" id="authLoginError"></div>
+        <div class="auth-field">
+          <label>Email Address</label>
+          <input class="auth-input" type="email" id="authEmail" placeholder="driver@festussacco.com"
+            autocomplete="email" onkeydown="if(event.key==='Enter')document.getElementById('authPass').focus()">
+        </div>
+        <div class="auth-field">
+          <label>Password</label>
+          <div class="auth-input-wrap">
+            <input class="auth-input" type="password" id="authPass" placeholder="••••••••"
+              autocomplete="current-password" id="authPass"
+              onkeydown="if(event.key==='Enter')authLogin()">
+            <button class="auth-eye" onclick="toggleAuthEye()" id="authEyeBtn">👁</button>
+          </div>
+        </div>
+        <button class="auth-btn" id="authLoginBtn" onclick="authLogin()">
+          LOG IN
+        </button>
+        <button class="auth-link" onclick="showAuthPanel('forgot')">
+          Forgot your password?
+        </button>
+      </div>
+    </div>
+
+    <!-- FORGOT PASSWORD PANEL -->
+    <div id="authPanelForgot" style="display:none">
+      <div class="auth-card">
+        <div class="auth-card-title">RESET PASSWORD</div>
+        <div class="auth-card-sub">ENTER YOUR EMAIL ADDRESS AND WE'LL SEND<br>YOU A LINK TO RESET YOUR PASSWORD</div>
+        <div class="auth-error" id="authForgotError"></div>
+        <div class="auth-success" id="authForgotSuccess"></div>
+        <div class="auth-field">
+          <label>Email Address</label>
+          <input class="auth-input" type="email" id="authForgotEmail" placeholder="driver@festussacco.com"
+            onkeydown="if(event.key==='Enter')authForgotPassword()">
+        </div>
+        <button class="auth-btn" id="authForgotBtn" onclick="authForgotPassword()">
+          SEND RESET LINK
+        </button>
+        <button class="auth-btn secondary" onclick="showAuthPanel('login')">
+          ← BACK TO LOGIN
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
 
 <!-- ACTIVE TRIP RECOVERY OVERLAY -->
 <div class="trip-recovery-overlay" id="tripRecoveryOverlay">
@@ -813,6 +921,10 @@ let liveNewIds         = new Set(); // recently-arrived trip IDs for highlight
 let liveSessionSub     = null;   // Firestore onSnapshot for sessions collection
 let liveSessions       = {};     // {carPlate: sessionDoc} — keyed by plate
 let mySessionId        = null;   // Firestore doc ID of this driver's session
+// Firebase Auth
+let auth               = null;   // firebase.auth() instance
+let currentAuthUser    = null;   // Currently signed-in Firebase user
+let currentDriverDoc   = null;   // Firestore driver profile {name, email, carPlate, ...}
 let stationSearch      = '';     // filter text for station grid
 let sessionSecondsLeft = SESSION_TIMEOUT;
 let sessionInterval    = null;
@@ -941,7 +1053,16 @@ function goSetup(){
   endSession(); // Mark driver as offline in Firebase
   mySessionId = null;
   tripState.phase='setup';
+  tripState.driver=''; tripState.carPlate='';
+  save('fs_driver', null);
   switchPage('log');
+  // Sign out from Firebase Auth — will trigger onAuthStateChanged → show login
+  if(auth && currentAuthUser){
+    auth.signOut().then(()=>{ renderLog(); });
+  } else {
+    showAuthOverlay();
+    renderLog();
+  }
 }
 
 // ══════════════════════════════════════════════
@@ -1781,6 +1902,7 @@ function initFirebase(){
       });
     }
     db=firebase.firestore();
+    auth=firebase.auth();
     // Offline persistence — survives network drops
     db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
     return true;
@@ -2069,17 +2191,17 @@ function renderLog(){
   // SETUP
   if(tripState.phase==='setup'){
     el.innerHTML=`
-      <div class="card" style="border-left:4px solid var(--accent2)">
-        <div class="ctitle">DRIVER LOGIN</div>
-        <div class="field"><label>Select Driver</label>
-          <select id="selD"><option value="">— Choose Driver —</option>
-          ${DRIVERS.map(d=>`<option value="${d}" ${d===tripState.driver?'selected':''}>${d}</option>`).join('')}</select></div>
-        <div class="field"><label>Car Plate</label>
-          <select id="selP"><option value="">— Choose Car —</option>
-          ${CARS.map(c=>`<option value="${c}" ${c===tripState.carPlate?'selected':''}>${c}${shifts[c]?.open===false?' 🔴 CLOSED':shifts[c]?.open===true?' 🟢':''}</option>`).join('')}</select></div>
-        <button class="bb bstart" onclick="saveDriver()">BEGIN SHIFT</button>
-      </div>
-      ${renderTodayHistory()}`;
+      <div class="card" style="border-left:4px solid var(--accent2);text-align:center;padding:32px 20px">
+        <div style="font-size:2.5rem;margin-bottom:10px">🚌</div>
+        <div class="ctitle" style="margin-bottom:6px">FESTUS SACCO</div>
+        <div style="font-family:var(--font-m);font-size:.56rem;color:var(--muted);letter-spacing:1px;line-height:1.8">
+          PLEASE WAIT — VERIFYING YOUR ACCOUNT...<br>
+          <span style="font-size:.48rem">IF LOGIN SCREEN DOESN'T APPEAR, REFRESH THE PAGE</span>
+        </div>
+        ${appConfig.projectId?'':`<div style="margin-top:16px;padding:12px;background:var(--rlight);border:1px solid var(--red);font-family:var(--font-m);font-size:.52rem;color:var(--red);letter-spacing:1px">⚠ FIREBASE NOT CONFIGURED<br>CONTACT SYSTEM ADMIN</div>`}
+      </div>`;
+    // Trigger auth overlay if Firebase is configured
+    if(appConfig.projectId && !currentAuthUser) showAuthOverlay();
     return;
   }
 
@@ -2112,7 +2234,7 @@ function renderLog(){
             🚌 ${canStart?'START TRIP':`BLOCKED — ${why}`}
           </button>`;
         })()}
-        <button class="bout" onclick="goSetup()">CHANGE DRIVER / CAR</button>
+        <button class="bout" onclick="authLogout()">🚪 LOG OUT</button>
       </div>
       ${renderTodayHistory()}`;
     return;
@@ -2252,7 +2374,7 @@ function renderLog(){
         </div>
       </div>
       <button class="bb bstart" onclick="newTrip()">🚌 START NEXT TRIP</button>
-      <button class="bout" onclick="goSetup()">END SHIFT</button>
+      <button class="bout" onclick="authLogout()">🚪 END SHIFT &amp; LOG OUT</button>
       ${renderTodayHistory()}`;
     return;
   }
@@ -2699,7 +2821,7 @@ function renderAdmin(){
     </div>
     <div class="atabs">
       <button class="atab ${adminTab==='shifts'?'active':''}" onclick="adminTab='shifts';renderAdmin()">SHIFTS</button>
-      <button class="atab ${adminTab==='drivers'?'active':''}" onclick="adminTab='drivers';renderAdmin()">DRIVERS</button>
+      <button class="atab ${adminTab==='drivers'?'active':''}" onclick="adminTab='drivers';renderAdmin();setTimeout(loadRegisteredDrivers,100)">DRIVERS</button>
       <button class="atab ${adminTab==='cars'?'active':''}" onclick="adminTab='cars';renderAdmin()">CARS</button>
       <button class="atab ${adminTab==='stations'?'active':''}" onclick="adminTab='stations';renderAdmin()">STATIONS</button>
       <button class="atab ${adminTab==='trips'?'active':''}" onclick="adminTab='trips';renderAdmin()">TRIPS</button>
@@ -2748,22 +2870,56 @@ function renderAdmin(){
 
     <!-- DRIVERS -->
     <div class="asect ${adminTab==='drivers'?'active':''}">
+
+      <!-- REGISTER NEW DRIVER -->
+      <div class="card" style="border-top:3px solid var(--accent2);margin-bottom:12px">
+        <div class="ctitle" style="color:var(--accent2)">➕ REGISTER NEW DRIVER</div>
+        <div class="csub">// DRIVER RECEIVES A SETUP EMAIL TO CREATE THEIR OWN PASSWORD</div>
+        <div id="regDriverError" style="display:none;background:var(--rlight);border:1px solid var(--red);color:var(--red);font-family:var(--font-m);font-size:.52rem;padding:9px 11px;letter-spacing:1px;margin-bottom:10px"></div>
+        <div id="regDriverSuccess" style="display:none;background:#e8f5ed;border:1px solid var(--accent);color:var(--accent);font-family:var(--font-m);font-size:.52rem;padding:9px 11px;letter-spacing:1px;margin-bottom:10px"></div>
+        <div class="field"><label>Full Name (IN CAPS)</label>
+          <input type="text" id="regDName" placeholder="e.g. JOHN KAMAU" style="text-transform:uppercase">
+        </div>
+        <div class="field"><label>Email Address</label>
+          <input type="email" id="regDEmail" placeholder="driver@gmail.com">
+        </div>
+        <div class="field"><label>Assign Car Plate</label>
+          <select id="regDCar">
+            <option value="">— Assign Car (optional) —</option>
+            ${CARS.map(c=>`<option value="${c}">${c}</option>`).join('')}
+          </select>
+        </div>
+        <div class="field"><label>Temporary Password <span style="color:var(--muted)">(driver will receive reset email)</span></label>
+          <input type="text" id="regDPass" value="Festus2024!" placeholder="min 6 characters">
+        </div>
+        <button class="bb bstart" style="margin:0" id="regDBtn" onclick="adminRegisterDriver()">➕ REGISTER DRIVER</button>
+      </div>
+
+      <!-- REGISTERED DRIVERS LIST -->
       <div class="card">
-        <div class="ctitle">DRIVERS <span class="pill">${DRIVERS.length}</span></div>
-        <div class="csub">// SET DAILY REVENUE TARGETS PER DRIVER</div>
+        <div class="ctitle">REGISTERED DRIVERS <span class="pill" id="regDriverCount">—</span></div>
+        <div class="csub">// RESET PASSWORDS · DISABLE ACCOUNTS · VIEW ASSIGNMENTS</div>
+        <div id="regDriverList">
+          <div style="text-align:center;padding:20px;font-family:var(--font-m);font-size:.54rem;color:var(--muted)">
+            CLICK REFRESH TO LOAD DRIVERS
+          </div>
+        </div>
+        <div style="margin-top:10px">
+          <button class="bsm bg" style="width:100%;padding:10px" onclick="loadRegisteredDrivers()">⟳ LOAD / REFRESH DRIVERS</button>
+        </div>
+      </div>
+
+      <!-- DAILY TARGETS -->
+      <div class="card" style="margin-top:12px">
+        <div class="ctitle">DAILY REVENUE TARGETS</div>
+        <div class="csub">// SET KES TARGETS PER DRIVER</div>
         ${DRIVERS.map((d,i)=>{
           const esc=d.replace(/'/g,"\'");
           const target=driverTargets[d];
           return`<div class="aitem" style="flex-direction:column;align-items:stretch;gap:8px;padding:12px">
             <div style="display:flex;align-items:center;justify-content:space-between">
-              <div>
-                <div class="aitem-name">${d}</div>
-                <div class="aitem-sub">PIN: ${driverPins[d]?'SET ✓':'NOT SET'} &nbsp;·&nbsp; Target: ${target?'KES '+Number(target).toLocaleString():'<span style="color:var(--muted)">Not set</span>'}</div>
-              </div>
-              <div class="abtn-row">
-                <button class="aedit" onclick="adminSetDriverPin('${esc}')">🔑</button>
-                <button class="adel" onclick="removeDriver(${i})">✕</button>
-              </div>
+              <div><div class="aitem-name">${d}</div></div>
+              <div class="abtn-row"><button class="adel" onclick="removeDriver(${i})">✕</button></div>
             </div>
             <div style="display:flex;gap:6px;align-items:center">
               <div style="font-family:var(--font-m);font-size:.48rem;color:var(--muted);white-space:nowrap;letter-spacing:1px">DAILY TARGET KES</div>
@@ -2775,12 +2931,8 @@ function renderAdmin(){
             </div>
           </div>`;
         }).join('')}
-        <div class="divline"></div>
-        <div class="addrow">
-          <div class="field"><label>New Driver Name</label><input type="text" id="newDriver" placeholder="FULL NAME IN CAPS"></div>
-          <button class="bsm bg" onclick="addDriver()">ADD</button>
-        </div>
       </div>
+
     </div>
 
     <!-- CARS -->
@@ -3070,6 +3222,141 @@ async function testFirebaseConnection(){
     toast('✅ FIREBASE CONNECTION OK!');
   }catch(e){toast('⚠ CONNECTION FAILED: '+e.message);}
 }
+
+// ══════════════════════════════════════════════
+// ADMIN — DRIVER REGISTRATION & MANAGEMENT
+// ══════════════════════════════════════════════
+
+async function adminRegisterDriver(){
+  const name  = (document.getElementById('regDName')?.value||'').trim().toUpperCase();
+  const email = (document.getElementById('regDEmail')?.value||'').trim().toLowerCase();
+  const car   = (document.getElementById('regDCar')?.value||'').trim();
+  const pass  = (document.getElementById('regDPass')?.value||'').trim();
+
+  const errEl  = document.getElementById('regDriverError');
+  const succEl = document.getElementById('regDriverSuccess');
+  if(errEl)  { errEl.style.display='none'; errEl.textContent=''; }
+  if(succEl) { succEl.style.display='none'; succEl.textContent=''; }
+
+  if(!name)  { if(errEl){errEl.textContent='⚠ ENTER DRIVER FULL NAME';errEl.style.display='block';} return; }
+  if(!email) { if(errEl){errEl.textContent='⚠ ENTER DRIVER EMAIL ADDRESS';errEl.style.display='block';} return; }
+  if(!pass||pass.length<6){ if(errEl){errEl.textContent='⚠ PASSWORD MUST BE AT LEAST 6 CHARACTERS';errEl.style.display='block';} return; }
+  if(!db)    { if(errEl){errEl.textContent='⚠ FIREBASE NOT CONNECTED';errEl.style.display='block';} return; }
+
+  const btn = document.getElementById('regDBtn');
+  btn.disabled=true; btn.textContent='REGISTERING...';
+
+  try{
+    // Create Firebase Auth account for the driver
+    const cred = await auth.createUserWithEmailAndPassword(email, pass);
+    const uid  = cred.user.uid;
+
+    // Send password reset email so driver can set their own password
+    await auth.sendPasswordResetEmail(email);
+
+    // Save driver profile to Firestore
+    const profile = {
+      uid, name, email,
+      carPlate: car || null,
+      role: 'driver',
+      active: true,
+      registeredAt: Date.now(),
+      registeredBy: 'admin'
+    };
+    await db.collection('drivers').doc(uid).set(profile);
+
+    // Also add to local DRIVERS array for legacy support
+    if(!DRIVERS.includes(name)){ DRIVERS.push(name); save('fs_drivers', DRIVERS); }
+
+    // Sign back in as admin (createUser signs in as new user!)
+    // We need to re-authenticate admin — for now just sign out new user
+    // In practice admin should use a separate admin SDK or their own auth
+    // Simple workaround: immediately sign back out, admin stays on admin page
+    await auth.signOut();
+
+    btn.disabled=false; btn.textContent='➕ REGISTER DRIVER';
+    if(succEl){
+      succEl.textContent = '✅ DRIVER REGISTERED! '+name+' WILL RECEIVE A PASSWORD SETUP EMAIL AT '+email.toUpperCase();
+      succEl.style.display='block';
+    }
+    // Clear form
+    document.getElementById('regDName').value='';
+    document.getElementById('regDEmail').value='';
+    document.getElementById('regDCar').value='';
+    document.getElementById('regDPass').value='Festus2024!';
+    // Reload list
+    loadRegisteredDrivers();
+
+  } catch(e){
+    btn.disabled=false; btn.textContent='➕ REGISTER DRIVER';
+    const msgs={
+      'auth/email-already-in-use': '⚠ THIS EMAIL IS ALREADY REGISTERED',
+      'auth/invalid-email':        '⚠ INVALID EMAIL ADDRESS',
+      'auth/weak-password':        '⚠ PASSWORD IS TOO WEAK — USE AT LEAST 6 CHARACTERS',
+    };
+    if(errEl){ errEl.textContent = msgs[e.code]||('⚠ '+e.message); errEl.style.display='block'; }
+  }
+}
+
+async function loadRegisteredDrivers(){
+  const listEl  = document.getElementById('regDriverList');
+  const countEl = document.getElementById('regDriverCount');
+  if(!listEl||!db) return;
+  listEl.innerHTML='<div style="text-align:center;padding:16px;font-family:var(--font-m);font-size:.54rem;color:var(--muted)">LOADING...</div>';
+  try{
+    const snap = await db.collection('drivers').orderBy('registeredAt','desc').get();
+    const drivers = snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(countEl) countEl.textContent = drivers.length;
+    if(!drivers.length){
+      listEl.innerHTML='<div style="text-align:center;padding:20px;font-family:var(--font-m);font-size:.54rem;color:var(--muted)">NO DRIVERS REGISTERED YET</div>';
+      return;
+    }
+    listEl.innerHTML = drivers.map(d=>`
+      <div class="driver-reg-card">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start">
+          <div style="flex:1">
+            <div class="driver-reg-name">${d.name||'—'}</div>
+            <div class="driver-reg-email">${d.email||'—'}</div>
+            <div style="font-size:.5rem;color:var(--muted);margin-top:3px">${d.carPlate?'🚗 '+d.carPlate:'No car assigned'}</div>
+            <span class="driver-reg-status ${d.active!==false?'active':'pending'}">${d.active!==false?'ACTIVE':'DISABLED'}</span>
+          </div>
+          <div style="display:flex;gap:5px;flex-shrink:0">
+            <button style="background:none;border:1px solid var(--border);color:var(--muted);font-family:var(--font-m);font-size:.44rem;padding:5px 8px;cursor:pointer;letter-spacing:1px"
+              onclick="adminResetDriverPassword('${d.email}','${d.name}')">🔑 RESET PW</button>
+            <button style="background:none;border:1px solid var(--red);color:var(--red);font-family:var(--font-m);font-size:.44rem;padding:5px 8px;cursor:pointer;letter-spacing:1px"
+              onclick="adminToggleDriver('${d.id}',${d.active!==false})">
+              ${d.active!==false?'DISABLE':'ENABLE'}
+            </button>
+          </div>
+        </div>
+        ${d.registeredAt?`<div style="font-size:.46rem;color:var(--muted);margin-top:5px">REGISTERED ${new Date(d.registeredAt).toLocaleDateString('en-GB')}</div>`:''}
+      </div>`).join('');
+  } catch(e){
+    listEl.innerHTML='<div style="color:var(--red);font-family:var(--font-m);font-size:.54rem;padding:12px">⚠ ERROR LOADING DRIVERS: '+e.message+'</div>';
+  }
+}
+
+async function adminResetDriverPassword(email, name){
+  if(!email){ toast('⚠ NO EMAIL FOR THIS DRIVER'); return; }
+  if(!confirm('SEND PASSWORD RESET EMAIL TO '+email.toUpperCase()+'?')) return;
+  try{
+    await auth.sendPasswordResetEmail(email);
+    toast('✅ RESET EMAIL SENT TO '+name.split(' ')[0]);
+  } catch(e){ toast('⚠ FAILED: '+e.message); }
+}
+
+async function adminToggleDriver(uid, currentlyActive){
+  const action = currentlyActive ? 'DISABLE' : 'ENABLE';
+  if(!confirm(action+' THIS DRIVER ACCOUNT?')) return;
+  try{
+    await db.collection('drivers').doc(uid).update({active: !currentlyActive});
+    toast('✅ DRIVER '+action+'D');
+    loadRegisteredDrivers();
+  } catch(e){ toast('⚠ FAILED: '+e.message); }
+}
+
+// Auto-load driver list when admin opens drivers tab
+// (called from renderAdmin)
 
 // ══════════════════════════════════════════════
 // REPORT MODAL
@@ -3573,6 +3860,177 @@ function changeDevPin(){
 }
 
 // ══════════════════════════════════════════════
+// FIREBASE AUTH — Driver Login System
+// ══════════════════════════════════════════════
+
+function showAuthOverlay(){
+  document.getElementById('authOverlay').classList.remove('hidden');
+  // Pre-fill email if we have it saved
+  const saved = localStorage.getItem('fs_last_email');
+  if(saved) document.getElementById('authEmail').value = saved;
+  setTimeout(()=>document.getElementById('authEmail').focus(), 200);
+}
+
+function hideAuthOverlay(){
+  document.getElementById('authOverlay').classList.add('hidden');
+}
+
+function showAuthPanel(panel){
+  document.getElementById('authPanelLogin').style.display  = panel==='login'  ? 'block' : 'none';
+  document.getElementById('authPanelForgot').style.display = panel==='forgot' ? 'block' : 'none';
+  clearAuthErrors();
+}
+
+function clearAuthErrors(){
+  ['authLoginError','authForgotError','authForgotSuccess'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el){el.classList.remove('show');el.textContent='';}
+  });
+}
+
+function showAuthError(id, msg){
+  const el=document.getElementById(id);
+  if(el){el.textContent=msg;el.classList.add('show');}
+}
+
+function toggleAuthEye(){
+  const inp=document.getElementById('authPass');
+  const btn=document.getElementById('authEyeBtn');
+  if(!inp)return;
+  inp.type = inp.type==='password' ? 'text' : 'password';
+  btn.textContent = inp.type==='password' ? '👁' : '🙈';
+}
+
+async function authLogin(){
+  const email = (document.getElementById('authEmail')?.value||'').trim().toLowerCase();
+  const pass  = document.getElementById('authPass')?.value||'';
+  clearAuthErrors();
+  if(!email){ showAuthError('authLoginError','⚠ PLEASE ENTER YOUR EMAIL ADDRESS'); return; }
+  if(!pass){  showAuthError('authLoginError','⚠ PLEASE ENTER YOUR PASSWORD'); return; }
+
+  const btn=document.getElementById('authLoginBtn');
+  btn.disabled=true;
+  btn.innerHTML='<span class="auth-spinner"></span>LOGGING IN...';
+
+  try{
+    if(!auth){ initFirebase(); }
+    if(!auth){ showAuthError('authLoginError','⚠ SYSTEM ERROR — CONTACT ADMIN'); btn.disabled=false; btn.textContent='LOG IN'; return; }
+
+    await auth.signInWithEmailAndPassword(email, pass);
+    localStorage.setItem('fs_last_email', email);
+    // onAuthStateChanged will handle the rest
+  } catch(e){
+    btn.disabled=false; btn.innerHTML='LOG IN';
+    const msgs={
+      'auth/user-not-found':    '⚠ NO ACCOUNT FOUND — CONTACT YOUR MANAGER',
+      'auth/wrong-password':    '⚠ INCORRECT PASSWORD — TRY AGAIN OR RESET',
+      'auth/invalid-email':     '⚠ INVALID EMAIL ADDRESS',
+      'auth/user-disabled':     '⚠ YOUR ACCOUNT HAS BEEN DISABLED — CONTACT ADMIN',
+      'auth/too-many-requests': '⚠ TOO MANY ATTEMPTS — WAIT A FEW MINUTES AND TRY AGAIN',
+      'auth/invalid-credential':'⚠ EMAIL OR PASSWORD IS INCORRECT',
+    };
+    showAuthError('authLoginError', msgs[e.code]||('⚠ '+e.message));
+  }
+}
+
+async function authForgotPassword(){
+  const email = (document.getElementById('authForgotEmail')?.value||'').trim().toLowerCase();
+  clearAuthErrors();
+  if(!email){ showAuthError('authForgotError','⚠ PLEASE ENTER YOUR EMAIL ADDRESS'); return; }
+
+  const btn=document.getElementById('authForgotBtn');
+  btn.disabled=true;
+  btn.innerHTML='<span class="auth-spinner"></span>SENDING...';
+
+  try{
+    if(!auth){ initFirebase(); }
+    await auth.sendPasswordResetEmail(email);
+    btn.disabled=false; btn.innerHTML='SEND RESET LINK';
+    const succ=document.getElementById('authForgotSuccess');
+    if(succ){ succ.textContent='✅ RESET LINK SENT TO '+email.toUpperCase()+' — CHECK YOUR INBOX'; succ.classList.add('show'); }
+  } catch(e){
+    btn.disabled=false; btn.innerHTML='SEND RESET LINK';
+    const msgs={
+      'auth/user-not-found': '⚠ NO ACCOUNT WITH THAT EMAIL — CONTACT YOUR MANAGER',
+      'auth/invalid-email':  '⚠ INVALID EMAIL ADDRESS',
+    };
+    showAuthError('authForgotError', msgs[e.code]||('⚠ '+e.message));
+  }
+}
+
+async function authLogout(){
+  if(!confirm('LOG OUT OF YOUR ACCOUNT?')) return;
+  try{
+    goSetup(); // End trip session first
+    if(auth) await auth.signOut();
+  } catch(e){ console.error('Logout error:', e); }
+}
+
+async function loadDriverProfile(uid){
+  // Look up the driver's profile in Firestore drivers collection
+  try{
+    const snap = await db.collection('drivers').doc(uid).get();
+    if(snap.exists){
+      currentDriverDoc = snap.data();
+      return currentDriverDoc;
+    }
+    // Fallback: query by uid field
+    const q = await db.collection('drivers').where('uid','==',uid).limit(1).get();
+    if(!q.empty){ currentDriverDoc = q.docs[0].data(); return currentDriverDoc; }
+  } catch(e){ console.error('loadDriverProfile error:', e); }
+  return null;
+}
+
+function onDriverAuthenticated(user, profile){
+  // Populate tripState with driver info from their profile
+  if(profile){
+    tripState.driver   = profile.name || user.email;
+    tripState.carPlate = profile.carPlate || '';
+    tripState.phase    = 'idle';
+    save('fs_driver',{driver:tripState.driver, carPlate:tripState.carPlate});
+    document.getElementById('driverBadge').textContent =
+      tripState.driver.split(' ')[0] + (tripState.carPlate?' · '+tripState.carPlate:'');
+    startSessionTimer();
+    startGpsWatch();
+    writeSession('online',{loginTime:Date.now()});
+  } else {
+    // Auth user exists but no Firestore profile — show error
+    document.getElementById('authLoginBtn').disabled=false;
+    document.getElementById('authLoginBtn').innerHTML='LOG IN';
+    showAuthError('authLoginError','⚠ NO DRIVER PROFILE FOUND — CONTACT YOUR ADMIN');
+    auth.signOut();
+    return;
+  }
+  hideAuthOverlay();
+  renderLog();
+  toast('✅ WELCOME BACK, ' + (profile.name||'DRIVER').split(' ')[0] + '!');
+}
+
+// ── Start the auth listener right after Firebase init ──────────
+function startAuthListener(){
+  if(!auth) return;
+  auth.onAuthStateChanged(async (user)=>{
+    if(user){
+      currentAuthUser = user;
+      // Load their profile from Firestore
+      const profile = await loadDriverProfile(user.uid);
+      onDriverAuthenticated(user, profile);
+    } else {
+      // Not logged in — show auth overlay
+      currentAuthUser    = null;
+      currentDriverDoc   = null;
+      tripState.phase    = 'setup';
+      tripState.driver   = '';
+      tripState.carPlate = '';
+      save('fs_driver', null);
+      document.getElementById('driverBadge').textContent = '— LOGIN —';
+      showAuthOverlay();
+      showAuthPanel('login');
+    }
+  });
+}
+
+// ══════════════════════════════════════════════
 // SESSION TRACKING — writes driver login/phase to Firestore
 // So the admin can see who is logged in and what they're doing
 // ══════════════════════════════════════════════
@@ -3907,11 +4365,15 @@ function renderLiveTab(){
 
   updateOfflineBadge();
   startAutoSync();
-  initFirebase();
-  renderLog();
-  if(appConfig.projectId && isOnline()){
-    loadFirebaseData(true);
-    startLiveListener();
+  if(initFirebase()){
+    startAuthListener(); // shows login overlay or restores session
+    if(isOnline()){
+      loadFirebaseData(true);
+      startLiveListener();
+    }
+  } else {
+    renderLog();
+    showAuthOverlay(); // No config — still show overlay
   }
 })();
 
