@@ -304,6 +304,48 @@ main{padding:13px 13px 74px}
 .queue-banner.show{display:flex}
 
 /* AUTH SCREENS */
+.auth-landing{display:flex;flex-direction:column;gap:14px;margin-top:4px}
+.auth-landing-card{background:var(--card);border:2px solid var(--border);padding:20px;cursor:pointer;transition:border-color .2s,transform .1s;position:relative;overflow:hidden}
+.auth-landing-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.auth-landing-card.admin-card{border-left:4px solid var(--accent2)}
+.auth-landing-card.driver-card{border-left:4px solid var(--accent)}
+.auth-landing-card-ico{font-size:2rem;margin-bottom:6px}
+.auth-landing-card-title{font-family:var(--font-d);font-size:1.3rem;letter-spacing:3px;margin-bottom:4px}
+.auth-landing-card.admin-card .auth-landing-card-title{color:var(--accent2)}
+.auth-landing-card.driver-card .auth-landing-card-title{color:var(--accent)}
+.auth-landing-card-sub{font-family:var(--font-m);font-size:.5rem;color:var(--muted);letter-spacing:1px;line-height:1.7}
+.auth-landing-card-arrow{position:absolute;top:50%;right:16px;transform:translateY(-50%);font-size:1.4rem;color:var(--border)}
+.auth-back-btn{background:none;border:none;font-family:var(--font-m);font-size:.52rem;color:var(--muted);letter-spacing:1px;cursor:pointer;padding:6px 0;display:flex;align-items:center;gap:5px;margin-bottom:14px}
+.auth-back-btn:hover{color:var(--accent)}
+.auth-panel-title{font-family:var(--font-d);font-size:1.5rem;letter-spacing:3px;margin-bottom:4px}
+.auth-panel-sub{font-family:var(--font-m);font-size:.5rem;color:var(--muted);letter-spacing:1px;line-height:1.7;margin-bottom:18px}
+/* DRIVER PAGES */
+.dpage{display:none}
+.dpage.active{display:block}
+.driver-tab-bar{display:flex;border-bottom:2px solid var(--border);margin-bottom:14px;position:sticky;top:0;background:var(--bg);z-index:10;padding-top:4px}
+.driver-tab{flex:1;background:none;border:none;padding:10px 4px;font-family:var(--font-m);font-size:.48rem;letter-spacing:1px;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;margin-bottom:-2px;text-align:center}
+.driver-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.perf-stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.perf-stat{background:var(--card);border:1px solid var(--border);padding:12px 11px}
+.perf-stat-lbl{font-family:var(--font-m);font-size:.46rem;color:var(--muted);letter-spacing:1px;margin-bottom:4px}
+.perf-stat-val{font-family:var(--font-d);font-size:1.6rem;color:var(--text);line-height:1}
+.perf-stat-sub{font-family:var(--font-m);font-size:.44rem;color:var(--muted);margin-top:3px}
+.note-card{background:var(--card);border:1px solid var(--border);border-left:3px solid var(--accent);padding:12px 13px;margin-bottom:8px}
+.note-card.reason{border-left-color:var(--red)}
+.note-card.strategy{border-left-color:#22c55e}
+.note-card-type{font-family:var(--font-m);font-size:.44rem;letter-spacing:1px;margin-bottom:4px}
+.note-card-type.strategy{color:#22c55e}
+.note-card-type.reason{color:var(--red)}
+.note-card-text{font-family:var(--font-b);font-size:.64rem;color:var(--text);line-height:1.5;margin-bottom:4px}
+.note-card-meta{font-family:var(--font-m);font-size:.46rem;color:var(--muted)}
+.note-type-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.note-type-btn{background:var(--card);border:2px solid var(--border);padding:10px;font-family:var(--font-m);font-size:.52rem;letter-spacing:1px;cursor:pointer;text-align:center;transition:all .2s;color:var(--muted)}
+.note-type-btn.selected.strategy{border-color:#22c55e;color:#22c55e;background:rgba(34,197,94,.08)}
+.note-type-btn.selected.reason{border-color:var(--red);color:var(--red);background:rgba(229,57,53,.08)}
+.week-bar{display:flex;align-items:flex-end;gap:3px;height:60px;margin:10px 0}
+.week-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
+.week-bar-fill{width:100%;background:var(--accent);border-radius:2px 2px 0 0;min-height:2px;transition:height .3s}
+.week-bar-lbl{font-family:var(--font-m);font-size:.4rem;color:var(--muted);letter-spacing:.5px}
 .auth-tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:18px}
 .auth-tab{flex:1;background:none;border:none;padding:11px 6px;font-family:var(--font-d);font-size:.9rem;letter-spacing:2px;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;margin-bottom:-2px}
 .auth-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
@@ -541,18 +583,17 @@ main{padding:13px 13px 74px}
       <span class="session-bar" id="sessionBar"></span>
       <span class="offline-badge" id="offlineBadge">OFFLINE</span>
       <button class="hico" onclick="toggleDark()" id="darkBtn" title="Toggle dark mode">🌙</button>
-      <div class="dbadge" id="driverBadge" onclick="goSetup()">— LOGIN —</div>
+      <div class="dbadge" id="driverBadge" onclick="isAdminUser?null:goSetup()">— LOGIN —</div>
     </div>
   </div>
   <div class="hsub">
-    <span>// TRIP LOGGER</span>
+    <span id="headerSubText">// FLEET MANAGEMENT</span>
     <span class="sync-timer" id="syncTimer"></span>
   </div>
 </header>
 
 <!-- ════════════════════════════════════════════
-     DRIVER AUTH OVERLAY
-     Shows when driver is not logged in via Firebase Auth
+     AUTH OVERLAY  — Landing / Create / Login / Forgot
 ════════════════════════════════════════════ -->
 <div class="auth-overlay hidden" id="authOverlay">
   <div class="auth-box">
@@ -564,104 +605,103 @@ main{padding:13px 13px 74px}
       <div class="auth-logo-sub">FLEET MANAGEMENT SYSTEM</div>
     </div>
 
-    <!-- ═══ PANEL: FIRST-TIME OWNER SETUP ═══ -->
-    <div id="authPanelSetup" style="display:none">
-      <div class="auth-card">
-        <div class="auth-setup-header">
-          <div class="auth-setup-header-title">WELCOME, SACCO OWNER</div>
-          <div class="auth-setup-header-sub">THIS IS YOUR FIRST TIME SETTING UP<br>THE FESTUS SACCO FLEET SYSTEM</div>
+    <!-- ═══ PANEL: LANDING ═══ -->
+    <div id="authPanelLanding" style="display:none">
+      <div class="auth-landing">
+        <div class="auth-landing-card admin-card" onclick="switchToPanel('create')">
+          <div class="auth-landing-card-ico">👑</div>
+          <div class="auth-landing-card-title">CREATE ACCOUNT</div>
+          <div class="auth-landing-card-sub">FIRST TIME? SET UP YOUR SACCO OWNER ACCOUNT<br>YOU'LL THEN REGISTER DRIVERS &amp; MANAGE YOUR FLEET</div>
+          <div class="auth-landing-card-arrow">›</div>
         </div>
-        <div style="margin-bottom:16px">
-          <div class="auth-step"><div class="auth-step-num">1</div>CREATE YOUR OWNER ADMIN ACCOUNT BELOW</div>
-          <div class="auth-step"><div class="auth-step-num">2</div>LOG IN AND REGISTER YOUR DRIVERS</div>
-          <div class="auth-step"><div class="auth-step-num">3</div>DRIVERS RECEIVE EMAIL TO SET THEIR PASSWORD</div>
+        <div class="auth-landing-card driver-card" onclick="switchToPanel('login')">
+          <div class="auth-landing-card-ico">🔑</div>
+          <div class="auth-landing-card-title">LOG IN</div>
+          <div class="auth-landing-card-sub">ALREADY HAVE AN ACCOUNT?<br>ADMIN, MANAGERS AND DRIVERS ALL LOGIN HERE</div>
+          <div class="auth-landing-card-arrow">›</div>
         </div>
-        <div class="auth-error" id="authSetupError"></div>
-        <div class="auth-field">
-          <label>Your Full Name</label>
-          <input class="auth-input" type="text" id="setupName" placeholder="e.g. FESTUS MWANGI"
-            style="text-transform:uppercase"
-            onkeydown="if(event.key==='Enter')document.getElementById('setupEmail').focus()">
-        </div>
-        <div class="auth-field">
-          <label>Sacco Name</label>
-          <input class="auth-input" type="text" id="setupSaccoName" placeholder="e.g. FESTUS SACCO"
-            style="text-transform:uppercase"
-            onkeydown="if(event.key==='Enter')document.getElementById('setupEmail').focus()">
-        </div>
-        <div class="auth-field">
-          <label>Your Email Address</label>
-          <input class="auth-input" type="email" id="setupEmail" placeholder="owner@gmail.com"
-            autocomplete="email"
-            onkeydown="if(event.key==='Enter')document.getElementById('setupPass').focus()">
-        </div>
-        <div class="auth-field">
-          <label>Create Password</label>
-          <div class="auth-input-wrap">
-            <input class="auth-input" type="password" id="setupPass" placeholder="Min 6 characters"
-              onkeydown="if(event.key==='Enter')authSetupAdmin()">
-            <button class="auth-eye" onclick="toggleSetupEye()" id="setupEyeBtn">👁</button>
-          </div>
-        </div>
-        <button class="auth-btn" id="setupBtn" onclick="authSetupAdmin()"
-          style="background:var(--accent2);border-color:var(--accent2)">
-          🚀 CREATE ADMIN ACCOUNT
-        </button>
       </div>
     </div>
 
-    <!-- ═══ PANEL: MAIN LOGIN (tabs: Driver / Admin) ═══ -->
-    <div id="authPanelLogin" style="display:none">
-      <div class="auth-card">
-        <!-- Role tabs -->
-        <div class="auth-tabs">
-          <button class="auth-tab active" id="tabDriver" onclick="switchAuthRole('driver')">🚌 DRIVER</button>
-          <button class="auth-tab admin-tab" id="tabAdmin" onclick="switchAuthRole('admin')">👑 ADMIN</button>
-        </div>
-        <div class="auth-error" id="authLoginError"></div>
-        <div class="auth-field">
-          <label id="authEmailLabel">Email Address</label>
-          <input class="auth-input" type="email" id="authEmail" placeholder="your@email.com"
-            autocomplete="email" onkeydown="if(event.key==='Enter')document.getElementById('authPass').focus()">
-        </div>
-        <div class="auth-field">
-          <label>Password</label>
-          <div class="auth-input-wrap">
-            <input class="auth-input" type="password" id="authPass" placeholder="••••••••"
-              autocomplete="current-password"
-              onkeydown="if(event.key==='Enter')authLogin()">
-            <button class="auth-eye" onclick="toggleAuthEye()" id="authEyeBtn">👁</button>
-          </div>
-        </div>
-        <button class="auth-btn" id="authLoginBtn" onclick="authLogin()">LOG IN</button>
-        <button class="auth-link" onclick="showAuthPanel('forgot')">Forgot your password?</button>
-        <button class="auth-link" style="font-size:.42rem;color:var(--muted);margin-top:4px"
-          onclick="showAuthPanel('setup')" id="createAdminLink" style="display:none">
-          First time? Create admin account →
-        </button>
+    <!-- ═══ PANEL: CREATE ADMIN ACCOUNT ═══ -->
+    <div id="authPanelCreate" style="display:none">
+      <button class="auth-back-btn" onclick="switchToPanel('landing')">‹ BACK</button>
+      <div class="auth-panel-title" style="color:var(--accent2)">SACCO SETUP</div>
+      <div class="auth-panel-sub">CREATE YOUR OWNER ACCOUNT. YOU'LL THEN<br>REGISTER DRIVERS FROM YOUR DASHBOARD.</div>
+      <div class="auth-error" id="authSetupError"></div>
+      <div class="auth-field">
+        <label>Your Full Name</label>
+        <input class="auth-input" type="text" id="setupName" placeholder="e.g. FESTUS MWANGI"
+          style="text-transform:uppercase"
+          onkeydown="if(event.key==='Enter')document.getElementById('setupSaccoName').focus()">
       </div>
+      <div class="auth-field">
+        <label>Sacco / Company Name</label>
+        <input class="auth-input" type="text" id="setupSaccoName" placeholder="e.g. FESTUS SACCO"
+          style="text-transform:uppercase"
+          onkeydown="if(event.key==='Enter')document.getElementById('setupEmail').focus()">
+      </div>
+      <div class="auth-field">
+        <label>Your Email Address</label>
+        <input class="auth-input" type="email" id="setupEmail" placeholder="owner@gmail.com"
+          onkeydown="if(event.key==='Enter')document.getElementById('setupPass').focus()">
+      </div>
+      <div class="auth-field">
+        <label>Create Password <span style="color:var(--muted);font-size:.44rem">(min 6 characters)</span></label>
+        <div class="auth-input-wrap">
+          <input class="auth-input" type="password" id="setupPass" placeholder="••••••••"
+            onkeydown="if(event.key==='Enter')authSetupAdmin()">
+          <button class="auth-eye" onclick="toggleSetupEye()" id="setupEyeBtn">👁</button>
+        </div>
+      </div>
+      <button class="auth-btn" id="setupBtn" onclick="authSetupAdmin()"
+        style="background:var(--accent2)">
+        🚀 CREATE OWNER ACCOUNT
+      </button>
+    </div>
+
+    <!-- ═══ PANEL: LOGIN ═══ -->
+    <div id="authPanelLogin" style="display:none">
+      <button class="auth-back-btn" onclick="switchToPanel('landing')">‹ BACK</button>
+      <div class="auth-panel-title">LOG IN</div>
+      <div class="auth-panel-sub">ENTER YOUR EMAIL AND PASSWORD.<br>YOUR ROLE IS DETECTED AUTOMATICALLY.</div>
+      <div class="auth-error" id="authLoginError"></div>
+      <div class="auth-field">
+        <label>Email Address</label>
+        <input class="auth-input" type="email" id="authEmail" placeholder="your@email.com"
+          autocomplete="email"
+          onkeydown="if(event.key==='Enter')document.getElementById('authPass').focus()">
+      </div>
+      <div class="auth-field">
+        <label>Password</label>
+        <div class="auth-input-wrap">
+          <input class="auth-input" type="password" id="authPass" placeholder="••••••••"
+            autocomplete="current-password"
+            onkeydown="if(event.key==='Enter')authLogin()">
+          <button class="auth-eye" onclick="toggleAuthEye()" id="authEyeBtn">👁</button>
+        </div>
+      </div>
+      <button class="auth-btn" id="authLoginBtn" onclick="authLogin()">LOG IN</button>
+      <button class="auth-link" onclick="switchToPanel('forgot')">Forgot your password?</button>
     </div>
 
     <!-- ═══ PANEL: FORGOT PASSWORD ═══ -->
     <div id="authPanelForgot" style="display:none">
-      <div class="auth-card">
-        <div class="auth-card-title">RESET PASSWORD</div>
-        <div class="auth-card-sub">ENTER YOUR EMAIL — WE'LL SEND A RESET LINK</div>
-        <div class="auth-error" id="authForgotError"></div>
-        <div class="auth-success" id="authForgotSuccess"></div>
-        <div class="auth-field">
-          <label>Email Address</label>
-          <input class="auth-input" type="email" id="authForgotEmail" placeholder="your@email.com"
-            onkeydown="if(event.key==='Enter')authForgotPassword()">
-        </div>
-        <button class="auth-btn" id="authForgotBtn" onclick="authForgotPassword()">SEND RESET LINK</button>
-        <button class="auth-btn secondary" onclick="showAuthPanel('login')">← BACK TO LOGIN</button>
+      <button class="auth-back-btn" onclick="switchToPanel('login')">‹ BACK TO LOGIN</button>
+      <div class="auth-panel-title">RESET PASSWORD</div>
+      <div class="auth-panel-sub">ENTER YOUR EMAIL — WE'LL SEND A RESET LINK</div>
+      <div class="auth-error" id="authForgotError"></div>
+      <div class="auth-success" id="authForgotSuccess"></div>
+      <div class="auth-field">
+        <label>Email Address</label>
+        <input class="auth-input" type="email" id="authForgotEmail" placeholder="your@email.com"
+          onkeydown="if(event.key==='Enter')authForgotPassword()">
       </div>
+      <button class="auth-btn" id="authForgotBtn" onclick="authForgotPassword()">SEND RESET LINK</button>
     </div>
 
   </div>
 </div>
-
 <!-- ACTIVE TRIP RECOVERY OVERLAY -->
 <div class="trip-recovery-overlay" id="tripRecoveryOverlay">
   <div class="trip-recovery-box">
@@ -706,17 +746,33 @@ main{padding:13px 13px 74px}
   <div id="page-log" class="page active"></div>
   <div id="page-reports" class="page"></div>
   <div id="page-admin" class="page"></div>
+  <div id="page-performance" class="page"></div>
+  <div id="page-notes" class="page"></div>
 </main>
 
-<nav class="bnav">
+<!-- ADMIN NAV (shown only for admin users) -->
+<nav class="bnav" id="navAdmin" style="display:none">
+  <button class="nbtn" id="nav-admin" onclick="switchPage('admin')">
+    <span class="ni">📊</span><span class="nl">DASHBOARD</span>
+  </button>
+  <button class="nbtn" id="nav-reports" onclick="switchPage('reports')">
+    <span class="ni">📈</span><span class="nl">REPORTS</span>
+  </button>
+  <button class="nbtn" onclick="adminLogoutQuick()">
+    <span class="ni">🚪</span><span class="nl">LOG OUT</span>
+  </button>
+</nav>
+
+<!-- DRIVER NAV (shown only for driver users) -->
+<nav class="bnav" id="navDriver" style="display:none">
   <button class="nbtn active" id="nav-log" onclick="switchPage('log')">
     <span class="ni">🚌</span><span class="nl">LOG TRIP</span>
   </button>
-  <button class="nbtn" id="nav-reports" onclick="switchPage('reports')">
-    <span class="ni">📊</span><span class="nl">REPORTS</span>
+  <button class="nbtn" id="nav-performance" onclick="switchPage('performance')">
+    <span class="ni">📈</span><span class="nl">MY STATS</span>
   </button>
-  <button class="nbtn" id="nav-admin" onclick="switchPage('admin')">
-    <span class="ni">👑</span><span class="nl">ADMIN</span>
+  <button class="nbtn" id="nav-notes" onclick="switchPage('notes')">
+    <span class="ni">💡</span><span class="nl">MY NOTES</span>
   </button>
 </nav>
 
@@ -982,6 +1038,9 @@ let currentAuthUser    = null;   // Currently signed-in Firebase user
 let currentDriverDoc   = null;   // Firestore driver profile {name, email, carPlate, ...}
 let currentAuthRole    = 'driver'; // 'driver' | 'admin' — which tab is selected
 let isAdminUser        = false;  // true when logged-in user is an admin
+// Driver pages state
+let driverNotes        = [];     // loaded from Firestore
+let driverNoteType     = 'strategy'; // 'strategy' | 'reason' — currently selected type
 let stationSearch      = '';     // filter text for station grid
 let sessionSecondsLeft = SESSION_TIMEOUT;
 let sessionInterval    = null;
@@ -1097,31 +1156,42 @@ function switchPage(p){
   currentPage=p;
   document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.nbtn').forEach(x=>x.classList.remove('active'));
-  document.getElementById('page-'+p).classList.add('active');
-  document.getElementById('nav-'+p).classList.add('active');
-  if(p==='log')renderLog();
-  if(p==='reports')renderReports();
-  if(p==='admin')renderAdmin();
+  const pageEl=document.getElementById('page-'+p);
+  if(pageEl) pageEl.classList.add('active');
+  const navEl=document.getElementById('nav-'+p);
+  if(navEl) navEl.classList.add('active');
+  if(p==='log')         renderLog();
+  if(p==='reports')     renderReports();
+  if(p==='admin')       renderAdmin();
+  if(p==='performance') renderPerformancePage();
+  if(p==='notes')       renderNotesPage();
+}
+
+function showNavFor(role){
+  // 'admin' shows admin nav, 'driver' shows driver nav, null hides both
+  document.getElementById('navAdmin').style.display  = role==='admin'  ? '' : 'none';
+  document.getElementById('navDriver').style.display = role==='driver' ? '' : 'none';
+}
+
+function adminLogoutQuick(){
+  authLogout();
 }
 function goSetup(){
   clearInterval(timerInterval);
   stopGpsWatch();
   clearSavedTripState();
-  endSession(); // Mark driver as offline in Firebase
-  mySessionId = null;
-  tripState.phase='setup';
-  tripState.driver=''; tripState.carPlate='';
+  endSession();
+  mySessionId  = null;
+  tripState.phase  = 'setup';
+  tripState.driver = ''; tripState.carPlate = '';
   save('fs_driver', null);
-  switchPage('log');
-  // Only call auth signOut for drivers — admins use authLogout()
-  if(!isAdminUser && auth && currentAuthUser){
-    auth.signOut();
-    // onAuthStateChanged will show login overlay
-  } else if(!isAdminUser){
+  driverNotes  = [];
+  showNavFor(null);
+  if(auth && currentAuthUser){
+    auth.signOut(); // onAuthStateChanged will show landing
+  } else {
     showAuthOverlay();
-    switchToPanel('login');
-    switchAuthRole('driver');
-    renderLog();
+    switchToPanel('landing');
   }
 }
 
@@ -2295,6 +2365,7 @@ function renderLog(){
           </button>`;
         })()}
         <button class="bout" onclick="authLogout()">🚪 LOG OUT</button>
+        <button class="bout" style="margin-top:4px;font-size:.52rem" onclick="switchPage('performance')">📈 MY STATS</button>
       </div>
       ${renderTodayHistory()}`;
     return;
@@ -3339,13 +3410,13 @@ async function adminRegisterDriver(){
     if(adminCred){
       await auth.signInWithEmailAndPassword(adminCred.email, adminCred.password);
     } else {
-      // No stored cred — show re-login notice, admin will sign back in
-      showAuthOverlay(); switchToPanel('login'); switchAuthRole('admin');
+      // No stored cred — show login screen
+      showAuthOverlay(); switchToPanel('login');
     }
 
     btn.disabled=false; btn.textContent='➕ REGISTER DRIVER';
     if(succEl){
-      succEl.textContent = '✅ DRIVER REGISTERED! '+name+' WILL RECEIVE A PASSWORD SETUP EMAIL AT '+email.toUpperCase();
+      succEl.textContent = '✅ '+name.split(' ')[0]+' REGISTERED! A PASSWORD SETUP EMAIL HAS BEEN SENT TO '+email.toUpperCase();
       succEl.style.display='block';
     }
     // Clear form
@@ -3941,44 +4012,34 @@ function hideAuthOverlay(){
   document.getElementById('authOverlay').classList.add('hidden');
 }
 
-function showAuthPanel(panel){
-  // Alias for switchToPanel — kept for compatibility
-  switchToPanel(panel);
-}
+function showAuthPanel(panel){ switchToPanel(panel); }
 
 // Better panel switcher that uses exact panel names
 function switchToPanel(panel){
-  // panel: 'setup' | 'login' | 'forgot'
-  const map={setup:'authPanelSetup', login:'authPanelLogin', forgot:'authPanelForgot'};
-  let found = false;
-  Object.keys(map).forEach(k=>{
-    const el=document.getElementById(map[k]);
-    if(el){
-      const show = (k===panel);
-      el.style.display = show ? 'block' : 'none';
-      if(show) found = true;
-    }
+  // panel: 'landing' | 'create' | 'login' | 'forgot'
+  const map={
+    landing: 'authPanelLanding',
+    create:  'authPanelCreate',
+    setup:   'authPanelCreate',  // alias
+    login:   'authPanelLogin',
+    forgot:  'authPanelForgot'
+  };
+  const targetId = map[panel];
+  Object.values(map).forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display = (id===targetId) ? 'block' : 'none';
   });
-  if(!found) console.warn('switchToPanel: unknown panel', panel);
   clearAuthErrors();
-  // Autofocus the right input
   setTimeout(()=>{
-    if(panel==='login')  document.getElementById('authPass')?.focus();
-    if(panel==='setup')  document.getElementById('setupName')?.focus();
-    if(panel==='forgot') document.getElementById('authForgotEmail')?.focus();
+    if(panel==='login')          document.getElementById('authEmail')?.focus();
+    if(panel==='create'||panel==='setup') document.getElementById('setupName')?.focus();
+    if(panel==='forgot')         document.getElementById('authForgotEmail')?.focus();
   }, 150);
 }
 
 function switchAuthRole(role){
+  // Role is now auto-detected from Firestore — this is a no-op stub
   currentAuthRole = role;
-  document.getElementById('tabDriver')?.classList.toggle('active', role==='driver');
-  document.getElementById('tabAdmin')?.classList.toggle('active', role==='admin');
-  const btn = document.getElementById('authLoginBtn');
-  const lbl = document.getElementById('authEmailLabel');
-  if(btn) btn.textContent = role==='admin' ? '👑 ADMIN LOGIN' : '🚌 DRIVER LOGIN';
-  if(btn) btn.style.background = role==='admin' ? 'var(--accent2)' : 'var(--accent)';
-  if(lbl) lbl.textContent = role==='admin' ? 'Admin Email' : 'Email Address';
-  clearAuthErrors();
 }
 
 function clearAuthErrors(){
@@ -4154,21 +4215,22 @@ async function authLogout(){
   if(!confirm(msg)) return;
   try{
     if(!isAdminUser){
-      // Driver: end session cleanly
       clearInterval(timerInterval);
       stopGpsWatch();
       clearSavedTripState();
       endSession();
-      mySessionId = null;
-      tripState.phase='setup';
-      tripState.driver=''; tripState.carPlate='';
+      mySessionId     = null;
+      tripState.phase = 'setup';
+      tripState.driver = ''; tripState.carPlate = '';
       save('fs_driver', null);
     }
-    isAdminUser   = false;
-    adminUnlocked = false;
+    isAdminUser           = false;
+    adminUnlocked         = false;
     window._adminAuthCred = null;
+    driverNotes           = [];
+    showNavFor(null);  // hide navs immediately
     if(auth) await auth.signOut();
-    // onAuthStateChanged will show login screen
+    // onAuthStateChanged will show landing screen
   } catch(e){ console.error('Logout error:', e); }
 }
 
@@ -4199,35 +4261,39 @@ function onDriverAuthenticated(user, profile){
   }
 
   if(profile.role==='admin'){
-    // ── Admin: go to admin panel ───────────────────────────────
-    isAdminUser = true;
-    adminUnlocked = true; // Skip PIN — they're already authenticated
-    // Update sacco name in header
+    // ── ADMIN ────────────────────────────────────────────────
+    isAdminUser   = true;
+    adminUnlocked = true;
     if(profile.saccoName) updateSaccoName(profile.saccoName);
-    // Update logo badge
-    document.getElementById('driverBadge').textContent = '👑 '+profile.name.split(' ')[0];
+    const firstName = (profile.name||'ADMIN').split(' ')[0];
+    document.getElementById('driverBadge').textContent = '👑 '+firstName;
+    const hSub=document.getElementById('headerSubText');
+    if(hSub) hSub.textContent='// ADMIN PANEL · '+profile.saccoName||'SACCO';
     hideAuthOverlay();
+    showNavFor('admin');
     switchPage('admin');
-    renderAdmin();
-    // Load drivers list automatically
     setTimeout(loadRegisteredDrivers, 400);
-    toast('👑 WELCOME, '+profile.name.split(' ')[0]+'!');
+    toast('👑 WELCOME BACK, '+firstName+'!');
+
   } else {
-    // ── Driver: go to trip logger ──────────────────────────────
-    isAdminUser = false;
+    // ── DRIVER ───────────────────────────────────────────────
+    isAdminUser        = false;
     tripState.driver   = profile.name || user.email;
     tripState.carPlate = profile.carPlate || '';
     tripState.phase    = 'idle';
     save('fs_driver',{driver:tripState.driver, carPlate:tripState.carPlate});
+    const firstName = tripState.driver.split(' ')[0];
     document.getElementById('driverBadge').textContent =
-      tripState.driver.split(' ')[0] + (tripState.carPlate?' · '+tripState.carPlate:'');
+      firstName + (tripState.carPlate?' · '+tripState.carPlate:'');
+    const hSub2=document.getElementById('headerSubText');
+    if(hSub2) hSub2.textContent='// DRIVER · '+firstName;
     startSessionTimer();
     startGpsWatch();
     writeSession('online',{loginTime:Date.now()});
     hideAuthOverlay();
+    showNavFor('driver');
     switchPage('log');
-    renderLog();
-    toast('✅ WELCOME, '+tripState.driver.split(' ')[0]+'!');
+    toast('✅ WELCOME, '+firstName+'!');
   }
 }
 
@@ -4261,10 +4327,7 @@ function startAuthListener(){
         showAuthError('authLoginError','⚠ ACCOUNT FOUND BUT NO PROFILE — CONTACT YOUR ADMIN');
         await auth.signOut();
         showAuthOverlay();
-        switchToPanel('login');
-        // Mark setup as needed if this might be a fresh admin whose profile write failed
-        const setupDone = localStorage.getItem('fs_setup_done');
-        if(!setupDone) switchToPanel('setup');
+        switchToPanel('landing');
       }
     } else {
       // No user signed in — reset everything
@@ -4281,17 +4344,13 @@ function startAuthListener(){
       const btn=document.getElementById('authLoginBtn');
       if(btn){ btn.disabled=false; }
 
-      const setupDone = localStorage.getItem('fs_setup_done');
+      showNavFor(null); // hide all navs
       showAuthOverlay();
-      if(!setupDone){
-        switchToPanel('setup');
-      } else {
-        switchToPanel('login');
-        const lastRole = localStorage.getItem('fs_last_role')||'admin';
-        switchAuthRole(lastRole);
-        const saved = localStorage.getItem('fs_last_email');
-        if(saved) document.getElementById('authEmail').value = saved;
-      }
+      // Always show landing page — user chooses create or login
+      switchToPanel('landing');
+      // Pre-fill email if returning user
+      const saved = localStorage.getItem('fs_last_email');
+      if(saved) document.getElementById('authEmail').value = saved;
     }
   });
 }
@@ -4586,6 +4645,245 @@ function renderLiveTab(){
     `:`<div class="live-empty">${isOn?'⏳ WAITING FOR DRIVERS TO LOG IN...<br><br>EACH VEHICLE WILL APPEAR HERE<br>WHEN THE DRIVER STARTS THE APP':'▶ START THE LISTENER ABOVE<br>TO MONITOR ALL VEHICLES IN REAL TIME<br><br>REQUIRES FIREBASE CONNECTION'}</div>`}`;
 }
 // ══════════════════════════════════════════════
+// DRIVER: PERFORMANCE PAGE
+// ══════════════════════════════════════════════
+function renderPerformancePage(){
+  const el = document.getElementById('page-performance');
+  if(!el) return;
+  const driver = tripState.driver;
+  const all    = allData().filter(t=>t.driver===driver);
+  const today  = new Date().toLocaleDateString('en-GB');
+  const todayT = all.filter(t=>t.date===today);
+  const todayRev = todayT.reduce((s,t)=>s+(t.amount||0),0);
+  const target   = driverTargets[driver] || carTargets[tripState.carPlate];
+  const tpct     = target ? Math.min(150,Math.round((todayRev/target)*100)) : null;
+
+  // This week
+  const weekStart = new Date(); weekStart.setDate(weekStart.getDate()-weekStart.getDay()); weekStart.setHours(0,0,0,0);
+  const weekT  = all.filter(t=>{ const d=parseDate(t.date); return d&&d>=weekStart; });
+  const weekRev = weekT.reduce((s,t)=>s+(t.amount||0),0);
+
+  // Last 7 days bar chart data
+  const days7=[]; for(let i=6;i>=0;i--){const d=new Date();d.setDate(d.getDate()-i);days7.push(d);}
+  const days7rev=days7.map(d=>{
+    const lbl=d.toLocaleDateString('en-GB');
+    return{lbl:d.toLocaleDateString('en-GB',{weekday:'short'}).toUpperCase(),rev:all.filter(t=>t.date===lbl).reduce((s,t)=>s+(t.amount||0),0)};
+  });
+  const maxRev = Math.max(...days7rev.map(d=>d.rev),1);
+
+  // All-time stats
+  const totalRev  = all.reduce((s,t)=>s+(t.amount||0),0);
+  const bestDay   = days7rev.reduce((a,b)=>b.rev>a.rev?b:a,{lbl:'—',rev:0});
+  const avgPerTrip= all.length ? Math.round(totalRev/all.length) : 0;
+
+  // Emoji for target pct
+  const targetEmoji = !tpct?'⏸':tpct>=150?'🏆':tpct>=120?'🥇':tpct>=100?'🎯':tpct>=50?'⚡':'🔴';
+
+  el.innerHTML=`
+    <div style="padding:12px 0 80px">
+      <div class="ctitle" style="margin-bottom:2px">MY PERFORMANCE</div>
+      <div class="csub" style="margin-bottom:14px">// ${driver}</div>
+
+      ${target?`
+      <!-- TARGET RING -->
+      <div class="card" style="border-left:4px solid ${tpct>=100?'#22c55e':tpct>=50?'#f59e0b':'var(--red)'}; margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:14px">
+          <div style="text-align:center;min-width:72px">
+            <div style="font-size:2.2rem">${targetEmoji}</div>
+            <div style="font-family:var(--font-d);font-size:1.6rem;color:${tpct>=100?'#22c55e':tpct>=50?'#f59e0b':'var(--red)'};">${tpct}%</div>
+            <div style="font-family:var(--font-m);font-size:.44rem;color:var(--muted)">OF TARGET</div>
+          </div>
+          <div style="flex:1">
+            <div style="font-family:var(--font-m);font-size:.5rem;color:var(--muted);margin-bottom:4px">TODAY'S TARGET</div>
+            <div class="target-bar" style="margin-bottom:5px"><div class="target-fill ${tpct>=100?'high':tpct>=50?'mid':'low'}" style="width:${Math.min(100,tpct||0)}%"></div></div>
+            <div style="display:flex;justify-content:space-between;font-family:var(--font-m);font-size:.5rem">
+              <span style="color:${tpct>=100?'#22c55e':'var(--text)'}">KES ${todayRev.toLocaleString()}</span>
+              <span style="color:var(--muted)">/ KES ${Number(target).toLocaleString()}</span>
+            </div>
+          </div>
+        </div>
+      </div>`:''}
+
+      <!-- STAT GRID -->
+      <div class="perf-stat-grid">
+        <div class="perf-stat">
+          <div class="perf-stat-lbl">TRIPS TODAY</div>
+          <div class="perf-stat-val">${todayT.length}</div>
+          <div class="perf-stat-sub">KES ${todayRev.toLocaleString()}</div>
+        </div>
+        <div class="perf-stat">
+          <div class="perf-stat-lbl">THIS WEEK</div>
+          <div class="perf-stat-val">${weekT.length}</div>
+          <div class="perf-stat-sub">KES ${weekRev.toLocaleString()}</div>
+        </div>
+        <div class="perf-stat">
+          <div class="perf-stat-lbl">AVG PER TRIP</div>
+          <div class="perf-stat-val" style="font-size:1.2rem">KES ${avgPerTrip.toLocaleString()}</div>
+          <div class="perf-stat-sub">ALL TIME</div>
+        </div>
+        <div class="perf-stat">
+          <div class="perf-stat-lbl">TOTAL TRIPS</div>
+          <div class="perf-stat-val">${all.length}</div>
+          <div class="perf-stat-sub">KES ${(totalRev/1000).toFixed(1)}K TOTAL</div>
+        </div>
+      </div>
+
+      <!-- 7-DAY BAR CHART -->
+      <div class="card" style="margin-bottom:10px">
+        <div class="stitle2" style="margin-bottom:10px">LAST 7 DAYS</div>
+        <div class="week-bar">
+          ${days7rev.map(d=>`
+          <div class="week-bar-col">
+            <div style="font-family:var(--font-m);font-size:.4rem;color:var(--muted)">${d.rev?'KES '+(d.rev/1000).toFixed(1)+'K':''}</div>
+            <div class="week-bar-fill" style="height:${Math.round((d.rev/maxRev)*54)+2}px;background:${d.lbl===new Date().toLocaleDateString('en-GB',{weekday:'short'}).toUpperCase()?'#22c55e':'var(--accent)'}"></div>
+            <div class="week-bar-lbl">${d.lbl}</div>
+          </div>`).join('')}
+        </div>
+        ${target?`<div style="border-top:1px solid var(--border);margin-top:8px;padding-top:7px;font-family:var(--font-m);font-size:.48rem;color:var(--muted);text-align:center">Daily target: KES ${Number(target).toLocaleString()}</div>`:''}
+      </div>
+
+      <!-- RECENT TRIPS -->
+      <div class="stitle2" style="margin-bottom:8px">RECENT TRIPS</div>
+      ${all.slice(0,15).map(t=>`
+      <div class="hitem">
+        <div class="htop"><span class="hroute">${t.fromStation||'?'} → ${t.toStation||'?'}</span><span class="hamt">KES ${Number(t.amount||0).toLocaleString()}</span></div>
+        <div class="hbot"><span>${t.date} · ${t.time||''}</span><span>${t.distance?'📏 '+t.distance+'km':''}</span></div>
+      </div>`).join('')}
+      ${!all.length?'<div class="empty">NO TRIPS YET<br>COMPLETE YOUR FIRST TRIP TO SEE STATS</div>':''}
+    </div>`;
+}
+
+// ══════════════════════════════════════════════
+// DRIVER: NOTES PAGE (Strategies + Reasons)
+// ══════════════════════════════════════════════
+function renderNotesPage(){
+  const el = document.getElementById('page-notes');
+  if(!el) return;
+  el.innerHTML=`
+    <div style="padding:12px 0 80px">
+      <div class="ctitle" style="margin-bottom:2px">MY NOTES</div>
+      <div class="csub" style="margin-bottom:16px">// STRATEGIES &amp; REFLECTIONS</div>
+
+      <!-- ADD NOTE FORM -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="stitle2" style="margin-bottom:10px">ADD NEW NOTE</div>
+
+        <!-- Type selector -->
+        <div class="note-type-btns">
+          <button class="note-type-btn strategy ${driverNoteType==='strategy'?'selected':''}"
+            onclick="driverNoteType='strategy';renderNotesPage()">
+            💡 STRATEGY<br><span style="font-size:.42rem;letter-spacing:0">How I'll hit my target</span>
+          </button>
+          <button class="note-type-btn reason ${driverNoteType==='reason'?'selected':''}"
+            onclick="driverNoteType='reason';renderNotesPage()">
+            📉 REASON<br><span style="font-size:.42rem;letter-spacing:0">Why I didn't hit target</span>
+          </button>
+        </div>
+
+        <!-- Text input -->
+        <div class="auth-field" style="margin-bottom:8px">
+          <label style="font-family:var(--font-m);font-size:.48rem;color:var(--muted);letter-spacing:1px;display:block;margin-bottom:5px">
+            ${driverNoteType==='strategy'?'MY STRATEGY / PLAN':'REASON / EXPLANATION'}
+          </label>
+          <textarea id="noteTextIn" rows="4"
+            placeholder="${driverNoteType==='strategy'?'e.g. I will focus on peak hours (7-9am and 5-7pm), take shorter breaks, and be more friendly to passengers...':'e.g. Low passenger demand today due to rain. Will plan better for weather conditions next time...'}"
+            style="width:100%;background:var(--bg);border:2px solid var(--border);color:var(--text);padding:11px 12px;font-family:var(--font-b);font-size:.72rem;outline:none;resize:vertical;line-height:1.5;transition:border-color .2s"
+            onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+        </div>
+
+        <button class="bb bstart" style="margin:0;font-size:.8rem" onclick="saveDriverNote()">
+          💾 SAVE NOTE
+        </button>
+      </div>
+
+      <!-- NOTES LIST -->
+      <div class="stitle2" style="margin-bottom:8px">MY PREVIOUS NOTES</div>
+      <div id="driverNotesList">
+        <div style="text-align:center;padding:20px;font-family:var(--font-m);font-size:.54rem;color:var(--muted)">
+          LOADING NOTES...
+        </div>
+      </div>
+    </div>`;
+
+  // Load notes from Firestore
+  loadDriverNotes();
+}
+
+async function saveDriverNote(){
+  const text = (document.getElementById('noteTextIn')?.value||'').trim();
+  if(!text){ toast('⚠ PLEASE WRITE SOMETHING BEFORE SAVING'); return; }
+  if(!db){ toast('⚠ NOT CONNECTED — TRY AGAIN'); return; }
+
+  const btn = document.querySelector('#page-notes .bb.bstart');
+  if(btn){ btn.disabled=true; btn.textContent='SAVING...'; }
+
+  const note = {
+    uid:       currentAuthUser?.uid||'',
+    driver:    tripState.driver,
+    carPlate:  tripState.carPlate,
+    type:      driverNoteType,     // 'strategy' | 'reason'
+    text,
+    date:      new Date().toLocaleDateString('en-GB'),
+    timestamp: new Date().toISOString(),
+    createdAt: Date.now()
+  };
+
+  try{
+    await db.collection('driverNotes').add(note);
+    driverNotes.unshift(note);
+    if(btn){ btn.disabled=false; btn.textContent='💾 SAVE NOTE'; }
+    toast('✅ NOTE SAVED!');
+    document.getElementById('noteTextIn').value='';
+    renderNotesList();
+  } catch(e){
+    if(btn){ btn.disabled=false; btn.textContent='💾 SAVE NOTE'; }
+    toast('⚠ SAVE FAILED: '+e.message);
+  }
+}
+
+async function loadDriverNotes(){
+  if(!db || !currentAuthUser) return;
+  try{
+    const snap = await db.collection('driverNotes')
+      .where('uid','==',currentAuthUser.uid)
+      .orderBy('createdAt','desc')
+      .limit(50)
+      .get();
+    driverNotes = snap.docs.map(d=>({...d.data(),_id:d.id}));
+    renderNotesList();
+  } catch(e){
+    // Fallback: query by driver name
+    try{
+      const snap = await db.collection('driverNotes')
+        .where('driver','==',tripState.driver)
+        .orderBy('createdAt','desc').limit(50).get();
+      driverNotes = snap.docs.map(d=>({...d.data(),_id:d.id}));
+      renderNotesList();
+    } catch(e2){
+      const el=document.getElementById('driverNotesList');
+      if(el) el.innerHTML='<div style="color:var(--muted);font-family:var(--font-m);font-size:.52rem;padding:12px;text-align:center">NO NOTES YET — ADD YOUR FIRST NOTE ABOVE</div>';
+    }
+  }
+}
+
+function renderNotesList(){
+  const el = document.getElementById('driverNotesList');
+  if(!el) return;
+  if(!driverNotes.length){
+    el.innerHTML='<div style="text-align:center;padding:20px;font-family:var(--font-m);font-size:.54rem;color:var(--muted)">NO NOTES YET<br><br>ADD YOUR FIRST STRATEGY OR REFLECTION ABOVE 👆</div>';
+    return;
+  }
+  el.innerHTML = driverNotes.map(n=>`
+    <div class="note-card ${n.type}">
+      <div class="note-card-type ${n.type}">${n.type==='strategy'?'💡 STRATEGY':'📉 REASON FOR MISS'}</div>
+      <div class="note-card-text">${n.text}</div>
+      <div class="note-card-meta">${n.date} ${n.timestamp?'· '+new Date(n.timestamp).toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'}):''}</div>
+    </div>`).join('');
+}
+
+
+
+// ══════════════════════════════════════════════
 // INIT — with trip recovery + login reset on refresh
 // ══════════════════════════════════════════════
 (function initApp(){
@@ -4643,7 +4941,7 @@ function renderLiveTab(){
   } else {
     renderLog();
     showAuthOverlay();
-    switchToPanel('setup'); // First launch — create admin account
+    switchToPanel('landing');
   }
 })();
 
