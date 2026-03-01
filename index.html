@@ -346,6 +346,22 @@ main{padding:13px 13px 74px}
 .week-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
 .week-bar-fill{width:100%;background:var(--accent);border-radius:2px 2px 0 0;min-height:2px;transition:height .3s}
 .week-bar-lbl{font-family:var(--font-m);font-size:.4rem;color:var(--muted);letter-spacing:.5px}
+.auth-invite-header{background:linear-gradient(135deg,var(--accent),#0f5e2a);padding:20px;margin:-22px -0px 20px;text-align:center;border-radius:0}
+.auth-invite-sacco{font-family:var(--font-d);font-size:1.6rem;letter-spacing:4px;color:#fff;margin-bottom:3px}
+.auth-invite-sub{font-family:var(--font-m);font-size:.5rem;color:rgba(255,255,255,.75);letter-spacing:1.5px}
+.auth-invite-from{background:rgba(255,255,255,.15);border-radius:0;padding:8px 12px;margin-top:10px;font-family:var(--font-m);font-size:.52rem;color:#fff;letter-spacing:1px}
+.onboard-banner{background:linear-gradient(135deg,var(--accent2),#e08a00);padding:14px 16px;margin-bottom:14px;display:flex;align-items:flex-start;gap:12px}
+.onboard-banner-ico{font-size:1.8rem;flex-shrink:0}
+.onboard-banner-text{flex:1}
+.onboard-banner-title{font-family:var(--font-d);font-size:1.1rem;letter-spacing:2px;color:#fff;margin-bottom:3px}
+.onboard-banner-sub{font-family:var(--font-m);font-size:.48rem;color:rgba(255,255,255,.85);letter-spacing:1px;line-height:1.7}
+.invite-success-box{background:#e8f5ed;border:2px solid var(--accent);padding:14px;text-align:center;margin-top:10px}
+.invite-success-ico{font-size:2rem;margin-bottom:6px}
+.invite-success-title{font-family:var(--font-d);font-size:1.1rem;letter-spacing:2px;color:var(--accent);margin-bottom:6px}
+.invite-success-email{font-family:var(--font-m);font-size:.56rem;color:var(--accent);letter-spacing:1px;word-break:break-all;margin-bottom:8px}
+.invite-success-note{font-family:var(--font-m);font-size:.48rem;color:var(--muted);letter-spacing:1px;line-height:1.7}
+.invite-link-box{background:var(--bg);border:1px dashed var(--border);padding:10px;font-family:var(--font-m);font-size:.44rem;color:var(--muted);word-break:break-all;cursor:pointer;margin-top:8px;letter-spacing:.5px}
+.invite-link-box:hover{border-color:var(--accent);color:var(--accent)}
 .auth-tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:18px}
 .auth-tab{flex:1;background:none;border:none;padding:11px 6px;font-family:var(--font-d);font-size:.9rem;letter-spacing:2px;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;margin-bottom:-2px}
 .auth-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
@@ -578,7 +594,7 @@ main{padding:13px 13px 74px}
 
 <header>
   <div class="hrow">
-    <div class="logo">FESTUS<span> SACCO</span></div>
+    <div class="logo" id="headerLogo">FESTUS<span> SACCO</span></div>
     <div class="hright">
       <span class="session-bar" id="sessionBar"></span>
       <span class="offline-badge" id="offlineBadge">OFFLINE</span>
@@ -698,6 +714,59 @@ main{padding:13px 13px 74px}
           onkeydown="if(event.key==='Enter')authForgotPassword()">
       </div>
       <button class="auth-btn" id="authForgotBtn" onclick="authForgotPassword()">SEND RESET LINK</button>
+    </div>
+
+    <!-- ═══ PANEL: DRIVER INVITATION (magic link acceptance) ═══ -->
+    <div id="authPanelInvite" style="display:none">
+      <div id="inviteLoadingState">
+        <div style="text-align:center;padding:28px 0">
+          <div style="font-size:2rem;margin-bottom:10px">⏳</div>
+          <div style="font-family:var(--font-m);font-size:.56rem;color:var(--muted);letter-spacing:1.5px">VERIFYING YOUR INVITATION...</div>
+        </div>
+      </div>
+      <div id="inviteFormState" style="display:none">
+        <div class="auth-invite-header">
+          <div style="font-size:2rem;margin-bottom:6px">🎉</div>
+          <div class="auth-invite-sacco" id="inviteSaccoName">FESTUS SACCO</div>
+          <div class="auth-invite-sub">YOU HAVE BEEN INVITED TO JOIN THE FLEET</div>
+          <div class="auth-invite-from" id="inviteDriverNameBadge">WELCOME!</div>
+        </div>
+        <div class="auth-error" id="authInviteError"></div>
+        <div class="auth-field">
+          <label>Confirm Your Email Address</label>
+          <input class="auth-input" type="email" id="inviteEmail" placeholder="Enter the email that received this invite"
+            autocomplete="email"
+            onkeydown="if(event.key==='Enter')document.getElementById('inviteNewPass').focus()">
+        </div>
+        <div class="auth-field">
+          <label>Create Your Password <span style="color:var(--muted);font-size:.44rem">(min 6 characters)</span></label>
+          <div class="auth-input-wrap">
+            <input class="auth-input" type="password" id="inviteNewPass" placeholder="Choose a secure password"
+              onkeydown="if(event.key==='Enter')acceptInvitation()">
+            <button class="auth-eye" id="inviteEyeBtn" onclick="toggleInviteEye()">👁</button>
+          </div>
+        </div>
+        <button class="auth-btn" id="inviteAcceptBtn" onclick="acceptInvitation()"
+          style="background:var(--accent)">
+          ✅ ACCEPT INVITATION &amp; LOG IN
+        </button>
+        <div style="font-family:var(--font-m);font-size:.46rem;color:var(--muted);text-align:center;margin-top:10px;letter-spacing:1px">
+          YOUR ACCOUNT WILL BE CREATED AUTOMATICALLY
+        </div>
+        <div style="text-align:center;margin-top:12px">
+          <button class="auth-link" style="font-size:.46rem" onclick="switchToPanel('login')">
+            Already have an account? Log in →
+          </button>
+        </div>
+      </div>
+      <div id="inviteErrorState" style="display:none">
+        <div style="text-align:center;padding:20px 0">
+          <div style="font-size:2rem;margin-bottom:10px">❌</div>
+          <div style="font-family:var(--font-d);font-size:1.1rem;letter-spacing:2px;color:var(--red);margin-bottom:8px">INVITATION EXPIRED</div>
+          <div style="font-family:var(--font-m);font-size:.52rem;color:var(--muted);letter-spacing:1px;line-height:1.8">This invite link has expired or already been used.<br>Ask your admin to send a new invitation.</div>
+          <button class="auth-btn secondary" style="margin-top:16px" onclick="switchToPanel('login')">GO TO LOGIN INSTEAD</button>
+        </div>
+      </div>
     </div>
 
   </div>
@@ -982,8 +1051,11 @@ let appConfig     = load('fs_config', {
   authDomain: 'psv-sacco-tracker.firebaseapp.com',
   projectId:  'psv-sacco-tracker',
   appId:      '1:849470601891:web:9b12cfa6f783bf7d975d16',
-  saccoName:  ''
+  saccoName:  '',
+  appUrl:     window.location.origin + window.location.pathname
 });
+// Always keep appUrl current (in case deployed to new domain)
+appConfig.appUrl = window.location.origin + window.location.pathname;
 
 // PIN lockout state (in-memory only — resets on page reload, intentional)
 let adminPinFailures   = 0;
@@ -1041,6 +1113,9 @@ let isAdminUser        = false;  // true when logged-in user is an admin
 // Driver pages state
 let driverNotes        = [];     // loaded from Firestore
 let driverNoteType     = 'strategy'; // 'strategy' | 'reason' — currently selected type
+// Invitation state
+let pendingInviteData  = null;   // stored pending invite from Firestore
+let isFirstAdminLogin  = false;  // true on very first admin login (no drivers yet)
 let stationSearch      = '';     // filter text for station grid
 let sessionSecondsLeft = SESSION_TIMEOUT;
 let sessionInterval    = null;
@@ -2943,13 +3018,16 @@ function renderAdmin(){
       </div>`;
     return;
   }
+  const adminName = (currentDriverDoc?.name||'ADMIN').split(' ')[0];
+  const saccoLabel = currentDriverDoc?.saccoName || appConfig.saccoName || 'SACCO';
   el.innerHTML=`
-    <div class="card" style="border-left:4px solid var(--accent2);margin-bottom:10px">
+    <div class="card" style="border-left:4px solid var(--accent2);margin-bottom:10px;padding:12px 14px">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <div class="ctitle" style="margin:0">ADMIN PANEL</div>
-        <div style="display:flex;gap:7px">
-          <button class="bghost" style="color:var(--red);border-color:var(--red)" onclick="authLogout()">🚪 LOG OUT</button>
+        <div>
+          <div class="ctitle" style="margin:0;font-size:1rem">${saccoLabel}</div>
+          <div style="font-family:var(--font-m);font-size:.48rem;color:var(--muted);letter-spacing:1px;margin-top:2px">👑 ${adminName} · ADMIN PANEL</div>
         </div>
+        <button class="bghost" style="color:var(--red);border-color:var(--red);font-size:.52rem;padding:7px 10px" onclick="authLogout()">🚪 LOG OUT</button>
       </div>
     </div>
     <div class="atabs">
@@ -3004,28 +3082,51 @@ function renderAdmin(){
     <!-- DRIVERS -->
     <div class="asect ${adminTab==='drivers'?'active':''}">
 
+      <!-- ONBOARDING BANNER — shown only on first login when no drivers yet -->
+      ${isFirstAdminLogin ? `
+      <div class="onboard-banner">
+        <div class="onboard-banner-ico">🎉</div>
+        <div class="onboard-banner-text">
+          <div class="onboard-banner-title">YOUR SACCO IS SET UP!</div>
+          <div class="onboard-banner-sub">
+            Now invite your drivers. They'll receive an email with a link to join.<br>
+            Once registered, each driver logs in with their own account.
+          </div>
+        </div>
+      </div>` : ''}
+
       <!-- REGISTER NEW DRIVER -->
-      <div class="card" style="border-top:3px solid var(--accent2);margin-bottom:12px">
-        <div class="ctitle" style="color:var(--accent2)">➕ REGISTER NEW DRIVER</div>
-        <div class="csub">// DRIVER RECEIVES A SETUP EMAIL TO CREATE THEIR OWN PASSWORD</div>
-        <div id="regDriverError" style="display:none;background:var(--rlight);border:1px solid var(--red);color:var(--red);font-family:var(--font-m);font-size:.52rem;padding:9px 11px;letter-spacing:1px;margin-bottom:10px"></div>
-        <div id="regDriverSuccess" style="display:none;background:#e8f5ed;border:1px solid var(--accent);color:var(--accent);font-family:var(--font-m);font-size:.52rem;padding:9px 11px;letter-spacing:1px;margin-bottom:10px"></div>
-        <div class="field"><label>Full Name (IN CAPS)</label>
-          <input type="text" id="regDName" placeholder="e.g. JOHN KAMAU" style="text-transform:uppercase">
+      <div class="card" style="border-top:4px solid var(--accent2);margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+          <div class="ctitle" style="color:var(--accent2);margin:0">📨 INVITE A DRIVER</div>
         </div>
-        <div class="field"><label>Email Address</label>
-          <input type="email" id="regDEmail" placeholder="driver@gmail.com">
+        <div class="csub" style="margin-bottom:14px">// DRIVER RECEIVES AN EMAIL WITH A LOGIN LINK — NO PASSWORD NEEDED FROM YOU</div>
+        <div id="regDriverError" style="display:none;background:var(--rlight);border:1px solid var(--red);color:var(--red);font-family:var(--font-m);font-size:.52rem;padding:9px 11px;letter-spacing:1px;margin-bottom:10px;line-height:1.6"></div>
+        <div id="regDriverSuccess" style="display:none;margin-bottom:10px"></div>
+        <div class="field"><label>Driver's Full Name</label>
+          <input type="text" id="regDName" placeholder="e.g. JOHN KAMAU" style="text-transform:uppercase"
+            onkeydown="if(event.key==='Enter')document.getElementById('regDEmail').focus()">
         </div>
-        <div class="field"><label>Assign Car Plate</label>
+        <div class="field"><label>Driver's Email Address</label>
+          <input type="email" id="regDEmail" placeholder="driver@gmail.com"
+            onkeydown="if(event.key==='Enter')document.getElementById('regDPhone').focus()">
+        </div>
+        <div class="field"><label>Phone Number <span style="color:var(--muted);font-size:.44rem">(optional)</span></label>
+          <input type="tel" id="regDPhone" placeholder="e.g. 0712 345678"
+            onkeydown="if(event.key==='Enter')document.getElementById('regDCar').focus()">
+        </div>
+        <div class="field"><label>Assign Car Plate <span style="color:var(--muted);font-size:.44rem">(optional)</span></label>
           <select id="regDCar">
             <option value="">— Assign Car (optional) —</option>
             ${CARS.map(c=>`<option value="${c}">${c}</option>`).join('')}
           </select>
         </div>
-        <div class="field"><label>Temporary Password <span style="color:var(--muted)">(driver will receive reset email)</span></label>
-          <input type="text" id="regDPass" value="Festus2024!" placeholder="min 6 characters">
+        <button class="bb bstart" style="margin:0;background:var(--accent2);border-color:var(--accent2)" id="regDBtn" onclick="adminRegisterDriver()">
+          📨 SEND INVITATION
+        </button>
+        <div style="font-family:var(--font-m);font-size:.44rem;color:var(--muted);text-align:center;margin-top:8px;letter-spacing:1px;line-height:1.8">
+          THE DRIVER CLICKS THE LINK IN THEIR EMAIL<br>SETS THEIR OWN PASSWORD AND LOGS IN
         </div>
-        <button class="bb bstart" style="margin:0" id="regDBtn" onclick="adminRegisterDriver()">➕ REGISTER DRIVER</button>
       </div>
 
       <!-- REGISTERED DRIVERS LIST -->
@@ -3130,6 +3231,39 @@ function renderAdmin(){
 
     <!-- CONFIG -->
     <div class="asect ${adminTab==='config'?'active':''}">
+
+      <!-- FIREBASE SETUP CHECKLIST -->
+      <div class="card" style="border-left:4px solid var(--accent2);margin-bottom:12px">
+        <div class="ctitle" style="color:var(--accent2);margin-bottom:6px">🔧 FIREBASE SETUP CHECKLIST</div>
+        <div class="csub" style="margin-bottom:12px">// ONE-TIME SETUP IN FIREBASE CONSOLE</div>
+        <div style="font-family:var(--font-m);font-size:.52rem;color:var(--muted);letter-spacing:1px;line-height:2.2">
+          <div>✅ <strong style="color:var(--text)">Firestore Database</strong> — Already enabled</div>
+          <div style="margin-left:16px;font-size:.46rem;color:var(--muted)">Rules: allow read, write to trips, sessions, drivers, pendingInvites, driverNotes</div>
+          <div style="margin-top:8px">⚠️ <strong style="color:var(--accent2)">Email/Password Sign-In</strong> — Must enable:</div>
+          <div style="margin-left:16px;font-size:.46rem;color:var(--muted)">Firebase Console → Authentication → Sign-in method → Email/Password → Enable</div>
+          <div style="margin-top:8px">⚠️ <strong style="color:var(--accent2)">Email Link Sign-In</strong> — Must enable (for driver invites):</div>
+          <div style="margin-left:16px;font-size:.46rem;color:var(--muted)">Firebase Console → Authentication → Sign-in method → Email/Password → Enable "Email link (passwordless sign-in)"</div>
+          <div style="margin-top:8px">⚠️ <strong style="color:var(--accent2)">Authorized Domain</strong> — Must add your app URL:</div>
+          <div style="margin-left:16px;font-size:.46rem;color:var(--muted)">Firebase Console → Authentication → Settings → Authorized domains → Add domain</div>
+          <div style="margin-left:16px;font-size:.46rem;color:var(--accent)">Your URL: ${window.location.hostname}</div>
+        </div>
+        <div style="margin-top:12px;padding:10px;background:var(--bg);border:1px solid var(--border)">
+          <div style="font-family:var(--font-m);font-size:.46rem;color:var(--muted);letter-spacing:1px;margin-bottom:6px">REQUIRED FIRESTORE RULES (paste in Firebase Console → Firestore → Rules):</div>
+          <pre style="font-family:monospace;font-size:.48rem;color:var(--text);line-height:1.6;white-space:pre-wrap;margin:0">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}</pre>
+        </div>
+        <button class="bb bconfirm" style="margin-top:10px;margin-bottom:0;font-size:.7rem"
+          onclick="window.open('https://console.firebase.google.com/project/${appConfig.projectId}/authentication/providers','_blank')">
+          OPEN FIREBASE CONSOLE →
+        </button>
+      </div>
+
       ${!devUnlocked?devLockedHtml('CONFIG'):`
       <div class="card">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
@@ -3364,79 +3498,117 @@ async function adminRegisterDriver(){
   const name  = (document.getElementById('regDName')?.value||'').trim().toUpperCase();
   const email = (document.getElementById('regDEmail')?.value||'').trim().toLowerCase();
   const car   = (document.getElementById('regDCar')?.value||'').trim();
-  const pass  = (document.getElementById('regDPass')?.value||'').trim();
+  const phone = (document.getElementById('regDPhone')?.value||'').trim();
 
   const errEl  = document.getElementById('regDriverError');
   const succEl = document.getElementById('regDriverSuccess');
   if(errEl)  { errEl.style.display='none'; errEl.textContent=''; }
-  if(succEl) { succEl.style.display='none'; succEl.textContent=''; }
+  if(succEl) { succEl.style.display='none'; succEl.innerHTML=''; }
 
   if(!name)  { if(errEl){errEl.textContent='⚠ ENTER DRIVER FULL NAME';errEl.style.display='block';} return; }
   if(!email) { if(errEl){errEl.textContent='⚠ ENTER DRIVER EMAIL ADDRESS';errEl.style.display='block';} return; }
-  if(!pass||pass.length<6){ if(errEl){errEl.textContent='⚠ PASSWORD MUST BE AT LEAST 6 CHARACTERS';errEl.style.display='block';} return; }
-  if(!db)    { if(errEl){errEl.textContent='⚠ FIREBASE NOT CONNECTED';errEl.style.display='block';} return; }
+  if(!db)    { if(errEl){errEl.textContent='⚠ FIREBASE NOT CONNECTED — CHECK CONFIG';errEl.style.display='block';} return; }
+  if(!auth)  { if(errEl){errEl.textContent='⚠ AUTH NOT READY — REFRESH PAGE';errEl.style.display='block';} return; }
 
   const btn = document.getElementById('regDBtn');
-  btn.disabled=true; btn.textContent='REGISTERING...';
+  btn.disabled=true; btn.innerHTML='<span style="display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px"></span>SENDING INVITATION...';
 
   try{
-    // Create Firebase Auth account for the driver
-    const cred = await auth.createUserWithEmailAndPassword(email, pass);
-    const uid  = cred.user.uid;
+    const saccoName = currentDriverDoc?.saccoName || appConfig.saccoName || 'FESTUS SACCO';
+    const appUrl    = appConfig.appUrl || (window.location.origin + window.location.pathname);
 
-    // Send password reset email so driver can set their own password
-    await auth.sendPasswordResetEmail(email);
-
-    // Save driver profile to Firestore
-    const profile = {
-      uid, name, email,
-      carPlate: car || null,
-      role: 'driver',
-      active: true,
-      registeredAt: Date.now(),
-      registeredBy: 'admin'
+    // STEP 1: Store pending invite in Firestore BEFORE sending email
+    // Key: normalised email (no dots before @, per Firebase rules)
+    const inviteKey = email.replace(/\./g,'_');
+    const inviteData = {
+      name, email, carPlate: car||null, phone: phone||null,
+      saccoName, invitedBy: currentDriverDoc?.name||'ADMIN',
+      invitedByUid: currentAuthUser?.uid||'',
+      invitedAt: Date.now(),
+      status: 'pending'
     };
-    await db.collection('drivers').doc(uid).set(profile);
+    await db.collection('pendingInvites').doc(inviteKey).set(inviteData);
 
-    // Also add to local DRIVERS array for legacy support
+    // STEP 2: Also add to local DRIVERS list for legacy support
     if(!DRIVERS.includes(name)){ DRIVERS.push(name); save('fs_drivers', DRIVERS); }
 
-    // createUserWithEmailAndPassword signs in as the NEW user.
-    // We sign out immediately and sign the admin back in with their stored creds.
-    await auth.signOut();
-    // Re-sign admin back in
-    const adminEmail = localStorage.getItem('fs_last_email')||'';
-    const adminCred  = window._adminAuthCred;
-    if(adminCred){
-      await auth.signInWithEmailAndPassword(adminCred.email, adminCred.password);
-    } else {
-      // No stored cred — show login screen
-      showAuthOverlay(); switchToPanel('login');
-    }
+    // STEP 3: Send Firebase Email Link invitation
+    // The driver clicks the link → lands on the app → auto-signs in → creates account
+    const actionCodeSettings = {
+      url: appUrl + (appUrl.includes('?') ? '&' : '?') + 'invite=1&email='+encodeURIComponent(email),
+      handleCodeInApp: true,
+    };
 
-    btn.disabled=false; btn.textContent='➕ REGISTER DRIVER';
+    await auth.sendSignInLinkToEmail(email, actionCodeSettings);
+
+    // Save sent email for this invite for easier tracking
+    await db.collection('pendingInvites').doc(inviteKey).update({ inviteLinkSentAt: Date.now() });
+
+    btn.disabled=false; btn.innerHTML='📨 SEND INVITATION';
+
+    // Show success block with details
     if(succEl){
-      succEl.textContent = '✅ '+name.split(' ')[0]+' REGISTERED! A PASSWORD SETUP EMAIL HAS BEEN SENT TO '+email.toUpperCase();
+      succEl.innerHTML = `
+        <div class="invite-success-box">
+          <div class="invite-success-ico">📨</div>
+          <div class="invite-success-title">INVITATION SENT!</div>
+          <div class="invite-success-email">${email}</div>
+          <div class="invite-success-note">
+            <strong>${name.split(' ')[0]}</strong> will receive an email with a login link.<br>
+            They click it → set their password → they're in.<br><br>
+            If the email doesn't arrive, share this link manually:
+          </div>
+          <div class="invite-link-box" title="Click to copy" onclick="copyInviteLink(this)">
+            ${appUrl}?invite=1&email=${encodeURIComponent(email)}
+          </div>
+        </div>`;
       succEl.style.display='block';
     }
     // Clear form
     document.getElementById('regDName').value='';
     document.getElementById('regDEmail').value='';
-    document.getElementById('regDCar').value='';
-    document.getElementById('regDPass').value='Festus2024!';
+    if(document.getElementById('regDCar')) document.getElementById('regDCar').value='';
+    if(document.getElementById('regDPhone')) document.getElementById('regDPhone').value='';
     // Reload list
     loadRegisteredDrivers();
 
   } catch(e){
-    btn.disabled=false; btn.textContent='➕ REGISTER DRIVER';
+    btn.disabled=false; btn.innerHTML='📨 SEND INVITATION';
     const msgs={
-      'auth/email-already-in-use': '⚠ THIS EMAIL IS ALREADY REGISTERED',
+      'auth/email-already-in-use': '⚠ THIS DRIVER IS ALREADY REGISTERED — USE RESEND INVITE BELOW',
       'auth/invalid-email':        '⚠ INVALID EMAIL ADDRESS',
-      'auth/weak-password':        '⚠ PASSWORD IS TOO WEAK — USE AT LEAST 6 CHARACTERS',
+      'auth/missing-continue-uri': '⚠ APP URL NOT CONFIGURED — CHECK CONFIG TAB',
+      'auth/unauthorized-continue-uri': '⚠ APP URL NOT AUTHORISED IN FIREBASE — ADD IT TO AUTHORISED DOMAINS',
     };
-    if(errEl){ errEl.textContent = msgs[e.code]||('⚠ '+e.message); errEl.style.display='block'; }
+    const msg = msgs[e.code]||('⚠ FAILED: '+e.message);
+    if(errEl){ errEl.textContent=msg; errEl.style.display='block'; }
+    console.error('adminRegisterDriver error:', e);
   }
 }
+
+function copyInviteLink(el){
+  const url = el.textContent.trim();
+  navigator.clipboard?.writeText(url).then(()=>toast('✅ INVITE LINK COPIED!')).catch(()=>{
+    // Fallback: select all
+    const r=document.createRange(); r.selectNode(el);
+    window.getSelection().removeAllRanges(); window.getSelection().addRange(r);
+    toast('SELECT AND COPY THE LINK MANUALLY');
+  });
+}
+
+async function adminResendInvite(email){
+  if(!confirm('RESEND INVITATION TO '+email.toUpperCase()+'?')) return;
+  const appUrl = appConfig.appUrl || (window.location.origin + window.location.pathname);
+  const actionCodeSettings = {
+    url: appUrl + (appUrl.includes('?') ? '&' : '?') + 'invite=1&email='+encodeURIComponent(email),
+    handleCodeInApp: true,
+  };
+  try{
+    await auth.sendSignInLinkToEmail(email, actionCodeSettings);
+    toast('✅ INVITATION RESENT TO '+email.toUpperCase());
+  } catch(e){ toast('⚠ RESEND FAILED: '+e.message); }
+}
+
 
 async function loadRegisteredDrivers(){
   const listEl  = document.getElementById('regDriverList');
@@ -3444,35 +3616,75 @@ async function loadRegisteredDrivers(){
   if(!listEl||!db) return;
   listEl.innerHTML='<div style="text-align:center;padding:16px;font-family:var(--font-m);font-size:.54rem;color:var(--muted)">LOADING...</div>';
   try{
-    const snap = await db.collection('drivers').orderBy('registeredAt','desc').get();
-    const drivers = snap.docs.map(d=>({id:d.id,...d.data()}));
-    if(countEl) countEl.textContent = drivers.length;
-    if(!drivers.length){
-      listEl.innerHTML='<div style="text-align:center;padding:20px;font-family:var(--font-m);font-size:.54rem;color:var(--muted)">NO DRIVERS REGISTERED YET</div>';
+    // Load active drivers
+    const dSnap = await db.collection('drivers').where('role','==','driver').orderBy('registeredAt','desc').get();
+    const drivers = dSnap.docs.map(d=>({id:d.id,...d.data(),_type:'active'}));
+
+    // Load pending invites (not yet accepted)
+    const iSnap = await db.collection('pendingInvites').orderBy('invitedAt','desc').get();
+    const pending = iSnap.docs.map(d=>({id:d.id,...d.data(),_type:'pending'}));
+
+    // Filter out pending entries where driver already accepted (email match)
+    const activeEmails = new Set(drivers.map(d=>d.email));
+    const pendingFiltered = pending.filter(p=>!activeEmails.has(p.email));
+
+    const all = [...drivers, ...pendingFiltered];
+    if(countEl) countEl.textContent = drivers.length + (pendingFiltered.length ? ' (+'+pendingFiltered.length+' pending)' : '');
+
+    // Show first-time onboarding cue if no drivers at all
+    isFirstAdminLogin = (all.length === 0);
+
+    if(!all.length){
+      listEl.innerHTML=`
+        <div style="text-align:center;padding:24px 16px;border:2px dashed var(--border)">
+          <div style="font-size:2rem;margin-bottom:8px">👆</div>
+          <div style="font-family:var(--font-d);font-size:1rem;letter-spacing:2px;color:var(--muted);margin-bottom:6px">NO DRIVERS YET</div>
+          <div style="font-family:var(--font-m);font-size:.5rem;color:var(--muted);letter-spacing:1px;line-height:1.8">
+            USE THE FORM ABOVE TO REGISTER<br>YOUR FIRST DRIVER
+          </div>
+        </div>`;
       return;
     }
-    listEl.innerHTML = drivers.map(d=>`
-      <div class="driver-reg-card">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start">
-          <div style="flex:1">
-            <div class="driver-reg-name">${d.name||'—'}</div>
-            <div class="driver-reg-email">${d.email||'—'}</div>
-            <div style="font-size:.5rem;color:var(--muted);margin-top:3px">${d.carPlate?'🚗 '+d.carPlate:'No car assigned'}</div>
-            <span class="driver-reg-status ${d.active!==false?'active':'pending'}">${d.active!==false?'ACTIVE':'DISABLED'}</span>
+
+    listEl.innerHTML = all.map(d=>{
+      const isPending = d._type==='pending';
+      const esc = (d.email||'').replace(/'/g,"\'");
+      const nameEsc = (d.name||'').replace(/'/g,"\'");
+      return `
+        <div class="driver-reg-card" style="${isPending?'border-left-color:var(--accent2);opacity:.9':''}">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+            <div style="flex:1;min-width:0">
+              <div class="driver-reg-name">${d.name||'—'}</div>
+              <div class="driver-reg-email" style="word-break:break-all">${d.email||'—'}</div>
+              <div style="font-size:.5rem;color:var(--muted);margin-top:3px">${d.carPlate?'🚗 '+d.carPlate:'No car assigned'}</div>
+              <span class="driver-reg-status ${isPending?'pending':d.active!==false?'active':'pending'}">
+                ${isPending?'⏳ INVITE PENDING':d.active!==false?'✅ ACTIVE':'🚫 DISABLED'}
+              </span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px;flex-shrink:0">
+              ${isPending
+                ? `<button style="background:none;border:1px solid var(--accent2);color:var(--accent2);font-family:var(--font-m);font-size:.42rem;padding:5px 7px;cursor:pointer;letter-spacing:1px;white-space:nowrap"
+                    onclick="adminResendInvite('${esc}')">📨 RESEND</button>`
+                : `<button style="background:none;border:1px solid var(--border);color:var(--muted);font-family:var(--font-m);font-size:.42rem;padding:5px 7px;cursor:pointer;letter-spacing:1px;white-space:nowrap"
+                    onclick="adminResetDriverPassword('${esc}','${nameEsc}')">🔑 RESET PW</button>
+                   <button style="background:none;border:1px solid ${d.active!==false?'var(--red)':'var(--accent)'};color:${d.active!==false?'var(--red)':'var(--accent)'};font-family:var(--font-m);font-size:.42rem;padding:5px 7px;cursor:pointer;letter-spacing:1px;white-space:nowrap"
+                    onclick="adminToggleDriver('${d.id}',${d.active!==false})">
+                    ${d.active!==false?'DISABLE':'ENABLE'}
+                   </button>`
+              }
+            </div>
           </div>
-          <div style="display:flex;gap:5px;flex-shrink:0">
-            <button style="background:none;border:1px solid var(--border);color:var(--muted);font-family:var(--font-m);font-size:.44rem;padding:5px 8px;cursor:pointer;letter-spacing:1px"
-              onclick="adminResetDriverPassword('${d.email}','${d.name}')">🔑 RESET PW</button>
-            <button style="background:none;border:1px solid var(--red);color:var(--red);font-family:var(--font-m);font-size:.44rem;padding:5px 8px;cursor:pointer;letter-spacing:1px"
-              onclick="adminToggleDriver('${d.id}',${d.active!==false})">
-              ${d.active!==false?'DISABLE':'ENABLE'}
-            </button>
+          <div style="font-size:.44rem;color:var(--muted);margin-top:5px">
+            ${isPending
+              ? `INVITED ${new Date(d.invitedAt).toLocaleDateString('en-GB')} BY ${d.invitedBy||'ADMIN'}`
+              : d.registeredAt?`REGISTERED ${new Date(d.registeredAt).toLocaleDateString('en-GB')}`:''
+            }
           </div>
-        </div>
-        ${d.registeredAt?`<div style="font-size:.46rem;color:var(--muted);margin-top:5px">REGISTERED ${new Date(d.registeredAt).toLocaleDateString('en-GB')}</div>`:''}
-      </div>`).join('');
+        </div>`;
+    }).join('');
   } catch(e){
-    listEl.innerHTML='<div style="color:var(--red);font-family:var(--font-m);font-size:.54rem;padding:12px">⚠ ERROR LOADING DRIVERS: '+e.message+'</div>';
+    listEl.innerHTML='<div style="color:var(--red);font-family:var(--font-m);font-size:.54rem;padding:12px">⚠ ERROR: '+e.message+'</div>';
+    console.error('loadRegisteredDrivers error:',e);
   }
 }
 
@@ -4016,24 +4228,28 @@ function showAuthPanel(panel){ switchToPanel(panel); }
 
 // Better panel switcher that uses exact panel names
 function switchToPanel(panel){
-  // panel: 'landing' | 'create' | 'login' | 'forgot'
+  // panel: 'landing' | 'create' | 'login' | 'forgot' | 'invite'
   const map={
     landing: 'authPanelLanding',
     create:  'authPanelCreate',
-    setup:   'authPanelCreate',  // alias
+    setup:   'authPanelCreate',
     login:   'authPanelLogin',
-    forgot:  'authPanelForgot'
+    forgot:  'authPanelForgot',
+    invite:  'authPanelInvite'
   };
   const targetId = map[panel];
-  Object.values(map).forEach(id=>{
+  if(!targetId){ console.warn('switchToPanel: unknown panel', panel); return; }
+  // Hide all auth panels, show the target
+  Object.values(map).filter((v,i,a)=>a.indexOf(v)===i).forEach(id=>{
     const el=document.getElementById(id);
     if(el) el.style.display = (id===targetId) ? 'block' : 'none';
   });
   clearAuthErrors();
   setTimeout(()=>{
-    if(panel==='login')          document.getElementById('authEmail')?.focus();
+    if(panel==='login')  document.getElementById('authEmail')?.focus();
     if(panel==='create'||panel==='setup') document.getElementById('setupName')?.focus();
-    if(panel==='forgot')         document.getElementById('authForgotEmail')?.focus();
+    if(panel==='forgot') document.getElementById('authForgotEmail')?.focus();
+    if(panel==='invite') document.getElementById('inviteEmail')?.focus();
   }, 150);
 }
 
@@ -4105,6 +4321,7 @@ async function authSetupAdmin(){
     // STEP 3: Save config + mark setup done
     btn.innerHTML='<span class="auth-spinner"></span>STEP 3/3 — FINISHING...';
     appConfig.saccoName = saccoName;
+    appConfig.appUrl    = window.location.origin + window.location.pathname;
     save('fs_config', appConfig);
     updateSaccoName(saccoName);
     localStorage.setItem('fs_setup_done','1');
@@ -4114,7 +4331,9 @@ async function authSetupAdmin(){
 
     btn.disabled=false; btn.innerHTML='✅ ACCOUNT CREATED!';
 
-    // Now manually trigger routing since onAuthStateChanged may have already fired
+    // Manually trigger routing — onAuthStateChanged may have already fired
+    // (pendingProfileWrite flag prevented it from acting)
+    window._pendingProfileWrite = false;
     onDriverAuthenticated(cred.user, profile);
 
   } catch(e){
@@ -4131,10 +4350,24 @@ async function authSetupAdmin(){
 
 function updateSaccoName(name){
   if(!name) return;
+  // Auth overlay logo
   const el=document.getElementById('authLogoName');
   if(el) el.textContent=name;
-  // Also update page title
+  // Main header logo — split on first space for styling
+  const logo=document.getElementById('headerLogo');
+  if(logo){
+    const parts = name.split(' ');
+    const first = parts[0];
+    const rest  = parts.slice(1).join(' ');
+    logo.innerHTML = first + (rest ? '<span> '+rest+'</span>' : '');
+  }
+  // Page title
   document.title = name + ' — Fleet Tracker';
+  // Store in config
+  if(appConfig.saccoName !== name){
+    appConfig.saccoName = name;
+    save('fs_config', appConfig);
+  }
 }
 
 // ── MAIN LOGIN ─────────────────────────────────────────────────
@@ -4271,9 +4504,14 @@ function onDriverAuthenticated(user, profile){
     if(hSub) hSub.textContent='// ADMIN PANEL · '+profile.saccoName||'SACCO';
     hideAuthOverlay();
     showNavFor('admin');
+    // Always open on DRIVERS tab — that's where admin manages the fleet
+    adminTab = 'drivers';
     switchPage('admin');
-    setTimeout(loadRegisteredDrivers, 400);
-    toast('👑 WELCOME BACK, '+firstName+'!');
+    // Load driver list after render
+    setTimeout(()=>{
+      loadRegisteredDrivers();
+    }, 300);
+    toast('👑 WELCOME, '+firstName+'!');
 
   } else {
     // ── DRIVER ───────────────────────────────────────────────
@@ -4295,6 +4533,174 @@ function onDriverAuthenticated(user, profile){
     switchPage('log');
     toast('✅ WELCOME, '+firstName+'!');
   }
+}
+
+// ── INVITATION LINK HANDLER ───────────────────────────────────
+async function handleInviteLink(){
+  // Called on page load when URL contains ?invite=1
+  // Shows the invite acceptance panel
+  if(!auth){ initFirebase(); }
+  if(!auth){ return; }
+
+  showAuthOverlay();
+  switchToPanel('invite');
+  // Show loading state
+  document.getElementById('inviteLoadingState').style.display = 'block';
+  document.getElementById('inviteFormState').style.display    = 'none';
+  document.getElementById('inviteErrorState').style.display   = 'none';
+
+  // Pre-fill email from URL param
+  const urlParams  = new URLSearchParams(window.location.search);
+  const emailHint  = decodeURIComponent(urlParams.get('email')||'');
+  if(emailHint && document.getElementById('inviteEmail')){
+    document.getElementById('inviteEmail').value = emailHint;
+  }
+
+  // Check if this is a valid sign-in link
+  const isSignInLink = auth.isSignInWithEmailLink(window.location.href);
+  if(!isSignInLink){
+    document.getElementById('inviteLoadingState').style.display = 'none';
+    document.getElementById('inviteErrorState').style.display   = 'block';
+    return;
+  }
+
+  // Load sacco name from pending invite if we have the email
+  if(emailHint && db){
+    try{
+      const inviteKey = emailHint.replace(/\./g,'_').replace(/@/g,'_AT_');
+      // Try both key formats
+      let inviteSnap = await db.collection('pendingInvites').doc(emailHint.replace(/\./g,'_')).get();
+      if(!inviteSnap.exists){
+        const q = await db.collection('pendingInvites').where('email','==',emailHint).limit(1).get();
+        if(!q.empty) inviteSnap = q.docs[0];
+      }
+      if(inviteSnap && inviteSnap.exists){
+        pendingInviteData = inviteSnap.data ? inviteSnap.data() : inviteSnap;
+        // Update the invite panel with sacco + driver name
+        const saccoEl  = document.getElementById('inviteSaccoName');
+        const nameEl   = document.getElementById('inviteDriverNameBadge');
+        if(saccoEl && pendingInviteData.saccoName) saccoEl.textContent = pendingInviteData.saccoName;
+        if(nameEl  && pendingInviteData.name)      nameEl.textContent  = '👋 HELLO, '+pendingInviteData.name.split(' ')[0]+'!';
+        if(pendingInviteData.saccoName)             updateSaccoName(pendingInviteData.saccoName);
+      }
+    } catch(e){ console.warn('Could not load invite data:', e.message); }
+  }
+
+  // Show the form
+  document.getElementById('inviteLoadingState').style.display = 'none';
+  document.getElementById('inviteFormState').style.display    = 'block';
+  setTimeout(()=>{
+    const emailEl = document.getElementById('inviteEmail');
+    if(emailEl && !emailEl.value) emailEl.focus();
+    else document.getElementById('inviteNewPass')?.focus();
+  }, 200);
+}
+
+async function acceptInvitation(){
+  const email   = (document.getElementById('inviteEmail')?.value||'').trim().toLowerCase();
+  const pass    = document.getElementById('inviteNewPass')?.value||'';
+
+  const errEl = document.getElementById('authInviteError');
+  if(errEl){ errEl.style.display='none'; errEl.textContent=''; }
+
+  if(!email){ if(errEl){errEl.textContent='⚠ ENTER YOUR EMAIL ADDRESS';errEl.style.display='block';} return; }
+  if(pass.length < 6){ if(errEl){errEl.textContent='⚠ PASSWORD MUST BE AT LEAST 6 CHARACTERS';errEl.style.display='block';} return; }
+
+  const btn = document.getElementById('inviteAcceptBtn');
+  btn.disabled=true; btn.innerHTML='<span class="auth-spinner"></span>SETTING UP YOUR ACCOUNT...';
+
+  try{
+    if(!auth){ initFirebase(); }
+
+    // Sign in with the email link
+    window._pendingProfileWrite = true;
+    const cred = await auth.signInWithEmailLink(email, window.location.href);
+    const user = cred.user;
+
+    // Check if they already have a profile (re-clicking invite link)
+    const existingProfile = await loadDriverProfile(user.uid);
+    if(existingProfile){
+      window._pendingProfileWrite = false;
+      // Just update password and route them in
+      try{ await user.updatePassword(pass); } catch(e){ /* may already be set */ }
+      const cleanUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+      onDriverAuthenticated(user, existingProfile);
+      return;
+    }
+
+    // Update their password to what they chose
+    await user.updatePassword(pass);
+
+    // Load the pending invite data if not already loaded
+    let inviteData = pendingInviteData;
+    if(!inviteData && db){
+      const inviteKey = email.replace(/\./g,'_');
+      const snap = await db.collection('pendingInvites').doc(inviteKey).get();
+      if(snap.exists) inviteData = snap.data();
+      if(!inviteData){
+        const q = await db.collection('pendingInvites').where('email','==',email).limit(1).get();
+        if(!q.empty) inviteData = q.docs[0].data();
+      }
+    }
+
+    // Build driver profile
+    const profile = {
+      uid:          user.uid,
+      name:         inviteData?.name || email.split('@')[0].toUpperCase(),
+      email:        email,
+      carPlate:     inviteData?.carPlate || null,
+      phone:        inviteData?.phone    || null,
+      role:         'driver',
+      active:       true,
+      saccoName:    inviteData?.saccoName || appConfig.saccoName || '',
+      invitedBy:    inviteData?.invitedBy || '',
+      registeredAt: Date.now(),
+      acceptedAt:   Date.now()
+    };
+
+    // Save to Firestore drivers collection
+    await db.collection('drivers').doc(user.uid).set(profile);
+
+    // Remove from pendingInvites
+    try{
+      const inviteKey = email.replace(/\./g,'_');
+      await db.collection('pendingInvites').doc(inviteKey).delete();
+    } catch(e){ /* non-critical */ }
+
+    window._pendingProfileWrite = false;
+
+    // Clean URL (remove sign-in link params so they can't reuse)
+    const cleanUrl = window.location.origin + window.location.pathname;
+    window.history.replaceState({}, document.title, cleanUrl);
+
+    btn.disabled=false; btn.innerHTML='✅ ACCEPT INVITATION & LOG IN';
+
+    // Route to driver panel
+    onDriverAuthenticated(user, profile);
+
+  } catch(e){
+    window._pendingProfileWrite = false;
+    btn.disabled=false; btn.innerHTML='✅ ACCEPT INVITATION & LOG IN';
+    const msgs={
+      'auth/invalid-action-code':  '⚠ INVITATION LINK HAS EXPIRED — ASK YOUR ADMIN FOR A NEW ONE',
+      'auth/invalid-email':        '⚠ EMAIL DOES NOT MATCH THE INVITATION',
+      'auth/user-disabled':        '⚠ YOUR ACCOUNT HAS BEEN DISABLED',
+      'auth/email-already-in-use': '⚠ THIS EMAIL IS ALREADY REGISTERED — USE THE LOGIN PAGE',
+      'auth/weak-password':        '⚠ PASSWORD IS TOO WEAK — USE AT LEAST 6 CHARACTERS',
+    };
+    const msg = msgs[e.code]||('⚠ '+e.message);
+    if(errEl){ errEl.textContent=msg; errEl.style.display='block'; }
+    console.error('acceptInvitation error:', e);
+  }
+}
+
+function toggleInviteEye(){
+  const inp=document.getElementById('inviteNewPass');
+  const btn=document.getElementById('inviteEyeBtn');
+  if(!inp)return;
+  inp.type = inp.type==='password'?'text':'password';
+  btn.textContent = inp.type==='password'?'👁':'🙈';
 }
 
 // ── AUTH STATE LISTENER ────────────────────────────────────────
@@ -4933,7 +5339,14 @@ function renderNotesList(){
   if(appConfig.saccoName) updateSaccoName(appConfig.saccoName);
 
   if(initFirebase()){
-    startAuthListener(); // shows login screen or routes to app
+    // Check if this is an invite link (driver clicking their email link)
+    const urlParams = new URLSearchParams(window.location.search);
+    if(urlParams.get('invite') === '1' || auth.isSignInWithEmailLink(window.location.href)){
+      // Invite flow — don't run normal auth listener first
+      handleInviteLink();
+    } else {
+      startAuthListener(); // shows landing or restores session
+    }
     if(isOnline()){
       loadFirebaseData(true);
       startLiveListener();
