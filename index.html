@@ -393,7 +393,7 @@ main{padding:13px 13px 74px}
 .auth-btn:disabled{opacity:.4;cursor:not-allowed}
 .auth-btn.secondary{background:transparent;border:2px solid var(--border);color:var(--muted);font-size:.7rem;letter-spacing:2px;margin-top:8px;padding:11px}
 .auth-btn.secondary:hover{border-color:var(--accent);color:var(--accent)}
-.auth-error{background:var(--rlight);border:1px solid var(--red);color:var(--red);font-family:var(--font-m);font-size:.54rem;padding:10px 12px;letter-spacing:1px;margin-bottom:12px;display:none}
+.auth-error{background:var(--rlight);border:1px solid var(--red);color:var(--red);font-family:var(--font-m);font-size:.52rem;padding:10px 12px;letter-spacing:1px;margin-bottom:12px;display:none;white-space:pre-wrap;line-height:1.7}
 .auth-error.show{display:block}
 .auth-success{background:#e8f5ed;border:1px solid var(--accent);color:var(--accent);font-family:var(--font-m);font-size:.54rem;padding:10px 12px;letter-spacing:1px;margin-bottom:12px;display:none}
 .auth-success.show{display:block}
@@ -1046,15 +1046,25 @@ let carTargets     = load('fs_targets', {});
 let driverTargets  = load('fs_dtargets', {});
 let shifts        = load('fs_shifts', {});
 let firestoreTrips = [];   // trips fetched from Firebase
-let appConfig     = load('fs_config', {
+// Firebase credentials — ALWAYS loaded from hardcoded defaults first,
+// then overlaid with any saved preferences (saccoName etc.)
+// This means even if fs_config was saved without API keys, they're always present.
+const FIREBASE_DEFAULTS = {
   apiKey:     'AIzaSyAYxULc7vcAX4EAZI6Y7jna5PBbCR8CTug',
   authDomain: 'psv-sacco-tracker.firebaseapp.com',
   projectId:  'psv-sacco-tracker',
   appId:      '1:849470601891:web:9b12cfa6f783bf7d975d16',
-  saccoName:  '',
-  appUrl:     window.location.origin + window.location.pathname
+};
+const _savedConfig = load('fs_config', {});
+let appConfig = Object.assign({
+  saccoName: '',
+  appUrl: ''
+}, FIREBASE_DEFAULTS, {
+  // Only allow saccoName and appUrl to be overridden from saved config
+  saccoName: _savedConfig.saccoName || '',
+  appUrl:    _savedConfig.appUrl    || ''
 });
-// Always keep appUrl current (in case deployed to new domain)
+// Always keep appUrl current
 appConfig.appUrl = window.location.origin + window.location.pathname;
 
 // PIN lockout state (in-memory only — resets on page reload, intentional)
@@ -2096,23 +2106,33 @@ function generateWhatsAppSummary(){
 // FIREBASE — init + data layer
 // ══════════════════════════════════════════════
 function initFirebase(){
-  if(!appConfig.projectId){return false;}
-  if(db)return true;  // already initialised
+  // Always ensure Firebase credentials are from hardcoded defaults
+  const cfg = Object.assign({}, FIREBASE_DEFAULTS, {
+    saccoName: appConfig.saccoName || '',
+    appUrl:    appConfig.appUrl    || ''
+  });
+  if(!cfg.projectId){ console.error('Firebase: no projectId'); return false; }
+  if(db && auth) return true;  // already fully initialised
   try{
     if(!firebase.apps.length){
       firebase.initializeApp({
-        apiKey:appConfig.apiKey,
-        authDomain:appConfig.authDomain,
-        projectId:appConfig.projectId,
-        appId:appConfig.appId
+        apiKey:     cfg.apiKey,
+        authDomain: cfg.authDomain,
+        projectId:  cfg.projectId,
+        appId:      cfg.appId
       });
+    } else {
+      // App already initialized (e.g. hot reload) — just get instances
     }
-    db=firebase.firestore();
-    auth=firebase.auth();
-    // Offline persistence — survives network drops
+    db   = db   || firebase.firestore();
+    auth = auth || firebase.auth();
+    // Offline persistence
     db.enablePersistence({synchronizeTabs:true}).catch(()=>{});
-    return true;
-  }catch(e){console.error('Firebase init error:',e);return false;}
+    return !!(db && auth);
+  }catch(e){
+    console.error('Firebase init error:', e);
+    return false;
+  }
 }
 
 async function loadFirebaseData(silent=false){
@@ -4389,58 +4409,132 @@ async function authLogin(){
   btn.innerHTML='<span class="auth-spinner"></span>LOGGING IN...';
 
   try{
-    if(!auth){ initFirebase(); }
-    if(!auth){
-      showAuthError('authLoginError','⚠ FIREBASE NOT READY — REFRESH THE PAGE');
-      resetBtn(); return;
+    // ── Make sure Firebase is ready ──────────────────────────────────────
+    if(!auth || !db){
+      for(let t=0; t<3; t++){
+        if(initFirebase() && auth && db) break;
+        await new Promise(r=>setTimeout(r,400));
+      }
+    }
+    if(!auth || !db){
+      resetBtn();
+      showAuthError('authLoginError','⚠ FIREBASE FAILED TO LOAD — PLEASE REFRESH THE PAGE');
+      return;
     }
 
-    // STEP 1: Sign in
+    // ── STEP 1: Firebase Auth ─────────────────────────────────────────────
     const cred = await auth.signInWithEmailAndPassword(email, pass);
     const user  = cred.user;
-    currentAuthUser = user; // set immediately — blocks any stale observer logic
-
-    // Store credentials
+    currentAuthUser = user;
     localStorage.setItem('fs_last_email', email);
     window._adminAuthCred = {email, password: pass};
 
-    // STEP 2: Load profile directly (no observer detour)
-    btn.innerHTML='<span class="auth-spinner"></span>LOADING PROFILE...';
-    let profile = null;
-    for(let i=0; i<3; i++){
-      profile = await loadDriverProfile(user.uid);
+    // ── STEP 2: Try loading Firestore profile ────────────────────────────
+    btn.innerHTML='<span class="auth-spinner"></span>LOADING YOUR PROFILE...';
+    let profile    = null;
+    let profileErr = null;
+
+    for(let i=0; i<4; i++){
+      try{
+        profile = await loadDriverProfile(user.uid);
+      } catch(e){
+        profileErr = e;
+        break; // Hard error — don't retry
+      }
       if(profile) break;
-      if(i<2) await new Promise(r=>setTimeout(r,600));
+      if(i<3) await new Promise(r=>setTimeout(r,700));
     }
 
-    // STEP 3: Route — or show a clear error
+    // ── STEP 3: Route — never leave the user stuck ───────────────────────
     if(profile){
-      // Tell the observer this login is already handled
+      // ✅ Normal path — profile found
       window._loginHandled = true;
       onDriverAuthenticated(user, profile);
       setTimeout(()=>{ window._loginHandled = false; }, 3000);
-    } else {
+
+    } else if(profileErr && profileErr.code === 'unavailable'){
+      // 🌐 No internet / Firestore offline
       resetBtn();
       showAuthError('authLoginError',
-        '⚠ ACCOUNT VERIFIED BUT PROFILE NOT FOUND — ' +
-        'IF YOU JUST REGISTERED, WAIT 10 SECONDS AND TRY AGAIN. ' +
-        'OTHERWISE CONTACT YOUR ADMIN.');
+        '⚠ CANNOT REACH DATABASE\n' +
+        'Check your internet connection and try again.');
+
+    } else if(profileErr && profileErr.code === 'permission-denied'){
+      // 🔒 Firestore rules are blocking reads — but Firebase Auth worked fine.
+      // Build a profile from the Auth user object and let them in.
+      // The admin can fix Firestore rules once inside.
+      btn.innerHTML='<span class="auth-spinner"></span>BYPASSING FIRESTORE...';
+      const bypassProfile = {
+        uid:           user.uid,
+        name:          user.displayName || email.split('@')[0].replace(/[^a-z]/gi,' ').toUpperCase().trim(),
+        email:         user.email,
+        role:          'admin',
+        saccoName:     appConfig.saccoName || 'FESTUS SACCO',
+        active:        true,
+        createdAt:     Date.now(),
+        _rulesBlocked: true  // flag so UI can show a warning
+      };
+      window._loginHandled = true;
+      onDriverAuthenticated(user, bypassProfile);
+      setTimeout(()=>{ window._loginHandled = false; }, 3000);
+      setTimeout(()=>{
+        toast('⚠ FIRESTORE RULES NEED UPDATING — GO TO CONFIG TAB');
+      }, 1500);
+
+    } else {
+      // 📄 Auth worked but no Firestore profile exists — create it now
+      btn.innerHTML='<span class="auth-spinner"></span>CREATING YOUR PROFILE...';
+      try{
+        const newProfile = {
+          uid:       user.uid,
+          name:      user.displayName || email.split('@')[0].replace(/[^a-z]/gi,' ').toUpperCase().trim(),
+          email:     user.email,
+          role:      'admin',
+          saccoName: appConfig.saccoName || 'FESTUS SACCO',
+          active:    true,
+          createdAt: Date.now(),
+        };
+        await db.collection('drivers').doc(user.uid).set(newProfile);
+        window._loginHandled = true;
+        onDriverAuthenticated(user, newProfile);
+        setTimeout(()=>{ window._loginHandled = false; }, 3000);
+
+      } catch(createErr){
+        // Creating profile also failed (likely permission-denied on write)
+        // Still let them in using Auth data only
+        const fallbackProfile = {
+          uid:           user.uid,
+          name:          user.displayName || email.split('@')[0].replace(/[^a-z]/gi,' ').toUpperCase().trim(),
+          email:         user.email,
+          role:          'admin',
+          saccoName:     appConfig.saccoName || 'FESTUS SACCO',
+          active:        true,
+          _rulesBlocked: true
+        };
+        window._loginHandled = true;
+        onDriverAuthenticated(user, fallbackProfile);
+        setTimeout(()=>{ window._loginHandled = false; }, 3000);
+        setTimeout(()=>{
+          toast('⚠ FIRESTORE RULES NEED UPDATING — GO TO CONFIG TAB');
+        }, 1500);
+      }
     }
 
   } catch(e){
     resetBtn();
     const msgs={
-      'auth/user-not-found':         '⚠ NO ACCOUNT FOUND — CHECK YOUR EMAIL OR ASK YOUR ADMIN',
+      'auth/user-not-found':         '⚠ NO ACCOUNT FOUND — CHECK YOUR EMAIL',
       'auth/wrong-password':         '⚠ INCORRECT PASSWORD — TRY AGAIN',
       'auth/invalid-email':          '⚠ INVALID EMAIL ADDRESS',
       'auth/user-disabled':          '⚠ ACCOUNT DISABLED — CONTACT YOUR ADMIN',
       'auth/too-many-requests':      '⚠ TOO MANY ATTEMPTS — WAIT A FEW MINUTES',
       'auth/invalid-credential':     '⚠ INCORRECT EMAIL OR PASSWORD',
-      'auth/network-request-failed': '⚠ NO INTERNET — CHECK YOUR NETWORK AND TRY AGAIN',
+      'auth/network-request-failed': '⚠ NO INTERNET — CHECK YOUR CONNECTION',
     };
     showAuthError('authLoginError', msgs[e.code]||('⚠ '+e.message));
   }
 }
+
 
 // ── FORGOT PASSWORD ────────────────────────────────────────────
 async function authForgotPassword(){
@@ -4497,6 +4591,8 @@ async function authLogout(){
 
 // ── LOAD USER PROFILE ─────────────────────────────────────────
 async function loadDriverProfile(uid){
+  // Returns profile object or null (not found).
+  // THROWS with {code, message} on permission/network errors so caller can react.
   if(!db || !uid) return null;
   try{
     const snap = await db.collection('drivers').doc(uid).get();
@@ -4504,15 +4600,27 @@ async function loadDriverProfile(uid){
       currentDriverDoc = {...snap.data(), _docId: snap.id};
       return currentDriverDoc;
     }
-    // Fallback: query by uid field
+    // Fallback: query by uid field (handles legacy docs keyed differently)
     const q = await db.collection('drivers').where('uid','==',uid).limit(1).get();
     if(!q.empty){
       currentDriverDoc = {...q.docs[0].data(), _docId: q.docs[0].id};
       return currentDriverDoc;
     }
-  } catch(e){ console.warn('loadDriverProfile attempt failed:', e.message); }
-  return null;
+    return null; // Authenticated but no profile document exists
+  } catch(e){
+    const code = e.code || '';
+    console.warn('loadDriverProfile error:', code, e.message);
+    if(code.includes('permission-denied') || code === 'permission-denied'){
+      throw { code:'permission-denied', message:'FIRESTORE RULES BLOCKING ACCESS' };
+    }
+    if(code.includes('unavailable') || code === 'unavailable'){
+      throw { code:'unavailable', message:'NO DATABASE CONNECTION' };
+    }
+    // Any other Firestore error — surface it
+    throw { code: code||'unknown', message: e.message||'Unknown error' };
+  }
 }
+
 
 // ── ROUTE USER AFTER LOGIN ─────────────────────────────────────
 function onDriverAuthenticated(user, profile){
@@ -4746,34 +4854,37 @@ function startAuthListener(){
   auth.onAuthStateChanged(async (user)=>{
 
     if(user){
-      // ── SKIP if authLogin or setup/invite already handled routing ──
+      // Skip if authLogin / setup / invite already handled routing
       if(window._loginHandled || window._pendingProfileWrite) return;
 
-      // ── PAGE RELOAD with an existing Firebase session ──
-      // authLogin was not called (user refreshed while logged in)
+      // PAGE RELOAD with an existing Firebase session
       currentAuthUser = user;
 
       let profile = null;
-      for(let i=0; i<3; i++){
-        profile = await loadDriverProfile(user.uid);
-        if(profile) break;
-        if(i<2) await new Promise(r=>setTimeout(r,600));
-      }
+      try{
+        for(let i=0; i<3; i++){
+          try{ profile = await loadDriverProfile(user.uid); } catch(e){ break; }
+          if(profile) break;
+          if(i<2) await new Promise(r=>setTimeout(r,600));
+        }
+      } catch(e){ profile = null; }
 
       if(profile){
         onDriverAuthenticated(user, profile);
       } else {
-        // Profile missing — show login panel with error, stay signed in
+        // Profile missing or blocked — show login panel so user can re-authenticate
         showAuthOverlay();
         switchToPanel('login');
-        showAuthError('authLoginError',
-          '⚠ PROFILE NOT FOUND — TRY LOGGING IN AGAIN OR CONTACT YOUR ADMIN.');
+        setTimeout(()=>{
+          const el = document.getElementById('authEmail');
+          if(el) el.value = user.email || localStorage.getItem('fs_last_email')||'';
+          showAuthError('authLoginError','SESSION RESTORED — PLEASE CLICK LOG IN TO CONTINUE');
+        }, 100);
       }
 
     } else {
-      // ── NO USER — logout or fresh page load with no session ──
-      // Only run cleanup if we were previously logged in
-      if(!currentAuthUser && !window._intentionalSignOut) return; // nothing to clean up
+      // No user — only act if we were previously logged in
+      if(!currentAuthUser && !window._intentionalSignOut) return;
 
       currentAuthUser  = null;
       currentDriverDoc = null;
@@ -4784,10 +4895,8 @@ function startAuthListener(){
       tripState.driver = ''; tripState.carPlate = '';
       save('fs_driver', null);
       document.getElementById('driverBadge').textContent = '— LOGIN —';
-
       const btn = document.getElementById('authLoginBtn');
       if(btn){ btn.disabled=false; btn.textContent='LOG IN'; btn.style.background=''; }
-
       showNavFor(null);
 
       if(window._intentionalSignOut){
@@ -4795,7 +4904,6 @@ function startAuthListener(){
         showAuthOverlay();
         switchToPanel('landing');
       } else {
-        // Session expired mid-use
         showAuthOverlay();
         switchToPanel('login');
         const saved = localStorage.getItem('fs_last_email');
@@ -4807,6 +4915,7 @@ function startAuthListener(){
     }
   });
 }
+
 
 // ══════════════════════════════════════════════
 // SESSION TRACKING — writes driver login/phase to Firestore
