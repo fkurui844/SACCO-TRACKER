@@ -680,7 +680,7 @@ main{padding:13px 13px 74px}
     <div id="authPanelLogin" style="display:none">
       <button class="auth-back-btn" onclick="switchToPanel('landing')">‹ BACK</button>
       <div class="auth-panel-title">LOG IN</div>
-      <div class="auth-panel-sub">ENTER YOUR EMAIL AND PASSWORD.<br>YOUR ROLE IS DETECTED AUTOMATICALLY.</div>
+      <div class="auth-panel-sub">WORKS FOR ADMINS AND DRIVERS.<br>YOUR DASHBOARD OPENS AUTOMATICALLY.</div>
       <div class="auth-error" id="authLoginError"></div>
       <div class="auth-field">
         <label>Email Address</label>
@@ -1263,7 +1263,8 @@ function goSetup(){
   driverNotes  = [];
   showNavFor(null);
   if(auth && currentAuthUser){
-    auth.signOut(); // onAuthStateChanged will show landing
+    window._intentionalSignOut = true;
+    auth.signOut();
   } else {
     showAuthOverlay();
     switchToPanel('landing');
@@ -2406,8 +2407,7 @@ function renderLog(){
         ${appConfig.projectId?'':`<div style="margin-top:16px;padding:12px;background:var(--rlight);border:1px solid var(--red);font-family:var(--font-m);font-size:.52rem;color:var(--red);letter-spacing:1px">⚠ FIREBASE NOT CONFIGURED<br>CONTACT SYSTEM ADMIN</div>`}
       </div>`;
     // Trigger auth overlay if Firebase is configured
-    if(appConfig.projectId && !currentAuthUser) showAuthOverlay();
-    return;
+    return; // auth overlay is managed solely by onAuthStateChanged
   }
 
   // IDLE
@@ -4331,10 +4331,11 @@ async function authSetupAdmin(){
 
     btn.disabled=false; btn.innerHTML='✅ ACCOUNT CREATED!';
 
-    // Manually trigger routing — onAuthStateChanged may have already fired
-    // (pendingProfileWrite flag prevented it from acting)
+    // Route directly — tell the observer to skip
     window._pendingProfileWrite = false;
+    window._loginHandled = true;
     onDriverAuthenticated(cred.user, profile);
+    setTimeout(()=>{ window._loginHandled = false; }, 3000);
 
   } catch(e){
     window._pendingProfileWrite = false;
@@ -4371,6 +4372,7 @@ function updateSaccoName(name){
 }
 
 // ── MAIN LOGIN ─────────────────────────────────────────────────
+// Routes directly — does NOT wait for onAuthStateChanged
 async function authLogin(){
   const email = (document.getElementById('authEmail')?.value||'').trim().toLowerCase();
   const pass  = document.getElementById('authPass')?.value||'';
@@ -4378,39 +4380,65 @@ async function authLogin(){
   if(!email){ showAuthError('authLoginError','⚠ ENTER YOUR EMAIL ADDRESS'); return; }
   if(!pass){  showAuthError('authLoginError','⚠ ENTER YOUR PASSWORD'); return; }
 
-  const btn=document.getElementById('authLoginBtn');
-  const resetBtn=()=>{
-    if(btn){
-      btn.disabled=false;
-      btn.textContent = currentAuthRole==='admin' ? '👑 ADMIN LOGIN' : '🚌 DRIVER LOGIN';
-      btn.style.background = currentAuthRole==='admin' ? 'var(--accent2)' : 'var(--accent)';
-    }
+  const btn = document.getElementById('authLoginBtn');
+  const resetBtn = ()=>{
+    if(btn){ btn.disabled=false; btn.textContent='LOG IN'; btn.style.background=''; }
   };
 
   btn.disabled=true;
-  btn.innerHTML='<span class="auth-spinner"></span>'+(currentAuthRole==='admin'?'LOGGING IN...':'LOGGING IN...');
+  btn.innerHTML='<span class="auth-spinner"></span>LOGGING IN...';
 
   try{
     if(!auth){ initFirebase(); }
-    if(!auth){ showAuthError('authLoginError','⚠ FIREBASE NOT READY — REFRESH PAGE'); resetBtn(); return; }
+    if(!auth){
+      showAuthError('authLoginError','⚠ FIREBASE NOT READY — REFRESH THE PAGE');
+      resetBtn(); return;
+    }
 
-    await auth.signInWithEmailAndPassword(email, pass);
+    // STEP 1: Sign in
+    const cred = await auth.signInWithEmailAndPassword(email, pass);
+    const user  = cred.user;
+    currentAuthUser = user; // set immediately — blocks any stale observer logic
+
+    // Store credentials
     localStorage.setItem('fs_last_email', email);
-    localStorage.setItem('fs_last_role', currentAuthRole);
-    if(currentAuthRole==='admin') window._adminAuthCred={email,password:pass};
-    // onAuthStateChanged will load profile and route — button will be reset there if needed
+    window._adminAuthCred = {email, password: pass};
+
+    // STEP 2: Load profile directly (no observer detour)
+    btn.innerHTML='<span class="auth-spinner"></span>LOADING PROFILE...';
+    let profile = null;
+    for(let i=0; i<3; i++){
+      profile = await loadDriverProfile(user.uid);
+      if(profile) break;
+      if(i<2) await new Promise(r=>setTimeout(r,600));
+    }
+
+    // STEP 3: Route — or show a clear error
+    if(profile){
+      // Tell the observer this login is already handled
+      window._loginHandled = true;
+      onDriverAuthenticated(user, profile);
+      setTimeout(()=>{ window._loginHandled = false; }, 3000);
+    } else {
+      resetBtn();
+      showAuthError('authLoginError',
+        '⚠ ACCOUNT VERIFIED BUT PROFILE NOT FOUND — ' +
+        'IF YOU JUST REGISTERED, WAIT 10 SECONDS AND TRY AGAIN. ' +
+        'OTHERWISE CONTACT YOUR ADMIN.');
+    }
 
   } catch(e){
     resetBtn();
     const msgs={
-      'auth/user-not-found':    '⚠ NO ACCOUNT FOUND — CONTACT YOUR ADMIN',
-      'auth/wrong-password':    '⚠ INCORRECT PASSWORD — TRY AGAIN',
-      'auth/invalid-email':     '⚠ INVALID EMAIL ADDRESS',
-      'auth/user-disabled':     '⚠ YOUR ACCOUNT HAS BEEN DISABLED',
-      'auth/too-many-requests': '⚠ TOO MANY ATTEMPTS — WAIT A FEW MINUTES',
-      'auth/invalid-credential':'⚠ EMAIL OR PASSWORD IS INCORRECT',
+      'auth/user-not-found':         '⚠ NO ACCOUNT FOUND — CHECK YOUR EMAIL OR ASK YOUR ADMIN',
+      'auth/wrong-password':         '⚠ INCORRECT PASSWORD — TRY AGAIN',
+      'auth/invalid-email':          '⚠ INVALID EMAIL ADDRESS',
+      'auth/user-disabled':          '⚠ ACCOUNT DISABLED — CONTACT YOUR ADMIN',
+      'auth/too-many-requests':      '⚠ TOO MANY ATTEMPTS — WAIT A FEW MINUTES',
+      'auth/invalid-credential':     '⚠ INCORRECT EMAIL OR PASSWORD',
+      'auth/network-request-failed': '⚠ NO INTERNET — CHECK YOUR NETWORK AND TRY AGAIN',
     };
-    showAuthError('authLoginError', msgs[e.code]||('⚠ ERROR: '+e.message));
+    showAuthError('authLoginError', msgs[e.code]||('⚠ '+e.message));
   }
 }
 
@@ -4462,8 +4490,8 @@ async function authLogout(){
     window._adminAuthCred = null;
     driverNotes           = [];
     showNavFor(null);  // hide navs immediately
+    window._intentionalSignOut = true; // show landing after sign-out
     if(auth) await auth.signOut();
-    // onAuthStateChanged will show landing screen
   } catch(e){ console.error('Logout error:', e); }
 }
 
@@ -4489,8 +4517,11 @@ async function loadDriverProfile(uid){
 // ── ROUTE USER AFTER LOGIN ─────────────────────────────────────
 function onDriverAuthenticated(user, profile){
   if(!profile){
-    showAuthError('authLoginError','⚠ NO PROFILE FOUND — CONTACT YOUR ADMIN');
-    auth.signOut(); return;
+    // Don't sign out — just show error on login panel so they can retry
+    showAuthOverlay();
+    switchToPanel('login');
+    showAuthError('authLoginError','⚠ NO PROFILE FOUND — PLEASE TRY AGAIN OR CONTACT YOUR ADMIN');
+    return;
   }
 
   if(profile.role==='admin'){
@@ -4669,15 +4700,16 @@ async function acceptInvitation(){
     } catch(e){ /* non-critical */ }
 
     window._pendingProfileWrite = false;
+    window._loginHandled = true;
 
-    // Clean URL (remove sign-in link params so they can't reuse)
+    // Clean URL
     const cleanUrl = window.location.origin + window.location.pathname;
     window.history.replaceState({}, document.title, cleanUrl);
 
     btn.disabled=false; btn.innerHTML='✅ ACCEPT INVITATION & LOG IN';
 
-    // Route to driver panel
     onDriverAuthenticated(user, profile);
+    setTimeout(()=>{ window._loginHandled = false; }, 3000);
 
   } catch(e){
     window._pendingProfileWrite = false;
@@ -4704,59 +4736,74 @@ function toggleInviteEye(){
 }
 
 // ── AUTH STATE LISTENER ────────────────────────────────────────
+// Flags that control listener behavior
+window._pendingProfileWrite = window._pendingProfileWrite || false;
+window._intentionalSignOut  = false; // set true before manual auth.signOut()
+window._loginHandled        = false; // set true when authLogin/setup routes directly
+
 function startAuthListener(){
   if(!auth) return;
   auth.onAuthStateChanged(async (user)=>{
+
     if(user){
-      // If profile is currently being written (setup flow), wait for it
-      if(window._pendingProfileWrite){
-        // The setup function will call onDriverAuthenticated directly
-        return;
-      }
+      // ── SKIP if authLogin or setup/invite already handled routing ──
+      if(window._loginHandled || window._pendingProfileWrite) return;
+
+      // ── PAGE RELOAD with an existing Firebase session ──
+      // authLogin was not called (user refreshed while logged in)
       currentAuthUser = user;
 
-      // Retry loading profile up to 4 times (handles race conditions + slow Firestore)
       let profile = null;
-      for(let attempt=0; attempt<4; attempt++){
+      for(let i=0; i<3; i++){
         profile = await loadDriverProfile(user.uid);
         if(profile) break;
-        if(attempt<3) await new Promise(r=>setTimeout(r, 800*(attempt+1)));
+        if(i<2) await new Promise(r=>setTimeout(r,600));
       }
 
       if(profile){
         onDriverAuthenticated(user, profile);
       } else {
-        // Still no profile after retries — likely their account exists but profile missing
-        // Reset the login button so user isn't stuck
-        const btn=document.getElementById('authLoginBtn');
-        if(btn){ btn.disabled=false; btn.textContent = currentAuthRole==='admin'?'👑 ADMIN LOGIN':'🚌 DRIVER LOGIN'; }
-        showAuthError('authLoginError','⚠ ACCOUNT FOUND BUT NO PROFILE — CONTACT YOUR ADMIN');
-        await auth.signOut();
+        // Profile missing — show login panel with error, stay signed in
         showAuthOverlay();
-        switchToPanel('landing');
+        switchToPanel('login');
+        showAuthError('authLoginError',
+          '⚠ PROFILE NOT FOUND — TRY LOGGING IN AGAIN OR CONTACT YOUR ADMIN.');
       }
+
     } else {
-      // No user signed in — reset everything
+      // ── NO USER — logout or fresh page load with no session ──
+      // Only run cleanup if we were previously logged in
+      if(!currentAuthUser && !window._intentionalSignOut) return; // nothing to clean up
+
       currentAuthUser  = null;
       currentDriverDoc = null;
       isAdminUser      = false;
       adminUnlocked    = false;
+      driverNotes      = [];
       tripState.phase  = 'setup';
       tripState.driver = ''; tripState.carPlate = '';
       save('fs_driver', null);
       document.getElementById('driverBadge').textContent = '— LOGIN —';
 
-      // Always reset button state
-      const btn=document.getElementById('authLoginBtn');
-      if(btn){ btn.disabled=false; }
+      const btn = document.getElementById('authLoginBtn');
+      if(btn){ btn.disabled=false; btn.textContent='LOG IN'; btn.style.background=''; }
 
-      showNavFor(null); // hide all navs
-      showAuthOverlay();
-      // Always show landing page — user chooses create or login
-      switchToPanel('landing');
-      // Pre-fill email if returning user
-      const saved = localStorage.getItem('fs_last_email');
-      if(saved) document.getElementById('authEmail').value = saved;
+      showNavFor(null);
+
+      if(window._intentionalSignOut){
+        window._intentionalSignOut = false;
+        showAuthOverlay();
+        switchToPanel('landing');
+      } else {
+        // Session expired mid-use
+        showAuthOverlay();
+        switchToPanel('login');
+        const saved = localStorage.getItem('fs_last_email');
+        if(saved) setTimeout(()=>{
+          const el = document.getElementById('authEmail');
+          if(el) el.value = saved;
+        }, 80);
+      }
     }
   });
 }
@@ -5339,13 +5386,29 @@ function renderNotesList(){
   if(appConfig.saccoName) updateSaccoName(appConfig.saccoName);
 
   if(initFirebase()){
-    // Check if this is an invite link (driver clicking their email link)
+    // Invite link? Handle before anything else
     const urlParams = new URLSearchParams(window.location.search);
     if(urlParams.get('invite') === '1' || auth.isSignInWithEmailLink(window.location.href)){
-      // Invite flow — don't run normal auth listener first
       handleInviteLink();
     } else {
-      startAuthListener(); // shows landing or restores session
+      // Register the observer for page-reload session restores
+      startAuthListener();
+
+      // Immediately show the right panel for fresh (no-session) loads
+      // Firebase will override this if a session exists (observer fires)
+      const hasEmail = !!localStorage.getItem('fs_last_email');
+      showAuthOverlay();
+      if(hasEmail){
+        // Returning user — drop straight to login form, pre-fill email
+        switchToPanel('login');
+        setTimeout(()=>{
+          const el = document.getElementById('authEmail');
+          if(el) el.value = localStorage.getItem('fs_last_email');
+        }, 80);
+      } else {
+        // Brand new user — show landing so they can choose create/login
+        switchToPanel('landing');
+      }
     }
     if(isOnline()){
       loadFirebaseData(true);
