@@ -304,6 +304,15 @@ main{padding:13px 13px 74px}
 .queue-banner.show{display:flex}
 
 /* AUTH SCREENS */
+.auth-tabs{display:flex;border-bottom:2px solid var(--border);margin-bottom:18px}
+.auth-tab{flex:1;background:none;border:none;padding:11px 6px;font-family:var(--font-d);font-size:.9rem;letter-spacing:2px;color:var(--muted);cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;margin-bottom:-2px}
+.auth-tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.auth-tab.admin-tab.active{color:var(--accent2);border-bottom-color:var(--accent2)}
+.auth-setup-header{background:linear-gradient(135deg,var(--accent),#0d5a2a);padding:18px 20px;margin:-22px -20px 20px;text-align:center}
+.auth-setup-header-title{font-family:var(--font-d);font-size:1.4rem;letter-spacing:3px;color:#fff;margin-bottom:4px}
+.auth-setup-header-sub{font-family:var(--font-m);font-size:.46rem;color:rgba(255,255,255,.75);letter-spacing:1.5px;line-height:1.7}
+.auth-step{display:flex;align-items:center;gap:8px;margin-bottom:8px;font-family:var(--font-m);font-size:.5rem;color:var(--muted);letter-spacing:1px}
+.auth-step-num{width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;font-size:.5rem;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-family:var(--font-d)}
 .auth-overlay{position:fixed;inset:0;background:var(--bg);z-index:600;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;overflow-y:auto}
 .auth-overlay.hidden{display:none}
 .auth-box{width:100%;max-width:400px}
@@ -551,57 +560,98 @@ main{padding:13px 13px 74px}
     <!-- LOGO -->
     <div class="auth-logo">
       <div class="auth-logo-ico">🚌</div>
-      <div class="auth-logo-name">FESTUS SACCO</div>
+      <div class="auth-logo-name" id="authLogoName">FESTUS SACCO</div>
       <div class="auth-logo-sub">FLEET MANAGEMENT SYSTEM</div>
     </div>
 
-    <!-- LOGIN PANEL -->
-    <div id="authPanelLogin">
+    <!-- ═══ PANEL: FIRST-TIME OWNER SETUP ═══ -->
+    <div id="authPanelSetup" style="display:none">
       <div class="auth-card">
-        <div class="auth-card-title">DRIVER LOGIN</div>
-        <div class="auth-card-sub">ENTER YOUR REGISTERED EMAIL AND PASSWORD<br>TO ACCESS YOUR ACCOUNT</div>
+        <div class="auth-setup-header">
+          <div class="auth-setup-header-title">WELCOME, SACCO OWNER</div>
+          <div class="auth-setup-header-sub">THIS IS YOUR FIRST TIME SETTING UP<br>THE FESTUS SACCO FLEET SYSTEM</div>
+        </div>
+        <div style="margin-bottom:16px">
+          <div class="auth-step"><div class="auth-step-num">1</div>CREATE YOUR OWNER ADMIN ACCOUNT BELOW</div>
+          <div class="auth-step"><div class="auth-step-num">2</div>LOG IN AND REGISTER YOUR DRIVERS</div>
+          <div class="auth-step"><div class="auth-step-num">3</div>DRIVERS RECEIVE EMAIL TO SET THEIR PASSWORD</div>
+        </div>
+        <div class="auth-error" id="authSetupError"></div>
+        <div class="auth-field">
+          <label>Your Full Name</label>
+          <input class="auth-input" type="text" id="setupName" placeholder="e.g. FESTUS MWANGI"
+            style="text-transform:uppercase"
+            onkeydown="if(event.key==='Enter')document.getElementById('setupEmail').focus()">
+        </div>
+        <div class="auth-field">
+          <label>Sacco Name</label>
+          <input class="auth-input" type="text" id="setupSaccoName" placeholder="e.g. FESTUS SACCO"
+            style="text-transform:uppercase"
+            onkeydown="if(event.key==='Enter')document.getElementById('setupEmail').focus()">
+        </div>
+        <div class="auth-field">
+          <label>Your Email Address</label>
+          <input class="auth-input" type="email" id="setupEmail" placeholder="owner@gmail.com"
+            autocomplete="email"
+            onkeydown="if(event.key==='Enter')document.getElementById('setupPass').focus()">
+        </div>
+        <div class="auth-field">
+          <label>Create Password</label>
+          <div class="auth-input-wrap">
+            <input class="auth-input" type="password" id="setupPass" placeholder="Min 6 characters"
+              onkeydown="if(event.key==='Enter')authSetupAdmin()">
+            <button class="auth-eye" onclick="toggleSetupEye()" id="setupEyeBtn">👁</button>
+          </div>
+        </div>
+        <button class="auth-btn" id="setupBtn" onclick="authSetupAdmin()"
+          style="background:var(--accent2);border-color:var(--accent2)">
+          🚀 CREATE ADMIN ACCOUNT
+        </button>
+      </div>
+    </div>
+
+    <!-- ═══ PANEL: MAIN LOGIN (tabs: Driver / Admin) ═══ -->
+    <div id="authPanelLogin" style="display:none">
+      <div class="auth-card">
+        <!-- Role tabs -->
+        <div class="auth-tabs">
+          <button class="auth-tab active" id="tabDriver" onclick="switchAuthRole('driver')">🚌 DRIVER</button>
+          <button class="auth-tab admin-tab" id="tabAdmin" onclick="switchAuthRole('admin')">👑 ADMIN</button>
+        </div>
         <div class="auth-error" id="authLoginError"></div>
         <div class="auth-field">
-          <label>Email Address</label>
-          <input class="auth-input" type="email" id="authEmail" placeholder="driver@festussacco.com"
+          <label id="authEmailLabel">Email Address</label>
+          <input class="auth-input" type="email" id="authEmail" placeholder="your@email.com"
             autocomplete="email" onkeydown="if(event.key==='Enter')document.getElementById('authPass').focus()">
         </div>
         <div class="auth-field">
           <label>Password</label>
           <div class="auth-input-wrap">
             <input class="auth-input" type="password" id="authPass" placeholder="••••••••"
-              autocomplete="current-password" id="authPass"
+              autocomplete="current-password"
               onkeydown="if(event.key==='Enter')authLogin()">
             <button class="auth-eye" onclick="toggleAuthEye()" id="authEyeBtn">👁</button>
           </div>
         </div>
-        <button class="auth-btn" id="authLoginBtn" onclick="authLogin()">
-          LOG IN
-        </button>
-        <button class="auth-link" onclick="showAuthPanel('forgot')">
-          Forgot your password?
-        </button>
+        <button class="auth-btn" id="authLoginBtn" onclick="authLogin()">LOG IN</button>
+        <button class="auth-link" onclick="showAuthPanel('forgot')">Forgot your password?</button>
       </div>
     </div>
 
-    <!-- FORGOT PASSWORD PANEL -->
+    <!-- ═══ PANEL: FORGOT PASSWORD ═══ -->
     <div id="authPanelForgot" style="display:none">
       <div class="auth-card">
         <div class="auth-card-title">RESET PASSWORD</div>
-        <div class="auth-card-sub">ENTER YOUR EMAIL ADDRESS AND WE'LL SEND<br>YOU A LINK TO RESET YOUR PASSWORD</div>
+        <div class="auth-card-sub">ENTER YOUR EMAIL — WE'LL SEND A RESET LINK</div>
         <div class="auth-error" id="authForgotError"></div>
         <div class="auth-success" id="authForgotSuccess"></div>
         <div class="auth-field">
           <label>Email Address</label>
-          <input class="auth-input" type="email" id="authForgotEmail" placeholder="driver@festussacco.com"
+          <input class="auth-input" type="email" id="authForgotEmail" placeholder="your@email.com"
             onkeydown="if(event.key==='Enter')authForgotPassword()">
         </div>
-        <button class="auth-btn" id="authForgotBtn" onclick="authForgotPassword()">
-          SEND RESET LINK
-        </button>
-        <button class="auth-btn secondary" onclick="showAuthPanel('login')">
-          ← BACK TO LOGIN
-        </button>
+        <button class="auth-btn" id="authForgotBtn" onclick="authForgotPassword()">SEND RESET LINK</button>
+        <button class="auth-btn secondary" onclick="showAuthPanel('login')">← BACK TO LOGIN</button>
       </div>
     </div>
 
@@ -871,7 +921,8 @@ let appConfig     = load('fs_config', {
   apiKey:     'AIzaSyAYxULc7vcAX4EAZI6Y7jna5PBbCR8CTug',
   authDomain: 'psv-sacco-tracker.firebaseapp.com',
   projectId:  'psv-sacco-tracker',
-  appId:      '1:849470601891:web:9b12cfa6f783bf7d975d16'
+  appId:      '1:849470601891:web:9b12cfa6f783bf7d975d16',
+  saccoName:  ''
 });
 
 // PIN lockout state (in-memory only — resets on page reload, intentional)
@@ -925,6 +976,8 @@ let mySessionId        = null;   // Firestore doc ID of this driver's session
 let auth               = null;   // firebase.auth() instance
 let currentAuthUser    = null;   // Currently signed-in Firebase user
 let currentDriverDoc   = null;   // Firestore driver profile {name, email, carPlate, ...}
+let currentAuthRole    = 'driver'; // 'driver' | 'admin' — which tab is selected
+let isAdminUser        = false;  // true when logged-in user is an admin
 let stationSearch      = '';     // filter text for station grid
 let sessionSecondsLeft = SESSION_TIMEOUT;
 let sessionInterval    = null;
@@ -1056,11 +1109,14 @@ function goSetup(){
   tripState.driver=''; tripState.carPlate='';
   save('fs_driver', null);
   switchPage('log');
-  // Sign out from Firebase Auth — will trigger onAuthStateChanged → show login
-  if(auth && currentAuthUser){
-    auth.signOut().then(()=>{ renderLog(); });
-  } else {
+  // Only call auth signOut for drivers — admins use authLogout()
+  if(!isAdminUser && auth && currentAuthUser){
+    auth.signOut();
+    // onAuthStateChanged will show login overlay
+  } else if(!isAdminUser){
     showAuthOverlay();
+    switchToPanel('login');
+    switchAuthRole('driver');
     renderLog();
   }
 }
@@ -2816,7 +2872,9 @@ function renderAdmin(){
     <div class="card" style="border-left:4px solid var(--accent2);margin-bottom:10px">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div class="ctitle" style="margin:0">ADMIN PANEL</div>
-        <button class="bghost" onclick="adminUnlocked=false;devUnlocked=false;adminTab='shifts';renderAdmin()">🔒 LOCK</button>
+        <div style="display:flex;gap:7px">
+          <button class="bghost" style="color:var(--red);border-color:var(--red)" onclick="authLogout()">🚪 LOG OUT</button>
+        </div>
       </div>
     </div>
     <div class="atabs">
@@ -3268,11 +3326,18 @@ async function adminRegisterDriver(){
     // Also add to local DRIVERS array for legacy support
     if(!DRIVERS.includes(name)){ DRIVERS.push(name); save('fs_drivers', DRIVERS); }
 
-    // Sign back in as admin (createUser signs in as new user!)
-    // We need to re-authenticate admin — for now just sign out new user
-    // In practice admin should use a separate admin SDK or their own auth
-    // Simple workaround: immediately sign back out, admin stays on admin page
+    // createUserWithEmailAndPassword signs in as the NEW user.
+    // We sign out immediately and sign the admin back in with their stored creds.
     await auth.signOut();
+    // Re-sign admin back in
+    const adminEmail = localStorage.getItem('fs_last_email')||'';
+    const adminCred  = window._adminAuthCred;
+    if(adminCred){
+      await auth.signInWithEmailAndPassword(adminCred.email, adminCred.password);
+    } else {
+      // No stored cred — show re-login notice, admin will sign back in
+      showAuthOverlay(); switchToPanel('login'); switchAuthRole('admin');
+    }
 
     btn.disabled=false; btn.textContent='➕ REGISTER DRIVER';
     if(succEl){
@@ -3860,130 +3925,263 @@ function changeDevPin(){
 }
 
 // ══════════════════════════════════════════════
-// FIREBASE AUTH — Driver Login System
+// FIREBASE AUTH — Full Login System
+// Admin + Driver roles, first-time setup
 // ══════════════════════════════════════════════
 
+// ── Panel & role helpers ───────────────────────────────────────
 function showAuthOverlay(){
   document.getElementById('authOverlay').classList.remove('hidden');
-  // Pre-fill email if we have it saved
-  const saved = localStorage.getItem('fs_last_email');
-  if(saved) document.getElementById('authEmail').value = saved;
-  setTimeout(()=>document.getElementById('authEmail').focus(), 200);
 }
-
 function hideAuthOverlay(){
   document.getElementById('authOverlay').classList.add('hidden');
 }
 
 function showAuthPanel(panel){
-  document.getElementById('authPanelLogin').style.display  = panel==='login'  ? 'block' : 'none';
-  document.getElementById('authPanelForgot').style.display = panel==='forgot' ? 'block' : 'none';
+  ['authPanelSetup','authPanelLogin','authPanelForgot'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display = id.includes(panel.charAt(0).toUpperCase()+panel.slice(1)) ? 'block' : 'none';
+  });
+  clearAuthErrors();
+}
+
+// Better panel switcher that uses exact panel names
+function switchToPanel(panel){
+  // panel: 'setup' | 'login' | 'forgot'
+  const map={setup:'authPanelSetup', login:'authPanelLogin', forgot:'authPanelForgot'};
+  Object.keys(map).forEach(k=>{
+    const el=document.getElementById(map[k]);
+    if(el) el.style.display = (k===panel) ? 'block' : 'none';
+  });
+  clearAuthErrors();
+}
+
+function switchAuthRole(role){
+  currentAuthRole = role;
+  document.getElementById('tabDriver')?.classList.toggle('active', role==='driver');
+  document.getElementById('tabAdmin')?.classList.toggle('active', role==='admin');
+  const btn = document.getElementById('authLoginBtn');
+  const lbl = document.getElementById('authEmailLabel');
+  if(btn) btn.textContent = role==='admin' ? '👑 ADMIN LOGIN' : '🚌 DRIVER LOGIN';
+  if(btn) btn.style.background = role==='admin' ? 'var(--accent2)' : 'var(--accent)';
+  if(lbl) lbl.textContent = role==='admin' ? 'Admin Email' : 'Email Address';
   clearAuthErrors();
 }
 
 function clearAuthErrors(){
-  ['authLoginError','authForgotError','authForgotSuccess'].forEach(id=>{
+  ['authLoginError','authForgotError','authForgotSuccess','authSetupError'].forEach(id=>{
     const el=document.getElementById(id);
-    if(el){el.classList.remove('show');el.textContent='';}
+    if(el){el.classList.remove('show');el.textContent='';el.style.display='none';}
   });
 }
 
 function showAuthError(id, msg){
   const el=document.getElementById(id);
-  if(el){el.textContent=msg;el.classList.add('show');}
+  if(el){el.textContent=msg;el.classList.add('show');el.style.display='block';}
 }
 
 function toggleAuthEye(){
   const inp=document.getElementById('authPass');
   const btn=document.getElementById('authEyeBtn');
   if(!inp)return;
-  inp.type = inp.type==='password' ? 'text' : 'password';
-  btn.textContent = inp.type==='password' ? '👁' : '🙈';
+  inp.type = inp.type==='password'?'text':'password';
+  btn.textContent = inp.type==='password'?'👁':'🙈';
 }
 
+function toggleSetupEye(){
+  const inp=document.getElementById('setupPass');
+  const btn=document.getElementById('setupEyeBtn');
+  if(!inp)return;
+  inp.type = inp.type==='password'?'text':'password';
+  btn.textContent = inp.type==='password'?'👁':'🙈';
+}
+
+// ── FIRST-TIME ADMIN SETUP ──────────────────────────────────────
+async function authSetupAdmin(){
+  const name      = (document.getElementById('setupName')?.value||'').trim().toUpperCase();
+  const saccoName = (document.getElementById('setupSaccoName')?.value||'').trim().toUpperCase();
+  const email     = (document.getElementById('setupEmail')?.value||'').trim().toLowerCase();
+  const pass      = document.getElementById('setupPass')?.value||'';
+
+  clearAuthErrors();
+  if(!name)     { showAuthError('authSetupError','⚠ ENTER YOUR FULL NAME'); return; }
+  if(!saccoName){ showAuthError('authSetupError','⚠ ENTER YOUR SACCO NAME'); return; }
+  if(!email)    { showAuthError('authSetupError','⚠ ENTER YOUR EMAIL ADDRESS'); return; }
+  if(pass.length<6){ showAuthError('authSetupError','⚠ PASSWORD MUST BE AT LEAST 6 CHARACTERS'); return; }
+
+  const btn=document.getElementById('setupBtn');
+  btn.disabled=true; btn.innerHTML='<span class="auth-spinner"></span>CREATING ACCOUNT...';
+
+  try{
+    if(!auth) initFirebase();
+    // Create the admin Firebase Auth account
+    const cred = await auth.createUserWithEmailAndPassword(email, pass);
+    const uid  = cred.user.uid;
+
+    // Save admin profile to Firestore
+    await db.collection('drivers').doc(uid).set({
+      uid, name, email,
+      role: 'admin',
+      saccoName,
+      active: true,
+      createdAt: Date.now()
+    });
+
+    // Save sacco name to local config
+    appConfig.saccoName = saccoName;
+    save('fs_config', appConfig);
+    updateSaccoName(saccoName);
+
+    // Mark setup as done
+    localStorage.setItem('fs_setup_done','1');
+
+    btn.disabled=false; btn.innerHTML='🚀 CREATE ADMIN ACCOUNT';
+    // onAuthStateChanged will fire and route to admin panel
+  } catch(e){
+    btn.disabled=false; btn.innerHTML='🚀 CREATE ADMIN ACCOUNT';
+    const msgs={
+      'auth/email-already-in-use': '⚠ THAT EMAIL IS ALREADY REGISTERED — USE ADMIN LOGIN TAB',
+      'auth/invalid-email':        '⚠ INVALID EMAIL ADDRESS',
+      'auth/weak-password':        '⚠ PASSWORD TOO WEAK — USE AT LEAST 6 CHARACTERS',
+    };
+    showAuthError('authSetupError', msgs[e.code]||('⚠ '+e.message));
+  }
+}
+
+function updateSaccoName(name){
+  if(!name) return;
+  const el=document.getElementById('authLogoName');
+  if(el) el.textContent=name;
+  // Also update page title
+  document.title = name + ' — Fleet Tracker';
+}
+
+// ── MAIN LOGIN ─────────────────────────────────────────────────
 async function authLogin(){
   const email = (document.getElementById('authEmail')?.value||'').trim().toLowerCase();
   const pass  = document.getElementById('authPass')?.value||'';
   clearAuthErrors();
-  if(!email){ showAuthError('authLoginError','⚠ PLEASE ENTER YOUR EMAIL ADDRESS'); return; }
-  if(!pass){  showAuthError('authLoginError','⚠ PLEASE ENTER YOUR PASSWORD'); return; }
+  if(!email){ showAuthError('authLoginError','⚠ ENTER YOUR EMAIL ADDRESS'); return; }
+  if(!pass){  showAuthError('authLoginError','⚠ ENTER YOUR PASSWORD'); return; }
 
   const btn=document.getElementById('authLoginBtn');
   btn.disabled=true;
-  btn.innerHTML='<span class="auth-spinner"></span>LOGGING IN...';
+  const label = currentAuthRole==='admin' ? '👑 LOGGING IN...' : '🚌 LOGGING IN...';
+  btn.innerHTML='<span class="auth-spinner"></span>'+label;
 
   try{
-    if(!auth){ initFirebase(); }
-    if(!auth){ showAuthError('authLoginError','⚠ SYSTEM ERROR — CONTACT ADMIN'); btn.disabled=false; btn.textContent='LOG IN'; return; }
-
+    if(!auth) initFirebase();
     await auth.signInWithEmailAndPassword(email, pass);
     localStorage.setItem('fs_last_email', email);
-    // onAuthStateChanged will handle the rest
+    localStorage.setItem('fs_last_role', currentAuthRole);
+    // Temporarily store for re-auth after driver registration
+    if(currentAuthRole==='admin') window._adminAuthCred={email,password:pass};
+    // onAuthStateChanged handles routing based on role
   } catch(e){
-    btn.disabled=false; btn.innerHTML='LOG IN';
+    btn.disabled=false;
+    btn.textContent = currentAuthRole==='admin' ? '👑 ADMIN LOGIN' : '🚌 DRIVER LOGIN';
     const msgs={
       'auth/user-not-found':    '⚠ NO ACCOUNT FOUND — CONTACT YOUR MANAGER',
-      'auth/wrong-password':    '⚠ INCORRECT PASSWORD — TRY AGAIN OR RESET',
+      'auth/wrong-password':    '⚠ INCORRECT PASSWORD',
       'auth/invalid-email':     '⚠ INVALID EMAIL ADDRESS',
-      'auth/user-disabled':     '⚠ YOUR ACCOUNT HAS BEEN DISABLED — CONTACT ADMIN',
-      'auth/too-many-requests': '⚠ TOO MANY ATTEMPTS — WAIT A FEW MINUTES AND TRY AGAIN',
+      'auth/user-disabled':     '⚠ YOUR ACCOUNT HAS BEEN DISABLED',
+      'auth/too-many-requests': '⚠ TOO MANY ATTEMPTS — WAIT A FEW MINUTES',
       'auth/invalid-credential':'⚠ EMAIL OR PASSWORD IS INCORRECT',
     };
     showAuthError('authLoginError', msgs[e.code]||('⚠ '+e.message));
   }
 }
 
+// ── FORGOT PASSWORD ────────────────────────────────────────────
 async function authForgotPassword(){
-  const email = (document.getElementById('authForgotEmail')?.value||'').trim().toLowerCase();
+  const email=(document.getElementById('authForgotEmail')?.value||'').trim().toLowerCase();
   clearAuthErrors();
-  if(!email){ showAuthError('authForgotError','⚠ PLEASE ENTER YOUR EMAIL ADDRESS'); return; }
+  if(!email){ showAuthError('authForgotError','⚠ ENTER YOUR EMAIL ADDRESS'); return; }
 
   const btn=document.getElementById('authForgotBtn');
-  btn.disabled=true;
-  btn.innerHTML='<span class="auth-spinner"></span>SENDING...';
+  btn.disabled=true; btn.innerHTML='<span class="auth-spinner"></span>SENDING...';
 
   try{
-    if(!auth){ initFirebase(); }
+    if(!auth) initFirebase();
     await auth.sendPasswordResetEmail(email);
     btn.disabled=false; btn.innerHTML='SEND RESET LINK';
     const succ=document.getElementById('authForgotSuccess');
-    if(succ){ succ.textContent='✅ RESET LINK SENT TO '+email.toUpperCase()+' — CHECK YOUR INBOX'; succ.classList.add('show'); }
+    if(succ){
+      succ.textContent='✅ RESET LINK SENT TO '+email.toUpperCase()+' — CHECK YOUR INBOX';
+      succ.classList.add('show'); succ.style.display='block';
+    }
   } catch(e){
     btn.disabled=false; btn.innerHTML='SEND RESET LINK';
     const msgs={
-      'auth/user-not-found': '⚠ NO ACCOUNT WITH THAT EMAIL — CONTACT YOUR MANAGER',
+      'auth/user-not-found': '⚠ NO ACCOUNT WITH THAT EMAIL',
       'auth/invalid-email':  '⚠ INVALID EMAIL ADDRESS',
     };
     showAuthError('authForgotError', msgs[e.code]||('⚠ '+e.message));
   }
 }
 
+// ── LOGOUT ─────────────────────────────────────────────────────
 async function authLogout(){
-  if(!confirm('LOG OUT OF YOUR ACCOUNT?')) return;
+  const msg = isAdminUser ? 'LOG OUT OF ADMIN PANEL?' : 'LOG OUT OF YOUR ACCOUNT?';
+  if(!confirm(msg)) return;
   try{
-    goSetup(); // End trip session first
+    if(!isAdminUser){
+      // Driver: end session cleanly
+      clearInterval(timerInterval);
+      stopGpsWatch();
+      clearSavedTripState();
+      endSession();
+      mySessionId = null;
+      tripState.phase='setup';
+      tripState.driver=''; tripState.carPlate='';
+      save('fs_driver', null);
+    }
+    isAdminUser   = false;
+    adminUnlocked = false;
+    window._adminAuthCred = null;
     if(auth) await auth.signOut();
+    // onAuthStateChanged will show login screen
   } catch(e){ console.error('Logout error:', e); }
 }
 
+// ── LOAD USER PROFILE ─────────────────────────────────────────
 async function loadDriverProfile(uid){
-  // Look up the driver's profile in Firestore drivers collection
   try{
     const snap = await db.collection('drivers').doc(uid).get();
     if(snap.exists){
       currentDriverDoc = snap.data();
       return currentDriverDoc;
     }
-    // Fallback: query by uid field
     const q = await db.collection('drivers').where('uid','==',uid).limit(1).get();
     if(!q.empty){ currentDriverDoc = q.docs[0].data(); return currentDriverDoc; }
   } catch(e){ console.error('loadDriverProfile error:', e); }
   return null;
 }
 
+// ── ROUTE USER AFTER LOGIN ─────────────────────────────────────
 function onDriverAuthenticated(user, profile){
-  // Populate tripState with driver info from their profile
-  if(profile){
+  if(!profile){
+    showAuthError('authLoginError','⚠ NO PROFILE FOUND — CONTACT YOUR ADMIN');
+    auth.signOut(); return;
+  }
+
+  if(profile.role==='admin'){
+    // ── Admin: go to admin panel ───────────────────────────────
+    isAdminUser = true;
+    adminUnlocked = true; // Skip PIN — they're already authenticated
+    // Update sacco name in header
+    if(profile.saccoName) updateSaccoName(profile.saccoName);
+    // Update logo badge
+    document.getElementById('driverBadge').textContent = '👑 '+profile.name.split(' ')[0];
+    hideAuthOverlay();
+    switchPage('admin');
+    renderAdmin();
+    // Load drivers list automatically
+    setTimeout(loadRegisteredDrivers, 400);
+    toast('👑 WELCOME, '+profile.name.split(' ')[0]+'!');
+  } else {
+    // ── Driver: go to trip logger ──────────────────────────────
+    isAdminUser = false;
     tripState.driver   = profile.name || user.email;
     tripState.carPlate = profile.carPlate || '';
     tripState.phase    = 'idle';
@@ -3993,44 +4191,59 @@ function onDriverAuthenticated(user, profile){
     startSessionTimer();
     startGpsWatch();
     writeSession('online',{loginTime:Date.now()});
-  } else {
-    // Auth user exists but no Firestore profile — show error
-    document.getElementById('authLoginBtn').disabled=false;
-    document.getElementById('authLoginBtn').innerHTML='LOG IN';
-    showAuthError('authLoginError','⚠ NO DRIVER PROFILE FOUND — CONTACT YOUR ADMIN');
-    auth.signOut();
-    return;
+    hideAuthOverlay();
+    switchPage('log');
+    renderLog();
+    toast('✅ WELCOME, '+tripState.driver.split(' ')[0]+'!');
   }
-  hideAuthOverlay();
-  renderLog();
-  toast('✅ WELCOME BACK, ' + (profile.name||'DRIVER').split(' ')[0] + '!');
 }
 
-// ── Start the auth listener right after Firebase init ──────────
+// ── AUTH STATE LISTENER ────────────────────────────────────────
 function startAuthListener(){
   if(!auth) return;
   auth.onAuthStateChanged(async (user)=>{
     if(user){
       currentAuthUser = user;
-      // Load their profile from Firestore
       const profile = await loadDriverProfile(user.uid);
-      onDriverAuthenticated(user, profile);
+      if(profile){
+        onDriverAuthenticated(user, profile);
+      } else {
+        // Account exists in Auth but no Firestore profile
+        showAuthError('authLoginError','⚠ NO DRIVER PROFILE — CONTACT YOUR ADMIN');
+        await auth.signOut();
+        showAuthOverlay();
+        switchToPanel('login');
+      }
     } else {
-      // Not logged in — show auth overlay
-      currentAuthUser    = null;
-      currentDriverDoc   = null;
-      tripState.phase    = 'setup';
-      tripState.driver   = '';
-      tripState.carPlate = '';
+      // No user signed in
+      currentAuthUser  = null;
+      currentDriverDoc = null;
+      isAdminUser      = false;
+      adminUnlocked    = false;
+      tripState.phase  = 'setup';
+      tripState.driver = ''; tripState.carPlate = '';
       save('fs_driver', null);
       document.getElementById('driverBadge').textContent = '— LOGIN —';
+
+      // Check if this is first-ever launch (no admin registered yet)
+      const setupDone = localStorage.getItem('fs_setup_done');
       showAuthOverlay();
-      showAuthPanel('login');
+      if(!setupDone){
+        switchToPanel('setup');
+      } else {
+        switchToPanel('login');
+        // Restore last role tab
+        const lastRole = localStorage.getItem('fs_last_role')||'driver';
+        switchAuthRole(lastRole);
+        const saved = localStorage.getItem('fs_last_email');
+        if(saved) document.getElementById('authEmail').value = saved;
+      }
     }
   });
 }
 
 // ══════════════════════════════════════════════
+// SESSION TRACKING// ══════════════════════════════════════════════
 // SESSION TRACKING — writes driver login/phase to Firestore
 // So the admin can see who is logged in and what they're doing
 // ══════════════════════════════════════════════
@@ -4365,15 +4578,19 @@ function renderLiveTab(){
 
   updateOfflineBadge();
   startAutoSync();
+  // Apply saved sacco name to UI
+  if(appConfig.saccoName) updateSaccoName(appConfig.saccoName);
+
   if(initFirebase()){
-    startAuthListener(); // shows login overlay or restores session
+    startAuthListener(); // shows login screen or routes to app
     if(isOnline()){
       loadFirebaseData(true);
       startLiveListener();
     }
   } else {
     renderLog();
-    showAuthOverlay(); // No config — still show overlay
+    showAuthOverlay();
+    switchToPanel('setup'); // First launch — create admin account
   }
 })();
 
