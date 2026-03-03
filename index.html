@@ -346,6 +346,16 @@ main{padding:13px 13px 74px}
 .week-bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
 .week-bar-fill{width:100%;background:var(--accent);border-radius:2px 2px 0 0;min-height:2px;transition:height .3s}
 .week-bar-lbl{font-family:var(--font-m);font-size:.4rem;color:var(--muted);letter-spacing:.5px}
+.rules-banner{background:#fff3cd;border:2px solid #f0a500;padding:12px 14px;margin-bottom:12px;display:flex;align-items:flex-start;gap:10px}
+.rules-banner-ico{font-size:1.4rem;flex-shrink:0;margin-top:1px}
+.rules-banner-body{flex:1;min-width:0}
+.rules-banner-title{font-family:var(--font-m);font-size:.58rem;font-weight:700;color:#7a5000;letter-spacing:1px;margin-bottom:4px}
+.rules-banner-sub{font-family:var(--font-m);font-size:.48rem;color:#7a5000;letter-spacing:.5px;line-height:1.7}
+.rules-code{font-family:monospace;background:#fff;border:1px dashed #f0a500;padding:7px 10px;font-size:.5rem;color:#333;margin:6px 0;white-space:pre;overflow-x:auto}
+.rules-btns{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.rules-btn{font-family:var(--font-m);font-size:.46rem;letter-spacing:1px;padding:6px 10px;border:none;cursor:pointer;font-weight:700}
+.rules-btn.primary{background:#f0a500;color:#fff}
+.rules-btn.secondary{background:none;border:1px solid #f0a500;color:#7a5000}
 .auth-invite-header{background:linear-gradient(135deg,var(--accent),#0f5e2a);padding:20px;margin:-22px -0px 20px;text-align:center;border-radius:0}
 .auth-invite-sacco{font-family:var(--font-d);font-size:1.6rem;letter-spacing:4px;color:#fff;margin-bottom:3px}
 .auth-invite-sub{font-family:var(--font-m);font-size:.5rem;color:rgba(255,255,255,.75);letter-spacing:1.5px}
@@ -3050,6 +3060,19 @@ function renderAdmin(){
         <button class="bghost" style="color:var(--red);border-color:var(--red);font-size:.52rem;padding:7px 10px" onclick="authLogout()">🚪 LOG OUT</button>
       </div>
     </div>
+    ${currentDriverDoc?._rulesBlocked ? `
+    <div class="rules-banner" style="margin-bottom:0;border-bottom:none">
+      <div class="rules-banner-ico">🔒</div>
+      <div class="rules-banner-body">
+        <div class="rules-banner-title">FIRESTORE RULES BLOCKING DATABASE ACCESS</div>
+        <div class="rules-banner-sub">Trips, drivers and sessions can't be saved until you fix this. Takes 30 seconds.</div>
+        <div class="rules-btns">
+          <button class="rules-btn primary" onclick="copyFirestoreRules()">📋 COPY RULES</button>
+          <button class="rules-btn secondary" onclick="window.open('https://console.firebase.google.com/project/psv-sacco-tracker/firestore/rules','_blank')">🔗 FIREBASE CONSOLE</button>
+          <button class="rules-btn secondary" onclick="window.location.reload()">🔄 RELOAD AFTER FIX</button>
+        </div>
+      </div>
+    </div>` : ''}
     <div class="atabs">
       <button class="atab ${adminTab==='shifts'?'active':''}" onclick="adminTab='shifts';renderAdmin()">SHIFTS</button>
       <button class="atab ${adminTab==='drivers'?'active':''}" onclick="adminTab='drivers';renderAdmin();setTimeout(loadRegisteredDrivers,100)">DRIVERS</button>
@@ -3103,7 +3126,7 @@ function renderAdmin(){
     <div class="asect ${adminTab==='drivers'?'active':''}">
 
       <!-- ONBOARDING BANNER — shown only on first login when no drivers yet -->
-      ${isFirstAdminLogin ? `
+      ${isFirstAdminLogin && !currentDriverDoc?._rulesBlocked ? `
       <div class="onboard-banner">
         <div class="onboard-banner-ico">🎉</div>
         <div class="onboard-banner-text">
@@ -3111,6 +3134,33 @@ function renderAdmin(){
           <div class="onboard-banner-sub">
             Now invite your drivers. They'll receive an email with a link to join.<br>
             Once registered, each driver logs in with their own account.
+          </div>
+        </div>
+      </div>` : ''}
+
+      <!-- FIRESTORE RULES BANNER — shown when Firestore permissions are blocking operations -->
+      ${currentDriverDoc?._rulesBlocked ? `
+      <div class="rules-banner">
+        <div class="rules-banner-ico">🔒</div>
+        <div class="rules-banner-body">
+          <div class="rules-banner-title">⚠ FIRESTORE RULES NEED UPDATING</div>
+          <div class="rules-banner-sub">
+            Your account is active but Firestore rules are blocking database access.<br>
+            This prevents inviting drivers, loading data, and saving trips.<br>
+            Fix takes 30 seconds — copy the rules below into Firebase Console:
+          </div>
+          <div class="rules-code">rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}</div>
+          <div class="rules-btns">
+            <button class="rules-btn primary" onclick="copyFirestoreRules()">📋 COPY RULES</button>
+            <button class="rules-btn secondary" onclick="window.open('https://console.firebase.google.com/project/psv-sacco-tracker/firestore/rules','_blank')">🔗 OPEN FIREBASE CONSOLE</button>
+            <button class="rules-btn secondary" onclick="window.location.reload()">🔄 REFRESH AFTER FIXING</button>
           </div>
         </div>
       </div>` : ''}
@@ -3522,51 +3572,73 @@ async function adminRegisterDriver(){
 
   const errEl  = document.getElementById('regDriverError');
   const succEl = document.getElementById('regDriverSuccess');
-  if(errEl)  { errEl.style.display='none'; errEl.textContent=''; }
+  if(errEl)  { errEl.style.display='none'; errEl.innerHTML=''; }
   if(succEl) { succEl.style.display='none'; succEl.innerHTML=''; }
 
-  if(!name)  { if(errEl){errEl.textContent='⚠ ENTER DRIVER FULL NAME';errEl.style.display='block';} return; }
-  if(!email) { if(errEl){errEl.textContent='⚠ ENTER DRIVER EMAIL ADDRESS';errEl.style.display='block';} return; }
-  if(!db)    { if(errEl){errEl.textContent='⚠ FIREBASE NOT CONNECTED — CHECK CONFIG';errEl.style.display='block';} return; }
-  if(!auth)  { if(errEl){errEl.textContent='⚠ AUTH NOT READY — REFRESH PAGE';errEl.style.display='block';} return; }
+  if(!name)  { showRegError('⚠ ENTER DRIVER FULL NAME'); return; }
+  if(!email) { showRegError('⚠ ENTER DRIVER EMAIL ADDRESS'); return; }
+  if(!auth)  { showRegError('⚠ FIREBASE NOT READY — REFRESH THE PAGE'); return; }
+
+  function showRegError(msg, extraHtml){
+    if(!errEl) return;
+    errEl.innerHTML = msg + (extraHtml ? '<br><br>' + extraHtml : '');
+    errEl.style.display = 'block';
+  }
 
   const btn = document.getElementById('regDBtn');
-  btn.disabled=true; btn.innerHTML='<span style="display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px"></span>SENDING INVITATION...';
+  btn.disabled=true;
+  btn.innerHTML='<span class="auth-spinner" style="width:12px;height:12px;border-width:2px"></span>SENDING INVITATION...';
 
   try{
     const saccoName = currentDriverDoc?.saccoName || appConfig.saccoName || 'FESTUS SACCO';
     const appUrl    = appConfig.appUrl || (window.location.origin + window.location.pathname);
 
-    // STEP 1: Store pending invite in Firestore BEFORE sending email
-    // Key: normalised email (no dots before @, per Firebase rules)
-    const inviteKey = email.replace(/\./g,'_');
-    const inviteData = {
-      name, email, carPlate: car||null, phone: phone||null,
-      saccoName, invitedBy: currentDriverDoc?.name||'ADMIN',
-      invitedByUid: currentAuthUser?.uid||'',
-      invitedAt: Date.now(),
-      status: 'pending'
-    };
-    await db.collection('pendingInvites').doc(inviteKey).set(inviteData);
-
-    // STEP 2: Also add to local DRIVERS list for legacy support
-    if(!DRIVERS.includes(name)){ DRIVERS.push(name); save('fs_drivers', DRIVERS); }
-
-    // STEP 3: Send Firebase Email Link invitation
-    // The driver clicks the link → lands on the app → auto-signs in → creates account
+    // ── STEP 1: Send the email link FIRST ────────────────────────────────────
+    // sendSignInLinkToEmail is a Firebase AUTH call — it does NOT need Firestore.
+    // This works even when Firestore rules are blocking everything.
     const actionCodeSettings = {
-      url: appUrl + (appUrl.includes('?') ? '&' : '?') + 'invite=1&email='+encodeURIComponent(email),
+      url: appUrl + (appUrl.includes('?') ? '&' : '?') + 'invite=1&email=' + encodeURIComponent(email),
       handleCodeInApp: true,
     };
 
     await auth.sendSignInLinkToEmail(email, actionCodeSettings);
 
-    // Save sent email for this invite for easier tracking
-    await db.collection('pendingInvites').doc(inviteKey).update({ inviteLinkSentAt: Date.now() });
+    // ── STEP 2: Save invite record to Firestore (optional — won't block success) ──
+    const inviteKey  = email.replace(/\./g,'_');
+    const inviteData = {
+      name, email,
+      carPlate:    car   || null,
+      phone:       phone || null,
+      saccoName,
+      invitedBy:    currentDriverDoc?.name || 'ADMIN',
+      invitedByUid: currentAuthUser?.uid   || '',
+      invitedAt:    Date.now(),
+      status:       'pending',
+      inviteLinkSentAt: Date.now()
+    };
 
+    let savedToFirestore = false;
+    if(db){
+      try{
+        await db.collection('pendingInvites').doc(inviteKey).set(inviteData);
+        savedToFirestore = true;
+        // Also add to local drivers list
+        if(!DRIVERS.includes(name)){ DRIVERS.push(name); save('fs_drivers', DRIVERS); }
+      } catch(fsErr){
+        // Firestore blocked — invitation was already sent, just can't track it in DB
+        console.warn('Could not save invite to Firestore:', fsErr.code, fsErr.message);
+      }
+    }
+
+    // ── STEP 3: Show success ──────────────────────────────────────────────────
     btn.disabled=false; btn.innerHTML='📨 SEND INVITATION';
 
-    // Show success block with details
+    const rulesWarning = !savedToFirestore ? `
+      <div style="background:#fff3cd;border:1px solid #f0a500;padding:8px 10px;margin-top:8px;font-size:.46rem;color:#7a5000;line-height:1.7">
+        ⚠ <strong>NOTE:</strong> Invitation sent successfully, but Firestore rules are blocking the invite record from being saved.
+        The driver can still use the link below. Fix the rules in <strong>CONFIG → OPEN FIREBASE CONSOLE</strong> when you have a moment.
+      </div>` : '';
+
     if(succEl){
       succEl.innerHTML = `
         <div class="invite-success-box">
@@ -3581,29 +3653,64 @@ async function adminRegisterDriver(){
           <div class="invite-link-box" title="Click to copy" onclick="copyInviteLink(this)">
             ${appUrl}?invite=1&email=${encodeURIComponent(email)}
           </div>
+          ${rulesWarning}
         </div>`;
       succEl.style.display='block';
     }
+
     // Clear form
-    document.getElementById('regDName').value='';
-    document.getElementById('regDEmail').value='';
-    if(document.getElementById('regDCar')) document.getElementById('regDCar').value='';
-    if(document.getElementById('regDPhone')) document.getElementById('regDPhone').value='';
-    // Reload list
+    ['regDName','regDEmail','regDPhone'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el) el.value='';
+    });
+    const carSel = document.getElementById('regDCar');
+    if(carSel) carSel.value='';
+
     loadRegisteredDrivers();
 
   } catch(e){
     btn.disabled=false; btn.innerHTML='📨 SEND INVITATION';
-    const msgs={
-      'auth/email-already-in-use': '⚠ THIS DRIVER IS ALREADY REGISTERED — USE RESEND INVITE BELOW',
-      'auth/invalid-email':        '⚠ INVALID EMAIL ADDRESS',
-      'auth/missing-continue-uri': '⚠ APP URL NOT CONFIGURED — CHECK CONFIG TAB',
-      'auth/unauthorized-continue-uri': '⚠ APP URL NOT AUTHORISED IN FIREBASE — ADD IT TO AUTHORISED DOMAINS',
+
+    const errorMsgs = {
+      'auth/email-already-in-use':
+        '⚠ THIS DRIVER ALREADY HAS AN ACCOUNT. Use "Resend" below or ask them to log in.',
+      'auth/invalid-email':
+        '⚠ INVALID EMAIL ADDRESS — check for typos.',
+      'auth/missing-continue-uri':
+        '⚠ APP URL NOT SET. Go to CONFIG tab and check the app URL.',
+      'auth/unauthorized-continue-uri':
+        '⚠ APP URL NOT AUTHORISED IN FIREBASE.\n' +
+        'Go to Firebase Console → Authentication → Settings → Authorized Domains\n' +
+        'and add: <strong>' + (window.location.hostname) + '</strong>',
+      'auth/operation-not-allowed':
+        '⚠ EMAIL LINK SIGN-IN IS NOT ENABLED IN FIREBASE.\n' +
+        'Go to Firebase Console → Authentication → Sign-in method\n' +
+        '→ Email/Password → enable "Email link (passwordless sign-in)"',
     };
-    const msg = msgs[e.code]||('⚠ FAILED: '+e.message);
-    if(errEl){ errEl.textContent=msg; errEl.style.display='block'; }
-    console.error('adminRegisterDriver error:', e);
+
+    const baseMsg  = errorMsgs[e.code] || ('⚠ FAILED: ' + (e.message||e.code||'Unknown error'));
+    const fixLink  = `<br><br><button class="rules-btn primary" style="margin-top:4px"
+      onclick="window.open('https://console.firebase.google.com/project/psv-sacco-tracker/authentication/providers','_blank')">
+      🔗 OPEN FIREBASE AUTH SETTINGS
+    </button>`;
+
+    showRegError(baseMsg, e.code && e.code !== 'auth/invalid-email' ? fixLink : '');
+    console.error('adminRegisterDriver error:', e.code, e.message);
   }
+}
+
+function copyFirestoreRules(){
+  const rules = `rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}`;
+  navigator.clipboard?.writeText(rules)
+    .then(()=> toast('✅ FIRESTORE RULES COPIED — NOW PASTE IN FIREBASE CONSOLE'))
+    .catch(()=> toast('SELECT AND COPY THE RULES MANUALLY FROM THE CONFIG TAB'));
 }
 
 function copyInviteLink(el){
@@ -3703,8 +3810,20 @@ async function loadRegisteredDrivers(){
         </div>`;
     }).join('');
   } catch(e){
-    listEl.innerHTML='<div style="color:var(--red);font-family:var(--font-m);font-size:.54rem;padding:12px">⚠ ERROR: '+e.message+'</div>';
-    console.error('loadRegisteredDrivers error:',e);
+    console.error('loadRegisteredDrivers error:', e.code, e.message);
+    const isPerms = (e.code||'').includes('permission') || (e.message||'').toLowerCase().includes('permission');
+    if(isPerms){
+      listEl.innerHTML=`
+        <div style="background:#fff3cd;border:1px solid #f0a500;padding:12px 14px;font-family:var(--font-m);font-size:.5rem;color:#7a5000;line-height:1.8">
+          <strong>🔒 FIRESTORE RULES ARE BLOCKING THIS LIST</strong><br>
+          The driver list can't load until you update your Firestore rules.<br><br>
+          <button class="rules-btn primary" onclick="copyFirestoreRules()" style="margin-right:6px">📋 COPY RULES</button>
+          <button class="rules-btn secondary" onclick="window.open('https://console.firebase.google.com/project/psv-sacco-tracker/firestore/rules','_blank')">🔗 OPEN FIREBASE CONSOLE</button>
+          <br><br><em style="font-size:.44rem">After saving the rules in Firebase Console, click refresh above.</em>
+        </div>`;
+    } else {
+      listEl.innerHTML='<div style="color:var(--red);font-family:var(--font-m);font-size:.54rem;padding:12px">⚠ ERROR: '+e.message+'</div>';
+    }
   }
 }
 
