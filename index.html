@@ -613,8 +613,8 @@ main{padding:13px 13px 74px}
     </div>
   </div>
   <div class="hsub">
-    <span id="headerSubText">// FLEET MANAGEMENT</span>
-    <span class="sync-timer" id="syncTimer"></span>
+    <span id="headerSubText" onclick="devSecretTap()" style="cursor:default;user-select:none">// FLEET MANAGEMENT</span>
+    <span class="sync-timer" id="syncTimer" onclick="devSecretTap()" style="cursor:default;user-select:none"></span>
   </div>
 </header>
 
@@ -899,7 +899,7 @@ main{padding:13px 13px 74px}
 <div class="dev-pin-overlay" id="devPinOverlay">
   <div class="dev-pin-box">
     <div class="dev-pin-title">🔧 DEV ACCESS</div>
-    <div class="dev-pin-sub">THIS AREA IS RESTRICTED<br>TO AUTHORISED DEVELOPERS ONLY<br><br>ENTER DEVELOPER PIN TO CONTINUE</div>
+    <div class="dev-pin-sub">DEVELOPER ACCESS REQUIRED<br><br>ENTER PIN TO CONTINUE</div>
     <div id="devPinLockMsg"></div>
     <input type="password" class="pininput" id="devPinIn" maxlength="6" placeholder="••••"
       onkeydown="if(event.key==='Enter')checkDevPin()">
@@ -3079,15 +3079,9 @@ function renderAdmin(){
       <button class="atab ${adminTab==='cars'?'active':''}" onclick="adminTab='cars';renderAdmin()">CARS</button>
       <button class="atab ${adminTab==='stations'?'active':''}" onclick="adminTab='stations';renderAdmin()">STATIONS</button>
       <button class="atab ${adminTab==='trips'?'active':''}" onclick="adminTab='trips';renderAdmin()">TRIPS</button>
-      <button class="atab ${adminTab==='config'?'active':''}" onclick="openDevTab('config')"
-        style="${adminTab==='config'?'':''}">
-        CONFIG <span style="font-size:.38rem;opacity:.6">🔒</span>
-      </button>
-      <button class="atab ${adminTab==='settings'?'active':''}" onclick="openDevTab('settings')"
-        style="${adminTab==='settings'?'color:var(--red);border-bottom-color:var(--red)':'color:var(--red);opacity:.7'}">
-        ⚙ DEV <span style="font-size:.38rem;opacity:.6">🔒</span>
-      </button>
+      <!-- CONFIG and DEV tabs hidden — accessible only via developer secret shortcut -->
     </div>
+    <script>if(devUnlocked) setTimeout(injectDevTabs, 0);</script>
 
     <!-- SHIFTS -->
     <div class="asect ${adminTab==='shifts'?'active':''}">
@@ -4274,7 +4268,7 @@ function recordDevFailure(){
 
 function checkDevPin(){
   if(isDevLocked()){
-    toast(`🔒 DEV ACCESS LOCKED — TRY IN ${devLockSecsLeft()}s`);
+    toast('🔒 DEV ACCESS LOCKED — TRY IN ' + devLockSecsLeft() + 's');
     return;
   }
   const pin = (document.getElementById('devPinIn')?.value || '').trim();
@@ -4284,10 +4278,76 @@ function checkDevPin(){
     devUnlocked = true;
     adminTab = pendingDevTab || 'settings';
     closeDevPinOverlay();
+    injectDevTabs();   // make tabs visible
     renderAdmin();
     toast('🔧 DEV ACCESS GRANTED');
   } else {
     recordDevFailure();
+  }
+}
+
+function injectDevTabs(){
+  // Add CONFIG and DEV tabs to the admin tab bar — only visible to developer
+  if(document.getElementById('devTabConfig')) return; // already injected
+  const tabBar = document.querySelector('.atabs');
+  if(!tabBar) return;
+
+  const configBtn = document.createElement('button');
+  configBtn.id = 'devTabConfig';
+  configBtn.className = 'atab';
+  configBtn.style.cssText = 'color:var(--accent2)';
+  configBtn.innerHTML = 'CONFIG';
+  configBtn.onclick = ()=>{ adminTab='config'; renderAdmin(); };
+  tabBar.appendChild(configBtn);
+
+  const devBtn = document.createElement('button');
+  devBtn.id = 'devTabDev';
+  devBtn.className = 'atab';
+  devBtn.style.cssText = 'color:var(--red)';
+  devBtn.innerHTML = '⚙ DEV';
+  devBtn.onclick = ()=>{ adminTab='settings'; renderAdmin(); };
+  tabBar.appendChild(devBtn);
+}
+
+function removeDevTabs(){
+  document.getElementById('devTabConfig')?.remove();
+  document.getElementById('devTabDev')?.remove();
+}
+
+// ── SECRET DEV ACCESS — 5 taps on header sub-text within 3 seconds ──────────
+let _devTapCount = 0;
+let _devTapTimer = null;
+
+function devSecretTap(){
+  // Only works when admin is logged in
+  if(!isAdminUser) return;
+
+  _devTapCount++;
+  clearTimeout(_devTapTimer);
+
+  if(_devTapCount >= 5){
+    _devTapCount = 0;
+    // Open dev PIN overlay
+    if(devUnlocked){
+      // Already unlocked — go straight to dev tab
+      adminTab = 'settings';
+      renderAdmin();
+    } else {
+      pendingDevTab = 'settings';
+      const lockEl = document.getElementById('devPinLockMsg');
+      if(lockEl) lockEl.innerHTML = '';
+      const inp = document.getElementById('devPinIn');
+      if(inp){ inp.value=''; inp.style.borderColor=''; }
+      if(isDevLocked()){
+        toast('🔒 DEV ACCESS LOCKED — TRY AGAIN IN ' + devLockSecsLeft() + 's');
+        return;
+      }
+      document.getElementById('devPinOverlay').classList.add('open');
+      setTimeout(()=>document.getElementById('devPinIn')?.focus(), 100);
+    }
+  } else {
+    // Reset counter after 3 seconds of no taps
+    _devTapTimer = setTimeout(()=>{ _devTapCount = 0; }, 3000);
   }
 }
 
@@ -4297,15 +4357,14 @@ function openDevTab(tab){
     renderAdmin();
     return;
   }
-  // Show the dev PIN overlay, remember which tab was requested
+  // Triggered programmatically (e.g. from within renderAdmin)
   pendingDevTab = tab;
   const lockEl = document.getElementById('devPinLockMsg');
   if(lockEl) lockEl.innerHTML = '';
   const inp = document.getElementById('devPinIn');
   if(inp){ inp.value=''; inp.style.borderColor=''; }
   if(isDevLocked()){
-    // Show lock message directly without opening overlay
-    toast(`🔒 DEV ACCESS LOCKED — TRY IN ${devLockSecsLeft()}s`);
+    toast('🔒 DEV ACCESS LOCKED — TRY IN ' + devLockSecsLeft() + 's');
     return;
   }
   document.getElementById('devPinOverlay').classList.add('open');
@@ -4322,6 +4381,7 @@ function closeDevPinOverlay(){
 function lockDev(){
   devUnlocked = false;
   adminTab = 'shifts';
+  removeDevTabs();   // hide tabs again
   renderAdmin();
   toast('🔒 DEV ACCESS LOCKED');
 }
@@ -4700,8 +4760,10 @@ async function authLogout(){
     }
     isAdminUser           = false;
     adminUnlocked         = false;
+    devUnlocked           = false;
     window._adminAuthCred = null;
     driverNotes           = [];
+    removeDevTabs();   // ensure dev tabs are gone on logout
     showNavFor(null);  // hide navs immediately
     window._intentionalSignOut = true; // show landing after sign-out
     if(auth) await auth.signOut();
