@@ -738,7 +738,7 @@ main{padding:13px 13px 74px}
         <div class="auth-invite-header">
           <div style="font-size:2rem;margin-bottom:6px">🎉</div>
           <div class="auth-invite-sacco" id="inviteSaccoName">FESTUS SACCO</div>
-          <div class="auth-invite-sub">YOU HAVE BEEN INVITED TO JOIN THE FLEET</div>
+          <div class="auth-invite-sub">YOU HAVE BEEN INVITED — CREATE YOUR PASSWORD TO JOIN</div>
           <div class="auth-invite-from" id="inviteDriverNameBadge">WELCOME!</div>
         </div>
         <div class="auth-error" id="authInviteError"></div>
@@ -761,7 +761,7 @@ main{padding:13px 13px 74px}
           ✅ ACCEPT INVITATION &amp; LOG IN
         </button>
         <div style="font-family:var(--font-m);font-size:.46rem;color:var(--muted);text-align:center;margin-top:10px;letter-spacing:1px">
-          YOUR ACCOUNT WILL BE CREATED AUTOMATICALLY
+          ENTER YOUR EMAIL AND CHOOSE A PASSWORD TO CREATE YOUR ACCOUNT
         </div>
         <div style="text-align:center;margin-top:12px">
           <button class="auth-link" style="font-size:.46rem" onclick="switchToPanel('login')">
@@ -771,10 +771,16 @@ main{padding:13px 13px 74px}
       </div>
       <div id="inviteErrorState" style="display:none">
         <div style="text-align:center;padding:20px 0">
-          <div style="font-size:2rem;margin-bottom:10px">❌</div>
-          <div style="font-family:var(--font-d);font-size:1.1rem;letter-spacing:2px;color:var(--red);margin-bottom:8px">INVITATION EXPIRED</div>
-          <div style="font-family:var(--font-m);font-size:.52rem;color:var(--muted);letter-spacing:1px;line-height:1.8">This invite link has expired or already been used.<br>Ask your admin to send a new invitation.</div>
-          <button class="auth-btn secondary" style="margin-top:16px" onclick="switchToPanel('login')">GO TO LOGIN INSTEAD</button>
+          <div style="font-size:2rem;margin-bottom:10px">🔗</div>
+          <div style="font-family:var(--font-d);font-size:1.1rem;letter-spacing:2px;color:var(--accent2);margin-bottom:8px">INVITATION LINK</div>
+          <div style="font-family:var(--font-m);font-size:.52rem;color:var(--muted);letter-spacing:1px;line-height:1.8">
+            If you received an invitation, enter your<br>email and choose a password below.
+          </div>
+          <button class="auth-btn" style="margin-top:16px;background:var(--accent)"
+            onclick="document.getElementById('inviteErrorState').style.display='none';document.getElementById('inviteFormState').style.display='block'">
+            ✅ CONTINUE WITH INVITATION
+          </button>
+          <button class="auth-btn secondary" style="margin-top:8px" onclick="switchToPanel('login')">GO TO LOGIN INSTEAD</button>
         </div>
       </div>
     </div>
@@ -4859,37 +4865,27 @@ function onDriverAuthenticated(user, profile){
 // ── INVITATION LINK HANDLER ───────────────────────────────────
 async function handleInviteLink(){
   // Called on page load when URL contains ?invite=1
-  // Shows the invite acceptance panel
-  if(!auth){ initFirebase(); }
-  if(!auth){ return; }
+  // Uses simple createUserWithEmailAndPassword — no magic links needed
+  if(!auth || !db){ initFirebase(); }
 
   showAuthOverlay();
   switchToPanel('invite');
-  // Show loading state
   document.getElementById('inviteLoadingState').style.display = 'block';
   document.getElementById('inviteFormState').style.display    = 'none';
   document.getElementById('inviteErrorState').style.display   = 'none';
 
-  // Pre-fill email from URL param
-  const urlParams  = new URLSearchParams(window.location.search);
-  const emailHint  = decodeURIComponent(urlParams.get('email')||'');
-  if(emailHint && document.getElementById('inviteEmail')){
-    document.getElementById('inviteEmail').value = emailHint;
+  const urlParams = new URLSearchParams(window.location.search);
+  const emailHint = decodeURIComponent(urlParams.get('email')||'');
+
+  // Pre-fill email
+  if(emailHint){
+    const el = document.getElementById('inviteEmail');
+    if(el) el.value = emailHint;
   }
 
-  // Check if this is a valid sign-in link
-  const isSignInLink = auth.isSignInWithEmailLink(window.location.href);
-  if(!isSignInLink){
-    document.getElementById('inviteLoadingState').style.display = 'none';
-    document.getElementById('inviteErrorState').style.display   = 'block';
-    return;
-  }
-
-  // Load sacco name from pending invite if we have the email
+  // Load invite data from Firestore to personalise the welcome screen
   if(emailHint && db){
     try{
-      const inviteKey = emailHint.replace(/\./g,'_').replace(/@/g,'_AT_');
-      // Try both key formats
       let inviteSnap = await db.collection('pendingInvites').doc(emailHint.replace(/\./g,'_')).get();
       if(!inviteSnap.exists){
         const q = await db.collection('pendingInvites').where('email','==',emailHint).limit(1).get();
@@ -4897,17 +4893,16 @@ async function handleInviteLink(){
       }
       if(inviteSnap && inviteSnap.exists){
         pendingInviteData = inviteSnap.data ? inviteSnap.data() : inviteSnap;
-        // Update the invite panel with sacco + driver name
-        const saccoEl  = document.getElementById('inviteSaccoName');
-        const nameEl   = document.getElementById('inviteDriverNameBadge');
+        const saccoEl = document.getElementById('inviteSaccoName');
+        const nameEl  = document.getElementById('inviteDriverNameBadge');
         if(saccoEl && pendingInviteData.saccoName) saccoEl.textContent = pendingInviteData.saccoName;
         if(nameEl  && pendingInviteData.name)      nameEl.textContent  = '👋 HELLO, '+pendingInviteData.name.split(' ')[0]+'!';
-        if(pendingInviteData.saccoName)             updateSaccoName(pendingInviteData.saccoName);
+        if(pendingInviteData.saccoName)            updateSaccoName(pendingInviteData.saccoName);
       }
-    } catch(e){ console.warn('Could not load invite data:', e.message); }
+    } catch(e){ console.warn('Could not load invite data from Firestore:', e.message); }
   }
 
-  // Show the form
+  // Always show the form — no magic-link validation required
   document.getElementById('inviteLoadingState').style.display = 'none';
   document.getElementById('inviteFormState').style.display    = 'block';
   setTimeout(()=>{
@@ -4918,57 +4913,96 @@ async function handleInviteLink(){
 }
 
 async function acceptInvitation(){
-  const email   = (document.getElementById('inviteEmail')?.value||'').trim().toLowerCase();
-  const pass    = document.getElementById('inviteNewPass')?.value||'';
-
+  const email = (document.getElementById('inviteEmail')?.value||'').trim().toLowerCase();
+  const pass  = document.getElementById('inviteNewPass')?.value||'';
   const errEl = document.getElementById('authInviteError');
   if(errEl){ errEl.style.display='none'; errEl.textContent=''; }
 
-  if(!email){ if(errEl){errEl.textContent='⚠ ENTER YOUR EMAIL ADDRESS';errEl.style.display='block';} return; }
-  if(pass.length < 6){ if(errEl){errEl.textContent='⚠ PASSWORD MUST BE AT LEAST 6 CHARACTERS';errEl.style.display='block';} return; }
+  if(!email){ showInviteError('⚠ ENTER YOUR EMAIL ADDRESS'); return; }
+  if(pass.length < 6){ showInviteError('⚠ PASSWORD MUST BE AT LEAST 6 CHARACTERS'); return; }
+
+  function showInviteError(msg){
+    if(errEl){ errEl.textContent=msg; errEl.style.display='block'; }
+  }
 
   const btn = document.getElementById('inviteAcceptBtn');
-  btn.disabled=true; btn.innerHTML='<span class="auth-spinner"></span>SETTING UP YOUR ACCOUNT...';
+  btn.disabled=true;
+  btn.innerHTML='<span class="auth-spinner"></span>CREATING YOUR ACCOUNT...';
 
   try{
-    if(!auth){ initFirebase(); }
+    if(!auth || !db){ initFirebase(); }
+    if(!auth){ showInviteError('⚠ FIREBASE NOT READY — REFRESH THE PAGE'); btn.disabled=false; btn.innerHTML='✅ ACCEPT INVITATION & LOG IN'; return; }
 
-    // Sign in with the email link
+    // ── STEP 1: Create the account (or sign in if already exists) ────────
     window._pendingProfileWrite = true;
-    const cred = await auth.signInWithEmailLink(email, window.location.href);
-    const user = cred.user;
+    let user = null;
+    let isNewAccount = true;
 
-    // Check if they already have a profile (re-clicking invite link)
-    const existingProfile = await loadDriverProfile(user.uid);
-    if(existingProfile){
-      window._pendingProfileWrite = false;
-      // Just update password and route them in
-      try{ await user.updatePassword(pass); } catch(e){ /* may already be set */ }
-      const cleanUrl = window.location.origin + window.location.pathname;
-      window.history.replaceState({}, document.title, cleanUrl);
-      onDriverAuthenticated(user, existingProfile);
-      return;
-    }
-
-    // Update their password to what they chose
-    await user.updatePassword(pass);
-
-    // Load the pending invite data if not already loaded
-    let inviteData = pendingInviteData;
-    if(!inviteData && db){
-      const inviteKey = email.replace(/\./g,'_');
-      const snap = await db.collection('pendingInvites').doc(inviteKey).get();
-      if(snap.exists) inviteData = snap.data();
-      if(!inviteData){
-        const q = await db.collection('pendingInvites').where('email','==',email).limit(1).get();
-        if(!q.empty) inviteData = q.docs[0].data();
+    try{
+      // Try creating a brand new account
+      const cred = await auth.createUserWithEmailAndPassword(email, pass);
+      user = cred.user;
+    } catch(createErr){
+      if(createErr.code === 'auth/email-already-in-use'){
+        // Account exists — they may be re-clicking the invite link
+        // Sign them in with the password they just entered
+        isNewAccount = false;
+        try{
+          const cred2 = await auth.signInWithEmailAndPassword(email, pass);
+          user = cred2.user;
+        } catch(signInErr){
+          window._pendingProfileWrite = false;
+          btn.disabled=false; btn.innerHTML='✅ ACCEPT INVITATION & LOG IN';
+          if(signInErr.code === 'auth/wrong-password'){
+            showInviteError('⚠ THIS EMAIL IS ALREADY REGISTERED. Enter the password you used when you first accepted the invitation, or go to Login and use Forgot Password.');
+          } else {
+            showInviteError('⚠ ' + (signInErr.message||signInErr.code));
+          }
+          return;
+        }
+      } else {
+        throw createErr; // some other error — let outer catch handle it
       }
     }
 
-    // Build driver profile
+    currentAuthUser = user;
+
+    // ── STEP 2: Check for existing profile (already completed setup) ─────
+    btn.innerHTML='<span class="auth-spinner"></span>LOADING YOUR PROFILE...';
+    let existingProfile = null;
+    try{ existingProfile = await loadDriverProfile(user.uid); } catch(e){}
+
+    if(existingProfile && !isNewAccount){
+      // Already set up — just route them in
+      window._pendingProfileWrite = false;
+      window._loginHandled = true;
+      const cleanUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+      btn.disabled=false; btn.innerHTML='✅ ACCEPT INVITATION & LOG IN';
+      onDriverAuthenticated(user, existingProfile);
+      setTimeout(()=>{ window._loginHandled = false; }, 3000);
+      return;
+    }
+
+    // ── STEP 3: Load invite data from Firestore (best-effort) ────────────
+    btn.innerHTML='<span class="auth-spinner"></span>SETTING UP YOUR PROFILE...';
+    let inviteData = pendingInviteData;
+    if(!inviteData && db){
+      try{
+        const inviteKey = email.replace(/\./g,'_');
+        const snap = await db.collection('pendingInvites').doc(inviteKey).get();
+        if(snap.exists) inviteData = snap.data();
+        if(!inviteData){
+          const q = await db.collection('pendingInvites').where('email','==',email).limit(1).get();
+          if(!q.empty) inviteData = q.docs[0].data();
+        }
+      } catch(e){ console.warn('Could not fetch invite data:', e.message); }
+    }
+
+    // ── STEP 4: Build and save driver profile ────────────────────────────
     const profile = {
       uid:          user.uid,
-      name:         inviteData?.name || email.split('@')[0].toUpperCase(),
+      name:         inviteData?.name || email.split('@')[0].replace(/[._]/g,' ').toUpperCase().trim(),
       email:        email,
       carPlate:     inviteData?.carPlate || null,
       phone:        inviteData?.phone    || null,
@@ -4980,40 +5014,43 @@ async function acceptInvitation(){
       acceptedAt:   Date.now()
     };
 
-    // Save to Firestore drivers collection
-    await db.collection('drivers').doc(user.uid).set(profile);
+    // Save profile (non-blocking if Firestore rules block it)
+    try{
+      await db.collection('drivers').doc(user.uid).set(profile);
+    } catch(fsErr){
+      console.warn('Could not save driver profile to Firestore:', fsErr.code);
+      // Still continue — they're authenticated and we have the profile in memory
+    }
 
-    // Remove from pendingInvites
+    // Clean up pending invite (non-critical)
     try{
       const inviteKey = email.replace(/\./g,'_');
       await db.collection('pendingInvites').doc(inviteKey).delete();
-    } catch(e){ /* non-critical */ }
+    } catch(e){}
 
+    // ── STEP 5: Route to driver panel ────────────────────────────────────
     window._pendingProfileWrite = false;
     window._loginHandled = true;
-
-    // Clean URL
     const cleanUrl = window.location.origin + window.location.pathname;
     window.history.replaceState({}, document.title, cleanUrl);
+    localStorage.setItem('fs_last_email', email);
 
     btn.disabled=false; btn.innerHTML='✅ ACCEPT INVITATION & LOG IN';
-
     onDriverAuthenticated(user, profile);
     setTimeout(()=>{ window._loginHandled = false; }, 3000);
 
   } catch(e){
     window._pendingProfileWrite = false;
     btn.disabled=false; btn.innerHTML='✅ ACCEPT INVITATION & LOG IN';
-    const msgs={
-      'auth/invalid-action-code':  '⚠ INVITATION LINK HAS EXPIRED — ASK YOUR ADMIN FOR A NEW ONE',
-      'auth/invalid-email':        '⚠ EMAIL DOES NOT MATCH THE INVITATION',
-      'auth/user-disabled':        '⚠ YOUR ACCOUNT HAS BEEN DISABLED',
-      'auth/email-already-in-use': '⚠ THIS EMAIL IS ALREADY REGISTERED — USE THE LOGIN PAGE',
-      'auth/weak-password':        '⚠ PASSWORD IS TOO WEAK — USE AT LEAST 6 CHARACTERS',
+    const msgs = {
+      'auth/invalid-email':          '⚠ INVALID EMAIL ADDRESS',
+      'auth/user-disabled':          '⚠ YOUR ACCOUNT HAS BEEN DISABLED — CONTACT YOUR ADMIN',
+      'auth/weak-password':          '⚠ PASSWORD TOO WEAK — USE AT LEAST 6 CHARACTERS',
+      'auth/network-request-failed': '⚠ NO INTERNET CONNECTION — CHECK YOUR NETWORK',
+      'auth/operation-not-allowed':  '⚠ ACCOUNT CREATION IS NOT ENABLED — CONTACT YOUR ADMIN',
     };
-    const msg = msgs[e.code]||('⚠ '+e.message);
-    if(errEl){ errEl.textContent=msg; errEl.style.display='block'; }
-    console.error('acceptInvitation error:', e);
+    showInviteError(msgs[e.code] || ('⚠ ' + (e.message||e.code)));
+    console.error('acceptInvitation error:', e.code, e.message);
   }
 }
 
@@ -5677,9 +5714,9 @@ function renderNotesList(){
   if(appConfig.saccoName) updateSaccoName(appConfig.saccoName);
 
   if(initFirebase()){
-    // Invite link? Handle before anything else
+    // Invite link? Handle before anything else — only triggered by ?invite=1
     const urlParams = new URLSearchParams(window.location.search);
-    if(urlParams.get('invite') === '1' || auth.isSignInWithEmailLink(window.location.href)){
+    if(urlParams.get('invite') === '1'){
       handleInviteLink();
     } else {
       // Register the observer for page-reload session restores
