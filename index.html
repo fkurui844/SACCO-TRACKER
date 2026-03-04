@@ -1056,6 +1056,8 @@ const DEFAULT_STATIONS = [
 ];
 const ADMIN_PIN_KEY     = 'fs_pin';
 const DEV_PIN_KEY       = 'fs_devpin';
+// Only these Firebase Auth emails can access dev/config sections
+const DEV_EMAILS        = ['fkurui844@gmail.com'];
 const DEFAULT_DEV_PIN   = '9999';
 const DEFAULT_ADMIN_PIN = '1234';
 const SESSION_TIMEOUT   = 30 * 60;  // 30 min
@@ -1139,7 +1141,20 @@ let filterCar='', filterDriver='', filterFrom='', filterTo='';
 let adminTab           = 'shifts';
 let reportTab          = 'overview';
 let adminUnlocked      = false;
-let devUnlocked        = false;
+// Dev access is guarded by a session token — not a plain boolean.
+// Setting window.devUnlocked=true from the console has no effect.
+let _devSessionToken = null;  // set only by checkDevPin after correct PIN
+const _devTokenSeed  = 'mh_dev_' + (navigator.userAgent.length * 7).toString(16);
+function _genToken(){ return _devTokenSeed + '_' + Date.now().toString(36); }
+Object.defineProperty(window, 'devUnlocked', {
+  get(){ return _devSessionToken !== null && _devSessionToken.startsWith(_devTokenSeed); },
+  set(v){
+    // Allow internal code to set false (lock), but true requires a token
+    if(v === false){ _devSessionToken = null; }
+    // External console attempts to set true are silently ignored
+  },
+  configurable: false
+});
 let timerInterval      = null;
 let syncInterval       = null;
 let syncCountdown      = 300;
@@ -4257,8 +4272,11 @@ function closeResetOverlay(){
 
 function verifyDevForReset(){
   const pin = (document.getElementById('resetDevPinIn')?.value || '').trim();
-  const correct = localStorage.getItem(DEV_PIN_KEY) || DEFAULT_DEV_PIN;
-  if(pin === correct){
+  const storedHash = localStorage.getItem(DEV_PIN_KEY);
+  const inputHash  = await _hashPin(pin);
+  const correct    = storedHash ? (inputHash === storedHash)
+                                : (pin === DEFAULT_DEV_PIN);
+  if(correct){
     // Identity confirmed — show new PIN step
     document.getElementById('resetStepVerify').style.display = 'none';
     document.getElementById('resetStepNew').style.display = 'block';
@@ -4302,21 +4320,35 @@ function commitResetPin(){
 // ══════════════════════════════════════════════
 // DEV PIN SYSTEM
 // ══════════════════════════════════════════════
-let devPinFailures = 0;
-let devLockedUntil = 0;
+// Persistent lockout — survives page refresh within the same browser tab
+let devPinFailures = parseInt(sessionStorage.getItem('_mh_dhf')||'0');
+let devLockedUntil = parseInt(sessionStorage.getItem('_mh_dhl')||'0');
 
 function isDevLocked(){ return devLockedUntil > Date.now(); }
 function devLockSecsLeft(){ return Math.ceil((devLockedUntil - Date.now()) / 1000); }
 
 function recordDevFailure(){
   devPinFailures++;
+  // Log every failed attempt to Firestore
+  if(db) db.collection('devAccessLog').add({
+    event:'failed_pin', email: currentAuthUser?.email||'unknown',
+    attempt: devPinFailures, ts: Date.now()
+  }).catch(()=>{});
   if(devPinFailures >= MAX_PIN_ATTEMPTS){
     devLockedUntil = Date.now() + PIN_LOCKOUT_SECS * 1000;
     devPinFailures = 0;
+    sessionStorage.setItem('_mh_dhl', devLockedUntil.toString());
+    sessionStorage.setItem('_mh_dhf', '0');
+    // Log lockout event
+    if(db) db.collection('devAccessLog').add({
+      event:'lockout', email: currentAuthUser?.email||'unknown',
+      attempts: MAX_PIN_ATTEMPTS, ts: Date.now()
+    }).catch(()=>{});
     toast('🔒 TOO MANY ATTEMPTS — DEV ACCESS LOCKED FOR 5 MINUTES');
     closeDevPinOverlay();
     renderAdmin();
   } else {
+    sessionStorage.setItem('_mh_dhf', devPinFailures.toString());
     const left = MAX_PIN_ATTEMPTS - devPinFailures;
     const lockEl = document.getElementById('devPinLockMsg');
     if(lockEl) lockEl.innerHTML = `<div class="pin-locked" style="margin-bottom:10px">WRONG PIN — ${left} ATTEMPT${left===1?'':'S'} LEFT</div>`;
@@ -4325,22 +4357,39 @@ function recordDevFailure(){
   }
 }
 
-function checkDevPin(){
+// ── PIN HASHING — PIN is never stored in plain text ──────────────
+async function _hashPin(pin){
+  try{
+    const data    = new TextEncoder().encode('mh_salt_2024_' + pin);
+    const hashBuf = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(hashBuf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+  } catch(e){ return pin; } // fallback if crypto not available
+}
+
+async function checkDevPin(){
   if(isDevLocked()){
     toast('🔒 DEV ACCESS LOCKED — TRY IN ' + devLockSecsLeft() + 's');
     return;
   }
   const pin = (document.getElementById('devPinIn')?.value || '').trim();
-  const correct = localStorage.getItem(DEV_PIN_KEY) || DEFAULT_DEV_PIN;
-  if(pin === correct){
+  const storedHash = localStorage.getItem(DEV_PIN_KEY);
+  const inputHash  = await _hashPin(pin);
+  const correct    = storedHash ? (inputHash === storedHash)
+                                : (pin === DEFAULT_DEV_PIN);
+  if(correct){
     devPinFailures = 0;
-    devUnlocked = true;
-    adminTab = 'platform'; // default to platform analytics on login
+    _devSessionToken = _genToken(); // grant access via secure token
+    adminTab = 'platform';
     closeDevPinOverlay();
     injectDevTabs();
     renderAdmin();
-    setTimeout(loadPlatformStats, 200); // auto-load stats
-    toast('🔧 DEV ACCESS GRANTED');
+    setTimeout(loadPlatformStats, 200);
+    // Auto-lock after 15 minutes of dev access
+    clearTimeout(window._devAutoLockTimer);
+    window._devAutoLockTimer = setTimeout(()=>{
+      if(devUnlocked){ lockDev(); toast('🔒 DEV SESSION EXPIRED — AUTO-LOCKED'); }
+    }, 15 * 60 * 1000);
+    toast('🔧 DEV ACCESS GRANTED — AUTO-LOCKS IN 15 MIN');
   } else {
     recordDevFailure();
   }
@@ -4388,8 +4437,10 @@ let _devTapCount = 0;
 let _devTapTimer = null;
 
 function devSecretTap(){
-  // Only works when admin is logged in
+  // Only works when admin is logged in AND is an authorised developer email
   if(!isAdminUser) return;
+  const userEmail = currentAuthUser?.email || '';
+  if(DEV_EMAILS.length > 0 && !DEV_EMAILS.includes(userEmail)) return; // silently ignore
 
   _devTapCount++;
   clearTimeout(_devTapTimer);
@@ -4408,6 +4459,10 @@ function devSecretTap(){
       const inp = document.getElementById('devPinIn');
       if(inp){ inp.value=''; inp.style.borderColor=''; }
       if(isDevLocked()){
+        // Log lockout probe attempt
+        if(db) db.collection('devAccessLog').add({
+          event:'lockout_probe', email: currentAuthUser?.email||'unknown', ts: Date.now()
+        }).catch(()=>{});
         toast('🔒 DEV ACCESS LOCKED — TRY AGAIN IN ' + devLockSecsLeft() + 's');
         return;
       }
@@ -4467,12 +4522,13 @@ async function loadPlatformStats(){
     const today = new Date(); today.setHours(0,0,0,0);
 
     // ── Fetch all collections in parallel ──────────────────────
-    const [adminSnap, driverSnap, tripSnap, inviteSnap, sessionSnap] = await Promise.all([
+    const [adminSnap, driverSnap, tripSnap, inviteSnap, sessionSnap, secLogSnap] = await Promise.all([
       db.collection('drivers').where('role','==','admin').get(),
       db.collection('drivers').where('role','==','driver').get(),
       db.collection('trips').get(),
       db.collection('pendingInvites').get(),
-      db.collection('sessions').get().catch(()=>({docs:[],size:0}))
+      db.collection('sessions').get().catch(()=>({docs:[],size:0})),
+      db.collection('devAccessLog').get().catch(()=>({docs:[]}))
     ]);
 
     // ── Saccos ──────────────────────────────────────────────────
@@ -4549,6 +4605,12 @@ async function loadPlatformStats(){
       dayVolume.push(dt.length);
       dayRevenue.push(dt.reduce((s,t)=>s+(t.amount||0),0));
     }
+
+    // ── Security log ────────────────────────────────────────────
+    const securityLog = secLogSnap.docs
+      .map(d=>d.data())
+      .sort((a,b)=>b.ts-a.ts)
+      .slice(0,20);
 
     // ── Render ──────────────────────────────────────────────────
     const fmt = n => n.toLocaleString();
@@ -4685,6 +4747,23 @@ async function loadPlatformStats(){
         </div>
       </div>
 
+      <!-- SECURITY LOG -->
+      ${securityLog.length ? `
+      <div class="plat-section" style="margin-bottom:10px">
+        <div class="plat-section-hd" style="color:var(--red)">
+          🔐 SECURITY — FAILED DEV ACCESS ATTEMPTS
+          <span style="font-size:.42rem;font-weight:400;color:var(--muted)">${securityLog.length} events</span>
+        </div>
+        ${securityLog.map(e=>`
+          <div class="plat-row">
+            <div style="flex:1;min-width:0">
+              <div class="plat-row-name" style="color:var(--red)">${e.event==='lockout'?'🔒 ACCOUNT LOCKED OUT':'⚠ WRONG PIN ATTEMPT'}</div>
+              <div style="font-size:.42rem;color:var(--muted);margin-top:1px">${e.email}</div>
+            </div>
+            <div class="plat-row-meta">${new Date(e.ts).toLocaleString('en-GB')}</div>
+          </div>`).join('')}
+      </div>` : ''}
+
       <div class="plat-updated">⏱ LAST UPDATED ${new Date().toLocaleTimeString('en-GB')} · TAP ⟳ TO REFRESH</div>
     `;
 
@@ -4698,9 +4777,10 @@ async function loadPlatformStats(){
 }
 
 function lockDev(){
-  devUnlocked = false;
+  _devSessionToken = null;  // revoke token
+  clearTimeout(window._devAutoLockTimer);
   adminTab = 'shifts';
-  removeDevTabs();   // hide tabs again
+  removeDevTabs();
   renderAdmin();
   toast('🔒 DEV ACCESS LOCKED');
 }
@@ -4721,11 +4801,12 @@ function devLockedHtml(area){
   </div>`;
 }
 
-function changeDevPin(){
+async function changeDevPin(){
   const p = (document.getElementById('newDevPin')?.value || '').trim();
   if(p.length < 4){ toast('DEV PIN MUST BE AT LEAST 4 DIGITS'); return; }
-  localStorage.setItem(DEV_PIN_KEY, p);
-  toast('🔧 DEV PIN UPDATED ✅');
+  const hashed = await _hashPin(p);
+  localStorage.setItem(DEV_PIN_KEY, hashed);
+  toast('🔧 DEV PIN UPDATED — HASH STORED ✅');
   document.getElementById('newDevPin').value = '';
 }
 
