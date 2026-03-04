@@ -3054,14 +3054,14 @@ function renderAdmin(){
       </div>`;
     return;
   }
-  const adminName = (currentDriverDoc?.name||'ADMIN').split(' ')[0];
-  const saccoLabel = currentDriverDoc?.saccoName || appConfig.saccoName || 'SACCO';
+  const adminName  = (currentDriverDoc?.name || 'ADMIN').split(' ')[0];
+  const saccoLabel = currentDriverDoc?.saccoName || appConfig.saccoName || 'MY SACCO';
   el.innerHTML=`
     <div class="card" style="border-left:4px solid var(--accent2);margin-bottom:10px;padding:12px 14px">
       <div style="display:flex;justify-content:space-between;align-items:center">
         <div>
-          <div class="ctitle" style="margin:0;font-size:1rem">${saccoLabel}</div>
-          <div style="font-family:var(--font-m);font-size:.48rem;color:var(--muted);letter-spacing:1px;margin-top:2px">👑 ${adminName} · ADMIN PANEL</div>
+          <div class="ctitle" style="margin:0;font-size:1.15rem;letter-spacing:2px">${saccoLabel}</div>
+          <div style="font-family:var(--font-m);font-size:.48rem;color:var(--muted);letter-spacing:1px;margin-top:3px">👑 ${adminName} · ADMIN PANEL</div>
         </div>
         <button class="bghost" style="color:var(--red);border-color:var(--red);font-size:.52rem;padding:7px 10px" onclick="authLogout()">🚪 LOG OUT</button>
       </div>
@@ -4820,6 +4820,9 @@ function onDriverAuthenticated(user, profile){
     return;
   }
 
+  // Always store profile in currentDriverDoc so every render can read it
+  currentDriverDoc = profile;
+
   if(profile.role==='admin'){
     // ── ADMIN ────────────────────────────────────────────────
     isAdminUser   = true;
@@ -4828,7 +4831,7 @@ function onDriverAuthenticated(user, profile){
     const firstName = (profile.name||'ADMIN').split(' ')[0];
     document.getElementById('driverBadge').textContent = '👑 '+firstName;
     const hSub=document.getElementById('headerSubText');
-    if(hSub) hSub.textContent='// ADMIN PANEL · '+profile.saccoName||'SACCO';
+    if(hSub) hSub.textContent='// ADMIN PANEL · '+(profile.saccoName||appConfig.saccoName||'SACCO');
     hideAuthOverlay();
     showNavFor('admin');
     // Always open on DRIVERS tab — that's where admin manages the fleet
