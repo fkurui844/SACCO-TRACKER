@@ -3744,13 +3744,17 @@ async function loadRegisteredDrivers(){
   if(!listEl||!db) return;
   listEl.innerHTML='<div style="text-align:center;padding:16px;font-family:var(--font-m);font-size:.54rem;color:var(--muted)">LOADING...</div>';
   try{
-    // Load active drivers
-    const dSnap = await db.collection('drivers').where('role','==','driver').orderBy('registeredAt','desc').get();
-    const drivers = dSnap.docs.map(d=>({id:d.id,...d.data(),_type:'active'}));
+    // Load active drivers — no orderBy to avoid composite index requirement
+    const dSnap = await db.collection('drivers').where('role','==','driver').get();
+    const drivers = dSnap.docs
+      .map(d=>({id:d.id,...d.data(),_type:'active'}))
+      .sort((a,b)=>(b.registeredAt||0)-(a.registeredAt||0)); // sort in JS
 
-    // Load pending invites (not yet accepted)
-    const iSnap = await db.collection('pendingInvites').orderBy('invitedAt','desc').get();
-    const pending = iSnap.docs.map(d=>({id:d.id,...d.data(),_type:'pending'}));
+    // Load pending invites — no orderBy to avoid index requirement
+    const iSnap = await db.collection('pendingInvites').get();
+    const pending = iSnap.docs
+      .map(d=>({id:d.id,...d.data(),_type:'pending'}))
+      .sort((a,b)=>(b.invitedAt||0)-(a.invitedAt||0)); // sort in JS
 
     // Filter out pending entries where driver already accepted (email match)
     const activeEmails = new Set(drivers.map(d=>d.email));
