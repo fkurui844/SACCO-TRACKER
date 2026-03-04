@@ -598,6 +598,26 @@ main{padding:13px 13px 74px}
   #page-reports .rsect:not(#rsect-overview){display:none!important}
   #rsect-live{display:none!important}
 }
+
+/* ── PLATFORM ANALYTICS ─────────────────────────────── */
+.plat-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:14px}
+.plat-kpi{background:var(--card);border:1px solid var(--border);padding:14px 12px;text-align:center;position:relative;overflow:hidden}
+.plat-kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--kpi-color,var(--accent))}
+.plat-kpi-val{font-family:var(--font-d);font-size:2rem;color:var(--kpi-color,var(--accent));line-height:1;margin-bottom:4px}
+.plat-kpi-lbl{font-family:var(--font-m);font-size:.44rem;color:var(--muted);letter-spacing:1.5px}
+.plat-kpi-sub{font-family:var(--font-m);font-size:.42rem;color:var(--muted);margin-top:3px;letter-spacing:.5px}
+.plat-section{background:var(--card);border:1px solid var(--border);margin-bottom:10px}
+.plat-section-hd{font-family:var(--font-m);font-size:.52rem;font-weight:700;letter-spacing:1.5px;padding:10px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.plat-row{display:flex;justify-content:space-between;align-items:center;padding:9px 14px;border-bottom:1px solid var(--border);font-family:var(--font-m);font-size:.5rem}
+.plat-row:last-child{border-bottom:none}
+.plat-row-name{color:var(--text);font-weight:600;letter-spacing:.5px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.plat-row-meta{color:var(--muted);font-size:.44rem;text-align:right;flex-shrink:0;margin-left:8px}
+.plat-badge{display:inline-block;padding:2px 6px;font-size:.4rem;font-weight:700;letter-spacing:1px;margin-left:6px}
+.plat-badge.green{background:#e8f5ed;color:var(--accent)}
+.plat-badge.amber{background:#fff3cd;color:#7a5000}
+.plat-badge.red{background:#fdecea;color:var(--red)}
+.plat-empty{padding:20px;text-align:center;font-family:var(--font-m);font-size:.5rem;color:var(--muted);letter-spacing:1px}
+.plat-updated{font-family:var(--font-m);font-size:.42rem;color:var(--muted);text-align:center;padding:10px;letter-spacing:1px}
 </style>
 </head>
 <body>
@@ -3368,6 +3388,25 @@ service cloud.firestore {
     </div>
 
     <!-- FIREBASE CONFIG -->
+    <!-- PLATFORM ANALYTICS — developer only -->
+    <div class="asect ${adminTab==='platform'?'active':''}">
+      ${!devUnlocked?devLockedHtml('PLATFORM'):`
+      <div class="card" style="border-top:4px solid var(--red);margin-bottom:10px;padding:12px 14px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+          <div>
+            <div class="ctitle" style="margin:0;color:var(--red);font-size:1rem">📊 PLATFORM ANALYTICS</div>
+            <div style="font-family:var(--font-m);font-size:.46rem;color:var(--muted);letter-spacing:1px;margin-top:2px">// LIVE DATA — DEVELOPER EYES ONLY</div>
+          </div>
+          <button class="bghost" style="color:var(--red);border-color:var(--red);font-size:.5rem;padding:6px 10px" onclick="loadPlatformStats()">⟳ REFRESH</button>
+        </div>
+      </div>
+      <div id="platformStatsContainer">
+        <div style="text-align:center;padding:30px;font-family:var(--font-m);font-size:.54rem;color:var(--muted)">
+          ⏳ LOADING PLATFORM DATA...
+        </div>
+      </div>`}
+    </div>
+
     <div class="asect ${adminTab==='settings'?'active':''}">
       ${!devUnlocked?devLockedHtml('DEV'):`
       <div class="card">
@@ -3401,7 +3440,16 @@ service cloud.firestore {
       </div>`}
     </div>`;
   // Re-inject dev tabs if developer is currently unlocked (survives re-renders)
-  if(typeof injectDevTabs === 'function' && devUnlocked) injectDevTabs();
+  if(typeof injectDevTabs === 'function' && devUnlocked){
+    injectDevTabs();
+    // Highlight active dev tab
+    const activeDevTab = adminTab==='platform'?'devTabPlatform':adminTab==='config'?'devTabConfig':adminTab==='settings'?'devTabDev':null;
+    document.querySelectorAll('[id^="devTab"]').forEach(b=>b.style.borderBottom='');
+    if(activeDevTab) setTimeout(()=>{
+      const el=document.getElementById(activeDevTab);
+      if(el) el.style.borderBottom='2px solid currentColor';
+    },0);
+  }
 }
 
 
@@ -4287,10 +4335,11 @@ function checkDevPin(){
   if(pin === correct){
     devPinFailures = 0;
     devUnlocked = true;
-    adminTab = pendingDevTab || 'settings';
+    adminTab = 'platform'; // default to platform analytics on login
     closeDevPinOverlay();
-    injectDevTabs();   // make tabs visible
+    injectDevTabs();
     renderAdmin();
+    setTimeout(loadPlatformStats, 200); // auto-load stats
     toast('🔧 DEV ACCESS GRANTED');
   } else {
     recordDevFailure();
@@ -4298,10 +4347,18 @@ function checkDevPin(){
 }
 
 function injectDevTabs(){
-  // Add CONFIG and DEV tabs to the admin tab bar — only visible to developer
+  // Add PLATFORM, CONFIG and DEV tabs — only visible to developer
   if(document.getElementById('devTabConfig')) return; // already injected
   const tabBar = document.querySelector('.atabs');
   if(!tabBar) return;
+
+  const platformBtn = document.createElement('button');
+  platformBtn.id = 'devTabPlatform';
+  platformBtn.className = 'atab';
+  platformBtn.style.cssText = 'color:#8b5cf6;font-weight:700';
+  platformBtn.innerHTML = '📊 PLATFORM';
+  platformBtn.onclick = ()=>{ adminTab='platform'; renderAdmin(); setTimeout(loadPlatformStats,100); };
+  tabBar.appendChild(platformBtn);
 
   const configBtn = document.createElement('button');
   configBtn.id = 'devTabConfig';
@@ -4321,6 +4378,7 @@ function injectDevTabs(){
 }
 
 function removeDevTabs(){
+  document.getElementById('devTabPlatform')?.remove();
   document.getElementById('devTabConfig')?.remove();
   document.getElementById('devTabDev')?.remove();
 }
@@ -4387,6 +4445,256 @@ let pendingDevTab = 'settings';
 
 function closeDevPinOverlay(){
   document.getElementById('devPinOverlay').classList.remove('open');
+}
+
+
+// ══════════════════════════════════════════════════════════════
+// PLATFORM ANALYTICS — Developer dashboard (MatatuHub-wide stats)
+// ══════════════════════════════════════════════════════════════
+async function loadPlatformStats(){
+  const el = document.getElementById('platformStatsContainer');
+  if(!el) return;
+  if(!db){
+    el.innerHTML = '<div class="plat-empty">⚠ FIREBASE NOT CONNECTED</div>';
+    return;
+  }
+  el.innerHTML = '<div class="plat-empty">⏳ FETCHING LIVE DATA FROM FIREBASE...</div>';
+
+  try{
+    const now = Date.now();
+    const day30 = now - (30 * 24 * 60 * 60 * 1000);
+    const day7  = now - (7  * 24 * 60 * 60 * 1000);
+    const today = new Date(); today.setHours(0,0,0,0);
+
+    // ── Fetch all collections in parallel ──────────────────────
+    const [adminSnap, driverSnap, tripSnap, inviteSnap, sessionSnap] = await Promise.all([
+      db.collection('drivers').where('role','==','admin').get(),
+      db.collection('drivers').where('role','==','driver').get(),
+      db.collection('trips').get(),
+      db.collection('pendingInvites').get(),
+      db.collection('sessions').get().catch(()=>({docs:[],size:0}))
+    ]);
+
+    // ── Saccos ──────────────────────────────────────────────────
+    const admins = adminSnap.docs.map(d=>d.data());
+    const totalSaccos = admins.length;
+    const newSaccos30 = admins.filter(a=>(a.createdAt||0) >= day30).length;
+    const newSaccos7  = admins.filter(a=>(a.createdAt||0) >= day7).length;
+
+    // Group by saccoName to get unique saccos
+    const saccoMap = {};
+    admins.forEach(a=>{
+      const key = a.saccoName || a.email || 'Unknown';
+      if(!saccoMap[key]) saccoMap[key] = {name:key,owner:a.name||'—',email:a.email||'—',drivers:0,trips:0,revenue:0,joinedAt:a.createdAt||0};
+    });
+
+    // ── Drivers ─────────────────────────────────────────────────
+    const drivers   = driverSnap.docs.map(d=>d.data());
+    const totalDrvs = drivers.length;
+    const newDrvs30 = drivers.filter(d=>(d.registeredAt||0) >= day30).length;
+    const newDrvs7  = drivers.filter(d=>(d.registeredAt||0) >= day7).length;
+    const activeDrvs= drivers.filter(d=>d.active!==false).length;
+
+    // Count drivers per sacco
+    drivers.forEach(d=>{
+      const key = d.saccoName || 'Unknown';
+      if(saccoMap[key]) saccoMap[key].drivers++;
+    });
+
+    // ── Trips ───────────────────────────────────────────────────
+    const trips     = tripSnap.docs.map(d=>d.data());
+    const totalTrips= trips.length;
+    const trips30   = trips.filter(t=>(t.dateMs||t.timestamp||0) >= day30);
+    const trips7    = trips.filter(t=>(t.dateMs||t.timestamp||0) >= day7);
+    const tripsToday= trips.filter(t=>(t.dateMs||t.timestamp||0) >= today.getTime());
+    const totalRev  = trips.reduce((s,t)=>s+(t.amount||0),0);
+    const rev30     = trips30.reduce((s,t)=>s+(t.amount||0),0);
+    const rev7      = trips7.reduce((s,t)=>s+(t.amount||0),0);
+    const revToday  = tripsToday.reduce((s,t)=>s+(t.amount||0),0);
+    const avgTrip   = totalTrips ? Math.round(totalRev/totalTrips) : 0;
+
+    // Count trips+revenue per sacco
+    trips.forEach(t=>{
+      const key = t.saccoName || 'Unknown';
+      if(saccoMap[key]){ saccoMap[key].trips++; saccoMap[key].revenue+=(t.amount||0); }
+    });
+
+    // ── Pending invites ─────────────────────────────────────────
+    const pendingInvites = inviteSnap.size;
+
+    // ── Active sessions (drivers currently online) ───────────────
+    const activeSessions = sessionSnap.docs.filter(d=>{
+      const s = d.data();
+      return s.status==='online' || s.status==='driving';
+    }).length;
+
+    // ── Build sacco list sorted by join date ────────────────────
+    const saccoList = Object.values(saccoMap).sort((a,b)=>b.joinedAt-a.joinedAt);
+
+    // ── Recent signups (last 7 days) ────────────────────────────
+    const recentSignups = [...admins, ...drivers]
+      .filter(u=>(u.createdAt||u.registeredAt||0) >= day7)
+      .sort((a,b)=>(b.createdAt||b.registeredAt||0)-(a.createdAt||a.registeredAt||0))
+      .slice(0,10);
+
+    // ── Daily trip volume (last 7 days) ─────────────────────────
+    const dayLabels = [];
+    const dayVolume = [];
+    const dayRevenue= [];
+    for(let i=6;i>=0;i--){
+      const d0=new Date(); d0.setDate(d0.getDate()-i); d0.setHours(0,0,0,0);
+      const d1=d0.getTime()+86400000;
+      const dt=trips.filter(t=>(t.dateMs||t.timestamp||0)>=d0.getTime()&&(t.dateMs||t.timestamp||0)<d1);
+      dayLabels.push(d0.toLocaleDateString('en-GB',{weekday:'short',day:'numeric'}));
+      dayVolume.push(dt.length);
+      dayRevenue.push(dt.reduce((s,t)=>s+(t.amount||0),0));
+    }
+
+    // ── Render ──────────────────────────────────────────────────
+    const fmt = n => n.toLocaleString();
+    const fmtKes = n => 'KES '+n.toLocaleString();
+    const fmtDate = ms => ms ? new Date(ms).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'}) : '—';
+
+    el.innerHTML = `
+      <!-- KPI GRID -->
+      <div class="plat-grid">
+        <div class="plat-kpi" style="--kpi-color:#8b5cf6">
+          <div class="plat-kpi-val">${fmt(totalSaccos)}</div>
+          <div class="plat-kpi-lbl">REGISTERED SACCOs</div>
+          <div class="plat-kpi-sub">+${newSaccos7} this week · +${newSaccos30} this month</div>
+        </div>
+        <div class="plat-kpi" style="--kpi-color:var(--accent)">
+          <div class="plat-kpi-val">${fmt(totalDrvs)}</div>
+          <div class="plat-kpi-lbl">TOTAL DRIVERS</div>
+          <div class="plat-kpi-sub">${fmt(activeDrvs)} active · +${newDrvs7} this week</div>
+        </div>
+        <div class="plat-kpi" style="--kpi-color:var(--accent2)">
+          <div class="plat-kpi-val">${fmt(totalTrips)}</div>
+          <div class="plat-kpi-lbl">TOTAL TRIPS LOGGED</div>
+          <div class="plat-kpi-sub">${fmt(trips30.length)} last 30d · ${fmt(tripsToday.length)} today</div>
+        </div>
+        <div class="plat-kpi" style="--kpi-color:#16a34a">
+          <div class="plat-kpi-val">${totalRev>=1000000?'KES '+(totalRev/1000000).toFixed(1)+'M':fmtKes(totalRev)}</div>
+          <div class="plat-kpi-lbl">TOTAL PLATFORM REVENUE</div>
+          <div class="plat-kpi-sub">${fmtKes(rev7)} this week · ${fmtKes(revToday)} today</div>
+        </div>
+        <div class="plat-kpi" style="--kpi-color:#0ea5e9">
+          <div class="plat-kpi-val">${fmt(activeSessions)}</div>
+          <div class="plat-kpi-lbl">DRIVERS ONLINE NOW</div>
+          <div class="plat-kpi-sub">live sessions from Firestore</div>
+        </div>
+        <div class="plat-kpi" style="--kpi-color:var(--accent2)">
+          <div class="plat-kpi-val">${fmt(pendingInvites)}</div>
+          <div class="plat-kpi-lbl">PENDING INVITES</div>
+          <div class="plat-kpi-sub">drivers invited but not signed up</div>
+        </div>
+      </div>
+
+      <!-- TRIP ACTIVITY — LAST 7 DAYS -->
+      <div class="plat-section" style="margin-bottom:10px">
+        <div class="plat-section-hd" style="color:var(--accent2)">
+          📈 TRIP ACTIVITY — LAST 7 DAYS
+          <span style="font-size:.42rem;font-weight:400;color:var(--muted)">${fmt(trips7.length)} trips · ${fmtKes(rev7)}</span>
+        </div>
+        ${dayLabels.map((lbl,i)=>{
+          const maxVol = Math.max(...dayVolume,1);
+          const pct = Math.round((dayVolume[i]/maxVol)*100);
+          return `<div class="plat-row">
+            <div class="plat-row-name" style="min-width:80px;width:80px">${lbl}</div>
+            <div style="flex:1;margin:0 10px;height:8px;background:var(--surface);border-radius:2px;overflow:hidden">
+              <div style="width:${pct}%;height:100%;background:var(--accent2);border-radius:2px;transition:width .3s"></div>
+            </div>
+            <div class="plat-row-meta" style="min-width:120px;text-align:right">
+              ${dayVolume[i]} trips · ${fmtKes(dayRevenue[i])}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+
+      <!-- REGISTERED SACCOs -->
+      <div class="plat-section" style="margin-bottom:10px">
+        <div class="plat-section-hd" style="color:#8b5cf6">
+          🏢 REGISTERED SACCOs
+          <span style="font-size:.42rem;font-weight:400;color:var(--muted)">${totalSaccos} total</span>
+        </div>
+        ${saccoList.length ? saccoList.map(s=>`
+          <div class="plat-row">
+            <div style="flex:1;min-width:0">
+              <div class="plat-row-name">${s.name}</div>
+              <div style="font-size:.42rem;color:var(--muted);margin-top:1px">${s.owner} · ${s.email}</div>
+            </div>
+            <div class="plat-row-meta">
+              <div>${s.drivers} driver${s.drivers!==1?'s':''} · ${s.trips} trips</div>
+              <div style="color:var(--accent);margin-top:1px">${fmtKes(s.revenue)}</div>
+              <div style="font-size:.4rem;margin-top:1px">joined ${fmtDate(s.joinedAt)}</div>
+            </div>
+          </div>`).join('') :
+          '<div class="plat-empty">NO SACCOs REGISTERED YET</div>'}
+      </div>
+
+      <!-- RECENT SIGN-UPS (LAST 7 DAYS) -->
+      <div class="plat-section" style="margin-bottom:10px">
+        <div class="plat-section-hd" style="color:var(--accent)">
+          🆕 RECENT SIGN-UPS — LAST 7 DAYS
+          <span style="font-size:.42rem;font-weight:400;color:var(--muted)">${recentSignups.length} users</span>
+        </div>
+        ${recentSignups.length ? recentSignups.map(u=>{
+          const isAdmin = u.role==='admin';
+          const ts = u.createdAt||u.registeredAt||0;
+          return `<div class="plat-row">
+            <div style="flex:1;min-width:0">
+              <div class="plat-row-name">${u.name||'—'}</div>
+              <div style="font-size:.42rem;color:var(--muted);margin-top:1px">${u.email||'—'}</div>
+            </div>
+            <div class="plat-row-meta">
+              <span class="plat-badge ${isAdmin?'amber':'green'}">${isAdmin?'OWNER':'DRIVER'}</span>
+              ${u.saccoName?`<div style="margin-top:2px;font-size:.42rem">${u.saccoName}</div>`:''}
+              <div style="font-size:.4rem;margin-top:1px">${fmtDate(ts)}</div>
+            </div>
+          </div>`;
+        }).join('') :
+          '<div class="plat-empty">NO NEW SIGN-UPS IN THE LAST 7 DAYS</div>'}
+      </div>
+
+      <!-- PLATFORM HEALTH -->
+      <div class="plat-section" style="margin-bottom:10px">
+        <div class="plat-section-hd" style="color:var(--accent)">💚 PLATFORM HEALTH</div>
+        <div class="plat-row">
+          <div class="plat-row-name">Avg revenue per trip (all time)</div>
+          <div class="plat-row-meta">${fmtKes(avgTrip)}</div>
+        </div>
+        <div class="plat-row">
+          <div class="plat-row-name">Avg trips per driver</div>
+          <div class="plat-row-meta">${totalDrvs ? (totalTrips/totalDrvs).toFixed(1) : '0'} trips</div>
+        </div>
+        <div class="plat-row">
+          <div class="plat-row-name">Driver activation rate</div>
+          <div class="plat-row-meta">${totalDrvs ? Math.round((activeDrvs/totalDrvs)*100) : 0}% active</div>
+        </div>
+        <div class="plat-row">
+          <div class="plat-row-name">Revenue last 30 days</div>
+          <div class="plat-row-meta">${fmtKes(rev30)}</div>
+        </div>
+        <div class="plat-row">
+          <div class="plat-row-name">Pending driver invitations</div>
+          <div class="plat-row-meta ${pendingInvites>10?'style="color:var(--accent2)"':''}">${pendingInvites} waiting</div>
+        </div>
+        <div class="plat-row">
+          <div class="plat-row-name">Avg drivers per SACCO</div>
+          <div class="plat-row-meta">${totalSaccos ? (totalDrvs/totalSaccos).toFixed(1) : '0'}</div>
+        </div>
+      </div>
+
+      <div class="plat-updated">⏱ LAST UPDATED ${new Date().toLocaleTimeString('en-GB')} · TAP ⟳ TO REFRESH</div>
+    `;
+
+  } catch(e){
+    el.innerHTML = `<div class="plat-empty" style="color:var(--red)">
+      ⚠ ERROR LOADING STATS: ${e.message}<br>
+      <span style="font-size:.42rem">Check Firestore rules or internet connection</span>
+    </div>`;
+    console.error('loadPlatformStats error:', e);
+  }
 }
 
 function lockDev(){
