@@ -618,6 +618,35 @@ main{padding:13px 13px 74px}
 .plat-badge.red{background:#fdecea;color:var(--red)}
 .plat-empty{padding:20px;text-align:center;font-family:var(--font-m);font-size:.5rem;color:var(--muted);letter-spacing:1px}
 .plat-updated{font-family:var(--font-m);font-size:.42rem;color:var(--muted);text-align:center;padding:10px;letter-spacing:1px}
+
+/* ── ABOUT SECTION ──────────────────────────────────────────── */
+.about-section{margin-top:20px;border-top:1px solid var(--border);padding-top:18px}
+.about-toggle{display:flex;align-items:center;justify-content:space-between;cursor:pointer;user-select:none;padding:0 2px;margin-bottom:0}
+.about-toggle-label{font-family:var(--font-m);font-size:.52rem;color:var(--muted);letter-spacing:2px}
+.about-toggle-arrow{font-size:.7rem;color:var(--muted);transition:transform .25s}
+.about-toggle-arrow.open{transform:rotate(180deg)}
+.about-body{display:none;margin-top:14px;animation:fadeUp .2s ease}
+.about-body.open{display:block}
+.about-tagline{font-family:var(--font-d);font-size:1.25rem;letter-spacing:2px;color:var(--accent);margin-bottom:10px;line-height:1.2}
+.about-tagline span{color:var(--accent2)}
+.about-desc{font-family:var(--font-m);font-size:.5rem;color:var(--text);letter-spacing:.5px;line-height:1.9;margin-bottom:14px}
+.about-features{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.about-feat{background:var(--surface);padding:10px 10px;border-left:3px solid var(--accent)}
+.about-feat-ico{font-size:1.1rem;margin-bottom:3px}
+.about-feat-title{font-family:var(--font-m);font-size:.46rem;font-weight:700;color:var(--text);letter-spacing:1px;margin-bottom:2px}
+.about-feat-desc{font-family:var(--font-m);font-size:.42rem;color:var(--muted);letter-spacing:.3px;line-height:1.6}
+.about-security{background:linear-gradient(135deg,#e8f5ed,#f0faf4);border:1px solid var(--accent);padding:12px 14px;margin-bottom:14px}
+.about-security-title{font-family:var(--font-m);font-size:.5rem;font-weight:700;color:var(--accent);letter-spacing:1.5px;margin-bottom:8px}
+.about-security-item{display:flex;align-items:flex-start;gap:8px;margin-bottom:6px}
+.about-security-item:last-child{margin-bottom:0}
+.about-security-item-ico{font-size:.8rem;flex-shrink:0;margin-top:1px}
+.about-security-item-text{font-family:var(--font-m);font-size:.44rem;color:var(--text);letter-spacing:.3px;line-height:1.6}
+.about-divider{height:1px;background:var(--border);margin:14px 0}
+.about-dev{display:flex;align-items:center;gap:10px;padding:10px 0 0}
+.about-dev-logo{font-family:var(--font-d);font-size:1rem;letter-spacing:2px;color:var(--text)}
+.about-dev-logo span{color:var(--accent2)}
+.about-dev-meta{font-family:var(--font-m);font-size:.44rem;color:var(--muted);letter-spacing:1px;line-height:1.6;margin-top:2px}
+.about-dev-badge{background:var(--accent);color:#fff;font-family:var(--font-m);font-size:.38rem;letter-spacing:1px;padding:2px 7px;display:inline-block;margin-top:4px}
 </style>
 </head>
 <body>
@@ -667,6 +696,80 @@ main{padding:13px 13px 74px}
           <div class="auth-landing-card-arrow">›</div>
         </div>
       </div>
+
+      <!-- ABOUT SECTION -->
+      <div class="about-section">
+        <div class="about-toggle" onclick="toggleAbout(this)">
+          <span class="about-toggle-label">ℹ ABOUT MATATUHUB</span>
+          <span class="about-toggle-arrow">▾</span>
+        </div>
+        <div class="about-body">
+
+          <div class="about-tagline">Built for Kenya's<br><span>Matatu Industry.</span></div>
+
+          <div class="about-desc">
+            MatatuHub is a modern fleet management platform designed specifically for Kenyan SACCOs and PSV operators.
+            It gives sacco owners full visibility of their fleet — tracking every trip, every fare, every driver —
+            all in real time from any device. No paperwork. No spreadsheets. No guessing.
+          </div>
+
+          <div class="about-features">
+            <div class="about-feat">
+              <div class="about-feat-ico">🚌</div>
+              <div class="about-feat-title">REAL-TIME TRACKING</div>
+              <div class="about-feat-desc">Monitor all vehicles and trips as they happen — live updates across your entire fleet</div>
+            </div>
+            <div class="about-feat" style="border-left-color:var(--accent2)">
+              <div class="about-feat-ico">💰</div>
+              <div class="about-feat-title">REVENUE REPORTS</div>
+              <div class="about-feat-desc">Daily, weekly and monthly earnings per car, per driver — export to PDF or Excel</div>
+            </div>
+            <div class="about-feat" style="border-left-color:#8b5cf6">
+              <div class="about-feat-ico">👤</div>
+              <div class="about-feat-title">DRIVER MANAGEMENT</div>
+              <div class="about-feat-desc">Register drivers, set targets, track performance and send invitations by email</div>
+            </div>
+            <div class="about-feat" style="border-left-color:#0ea5e9">
+              <div class="about-feat-ico">⛽</div>
+              <div class="about-feat-title">FUEL & EFFICIENCY</div>
+              <div class="about-feat-desc">Log refuels, track km/L efficiency and control operating costs per vehicle</div>
+            </div>
+          </div>
+
+          <div class="about-security">
+            <div class="about-security-title">🔒 YOUR DATA IS SAFE WITH US</div>
+            <div class="about-security-item">
+              <div class="about-security-item-ico">✅</div>
+              <div class="about-security-item-text"><strong>Your data belongs to you.</strong> All records are stored securely in your own private Firebase database — no one else can access your sacco's information.</div>
+            </div>
+            <div class="about-security-item">
+              <div class="about-security-item-ico">✅</div>
+              <div class="about-security-item-text"><strong>Encrypted accounts.</strong> Every user account is protected by Firebase Authentication — industry-standard security used by millions of apps worldwide.</div>
+            </div>
+            <div class="about-security-item">
+              <div class="about-security-item-ico">✅</div>
+              <div class="about-security-item-text"><strong>Role-based access.</strong> Drivers only see their own trips and stats. Admins control who can see what. No cross-account data leakage.</div>
+            </div>
+            <div class="about-security-item">
+              <div class="about-security-item-ico">✅</div>
+              <div class="about-security-item-text"><strong>Works offline.</strong> MatatuHub keeps working even without internet — trips are queued and synced automatically when connectivity returns.</div>
+            </div>
+          </div>
+
+          <div class="about-divider"></div>
+
+          <div class="about-dev">
+            <div style="flex-shrink:0;width:38px;height:38px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--font-d);font-size:1.1rem;color:#fff;letter-spacing:1px">D</div>
+            <div>
+              <div class="about-dev-logo">Data<span>frica</span></div>
+              <div class="about-dev-meta">Developed &amp; maintained by Datafrica<br>Technology solutions for African businesses</div>
+              <span class="about-dev-badge">v7.0 · 2025</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
     </div>
 
     <!-- ═══ PANEL: CREATE ADMIN ACCOUNT ═══ -->
@@ -4270,7 +4373,7 @@ function closeResetOverlay(){
   document.getElementById('resetPinOverlay').classList.remove('open');
 }
 
-function verifyDevForReset(){
+async function verifyDevForReset(){
   const pin = (document.getElementById('resetDevPinIn')?.value || '').trim();
   const storedHash = localStorage.getItem(DEV_PIN_KEY);
   const inputHash  = await _hashPin(pin);
@@ -4826,6 +4929,15 @@ function hideAuthOverlay(){
 function showAuthPanel(panel){ switchToPanel(panel); }
 
 // Better panel switcher that uses exact panel names
+function toggleAbout(toggleEl){
+  const arrow = toggleEl.querySelector('.about-toggle-arrow');
+  const body  = toggleEl.parentElement.querySelector('.about-body');
+  if(!body) return;
+  const isOpen = body.classList.contains('open');
+  body.classList.toggle('open', !isOpen);
+  if(arrow) arrow.classList.toggle('open', !isOpen);
+}
+
 function switchToPanel(panel){
   // panel: 'landing' | 'create' | 'login' | 'forgot' | 'invite'
   const map={
