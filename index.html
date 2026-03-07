@@ -4041,7 +4041,7 @@ function renderVehiclePerformanceTable(){
     const s = shifts[car];
     const isOpen = s?.open===true;
     // find most recent trip driver for this car
-    const carTrips = allTrips.filter(t=>t.carPlate===car);
+    const carTrips = allData().filter(t=>t.carPlate===car);
     const lastTrip = carTrips.sort((a,b)=>b.timestamp-a.timestamp)[0];
     const driverName = lastTrip?.driver||s?.openedBy||'—';
     const initials = driverName!=='—' ? driverName.split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase() : '—';
@@ -4065,7 +4065,7 @@ function renderVehiclePerformanceTable(){
 
 function renderTargetsOverview(){
   const today = new Date().toLocaleDateString('en-GB');
-  const todayTrips = allTrips.filter(t=>t.date===today);
+  const todayTrips = allData().filter(t=>t.date===today);
   const todayRevenue = todayTrips.reduce((s,t)=>s+Number(t.amount||0),0);
   const dailyTarget = Object.values(driverTargets).reduce((s,v)=>s+Number(v||0),0)*CARS.length||120000;
   const revPct = dailyTarget?Math.min(100,Math.round((todayRevenue/dailyTarget)*100)):0;
@@ -4120,10 +4120,11 @@ function renderAdmin(){
   const totalCars     = CARS.length;
   const openShifts    = CARS.filter(c=>shifts[c]?.open===true).length;
   const today         = new Date().toLocaleDateString('en-GB');
-  const todayTrips    = allTrips.filter(t=>t.date===today);
+  const _allTrips     = allData();
+  const todayTrips    = _allTrips.filter(t=>t.date===today);
   const todayRevenue  = todayTrips.reduce((s,t)=>s+Number(t.amount||0),0);
   const weekStart     = new Date(); weekStart.setDate(weekStart.getDate()-6);
-  const weekTrips     = allTrips.filter(t=>{try{const[d,m,y]=t.date.split('/');return new Date(+y,+m-1,+d)>=weekStart}catch{return false}});
+  const weekTrips     = _allTrips.filter(t=>{try{const[d,m,y]=t.date.split('/');return new Date(+y,+m-1,+d)>=weekStart}catch{return false}});
   const weekRevenue   = weekTrips.reduce((s,t)=>s+Number(t.amount||0),0);
   const dailyTarget   = Object.values(driverTargets).reduce((s,v)=>s+Number(v||0),0)*totalCars||120000;
   const revPct        = dailyTarget?Math.round((todayRevenue/dailyTarget)*100):0;
