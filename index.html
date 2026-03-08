@@ -1141,6 +1141,15 @@ function toggleDark(){
 }
 function goToSplashStep2(){
   try{
+    // If admin already authenticated (page reload), skip WHO ARE YOU and go straight to app
+    if(window._reloadedAdmin){
+      var splash=document.getElementById('splashOverlay');
+      if(splash){ splash.classList.add('hiding'); setTimeout(function(){ splash.style.display='none'; },500); }
+      window._reloadedAdmin=false;
+      if(typeof switchPage==='function') switchPage('home');
+      if(typeof loadRegisteredDrivers==='function') setTimeout(loadRegisteredDrivers,300);
+      return;
+    }
     var s1=document.getElementById('splashStep1'),s1btn=document.getElementById('splashStep1Btn');
     var s2=document.getElementById('splashStep2'),s2btn=document.getElementById('splashStep2Btn');
     if(!s1||!s2||!s2btn) return;
@@ -6820,18 +6829,14 @@ function proceedFromSplash(){
 }
 
 function initSplash(){
-  // Skip splash if already seen this session OR if returning user
-  const seen      = sessionStorage.getItem('_mh_splash_seen');
-  const hasEmail  = !!localStorage.getItem('fs_last_email');
-  const isInvite  = new URLSearchParams(window.location.search).get('invite') === '1';
-
-  if(seen || hasEmail || isInvite){
-    // Skip splash — go straight to auth
+  // Only skip splash for invite links (special URL param)
+  const isInvite = new URLSearchParams(window.location.search).get('invite') === '1';
+  if(isInvite){
     const splash = document.getElementById('splashOverlay');
     if(splash) splash.style.display = 'none';
-    return false; // caller should proceed normally
+    return false;
   }
-  return true; // splash is showing
+  return true; // splash always shows on page load / refresh
 }
 
 function showAuthOverlay(){
@@ -7557,14 +7562,27 @@ function onDriverAuthenticated(user, profile){
     if(hSub) hSub.textContent='// MANAGER · '+(profile.saccoName||appConfig.saccoName||'SACCO');
     hideAuthOverlay();
     showNavFor('admin');
-    // Land on Home page first — dashboard is accessible via avatar
-    adminTab = 'drivers';
-    switchPage('home');
-    // Load driver list after render
-    setTimeout(()=>{
-      loadRegisteredDrivers();
-    }, 300);
-    toast('👑 WELCOME, '+firstName+'!');
+    // On fresh login → go to home page
+    // On page reload (_loginHandled is false) → show splash in welcome-back mode
+    if(!window._loginHandled){
+      // PAGE RELOAD — show splash with welcome-back state, user just taps button to re-enter
+      window._reloadedAdmin = true;
+      const splash = document.getElementById('splashOverlay');
+      if(splash){
+        splash.style.display = 'flex';
+        splash.classList.remove('hiding');
+        // Update the splash sheet to show "Welcome back, NAME"
+        const wb = document.querySelector('.splash-welcome');
+        if(wb) wb.textContent = 'Welcome back, ' + firstName + ' 👋';
+        const loginBtn = document.querySelector('.splash-login-btn');
+        if(loginBtn) loginBtn.textContent = 'CONTINUE TO DASHBOARD';
+      }
+    } else {
+      adminTab = 'drivers';
+      switchPage('home');
+      setTimeout(()=>{ loadRegisteredDrivers(); }, 300);
+      toast('👑 WELCOME, '+firstName+'!');
+    }
 
   } else {
     // ── DRIVER ───────────────────────────────────────────────
