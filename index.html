@@ -952,6 +952,15 @@ main{padding:13px 13px 74px}
 ════════════════════════════════════════════ -->
 <!-- Early definitions — splash buttons call these before the main script loads -->
 <script>
+// Early stub for theme toggle — works before main script loads
+function toggleDark(){
+  var isDark=document.documentElement.getAttribute('data-theme')==='dark';
+  document.documentElement.setAttribute('data-theme',isDark?'light':'dark');
+  var icon=isDark?'🌙':'☀️';
+  var b1=document.getElementById('darkBtn'),b2=document.getElementById('splashThemeBtn');
+  if(b1)b1.textContent=icon; if(b2)b2.textContent=icon;
+  try{ localStorage.setItem('fs_dark',JSON.stringify(!isDark)); }catch(e){}
+}
 function goToSplashStep2(){
   try{
     var s1=document.getElementById('splashStep1'),s1btn=document.getElementById('splashStep1Btn');
@@ -986,6 +995,33 @@ function proceedAsRole(role){
   var btn=document.getElementById('splashProceedBtn');
   var cb=document.getElementById('termsCheckbox');
   if(btn && cb && cb.checked) btn.classList.add('ready');
+}
+function toggleProceedBtn(){
+  var cb=document.getElementById('termsCheckbox');
+  var btn=document.getElementById('splashProceedBtn');
+  if(!btn) return;
+  if(cb && cb.checked) btn.classList.add('ready');
+  else btn.classList.remove('ready');
+}
+function proceedFromSplash(){
+  // Defer to the main definition once it's loaded; this stub handles early clicks
+  var cb=document.getElementById('termsCheckbox');
+  if(!cb||!cb.checked) return;
+  var splash=document.getElementById('splashOverlay');
+  if(!splash) return;
+  splash.classList.add('hiding');
+  setTimeout(function(){
+    splash.style.display='none';
+    var role=window._splashIntendedRole||'landing';
+    // showAuthOverlay / switchToPanel are defined in main script — safe by now
+    if(typeof showAuthOverlay==='function') showAuthOverlay();
+    if(typeof switchToPanel==='function'){
+      if(role==='create') switchToPanel('create');
+      else if(role==='login') switchToPanel('login');
+      else switchToPanel('landing');
+    }
+  }, 500);
+  sessionStorage.setItem('_mh_splash_seen','1');
 }
 </script>
 <div id="splashOverlay" class="splash-overlay">
@@ -1168,7 +1204,7 @@ function proceedAsRole(role){
 
 </div><!-- end #splashOverlay -->
 
-<div class="auth-overlay hidden" id="authOverlay">
+<div class="auth-overlay" id="authOverlay">
   <div class="auth-box">
 
     <!-- LOGO -->
@@ -1179,7 +1215,7 @@ function proceedAsRole(role){
     </div>
 
     <!-- ═══ PANEL: LANDING ═══ -->
-    <div id="authPanelLanding" style="display:none">
+    <div id="authPanelLanding" style="display:block">
 
       <!-- Role hierarchy intro -->
       <div style="text-align:center;margin-bottom:18px">
@@ -7954,6 +7990,7 @@ function renderNotesList(){
     showAuthOverlay();
     switchToPanel('landing');
   }
+  } // close else (no active trip)
 })();
 
 function showTripRecoveryOverlay(snap){
