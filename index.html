@@ -824,8 +824,8 @@ main{padding:13px 13px 74px}
 /* ── SPLASH / WELCOME SCREEN ────────────────────────────────── */
 .splash-overlay{position:fixed;inset:0;z-index:800;background:var(--bg);display:flex;flex-direction:column;align-items:stretch;transition:opacity .5s ease}
 .splash-overlay.hiding{opacity:0;pointer-events:none}
-.splash-scroll-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 0 16px;display:flex;flex-direction:column;align-items:stretch}
-.splash-btn-area{flex-shrink:0;padding:12px 20px 28px;background:var(--bg);border-top:1px solid var(--border);display:flex;flex-direction:column;align-items:center;gap:8px}
+.splash-scroll-area{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:0 0 110px;display:flex;flex-direction:column;align-items:stretch}
+.splash-btn-area{position:absolute;bottom:0;left:0;right:0;z-index:10;padding:12px 20px 28px;background:var(--bg);border-top:1px solid var(--border);display:flex;flex-direction:column;align-items:center;gap:8px}
 .splash-proceed-btn{width:100%;max-width:380px;padding:18px;background:var(--accent-grad);border:none;color:#fff;font-family:var(--font-d);font-size:1rem;letter-spacing:4px;cursor:not-allowed;transition:var(--transition);opacity:.4;pointer-events:none;border-radius:var(--radius-sm);box-shadow:0 4px 16px rgba(26,122,60,.3)}
 .splash-proceed-btn.ready{opacity:1;cursor:pointer;pointer-events:auto}
 .splash-proceed-btn.ready:hover{box-shadow:0 6px 24px rgba(26,122,60,.4);transform:translateY(-2px)}
@@ -950,6 +950,44 @@ main{padding:13px 13px 74px}
 <!-- ════════════════════════════════════════════
      SPLASH / WELCOME SCREEN
 ════════════════════════════════════════════ -->
+<!-- Early definitions — splash buttons call these before the main script loads -->
+<script>
+function goToSplashStep2(){
+  try{
+    var s1=document.getElementById('splashStep1'),s1btn=document.getElementById('splashStep1Btn');
+    var s2=document.getElementById('splashStep2'),s2btn=document.getElementById('splashStep2Btn');
+    if(!s1||!s1btn||!s2||!s2btn) return;
+    s1.style.display='none'; s1btn.style.display='none';
+    s2.style.display='flex'; s2btn.style.display='flex';
+    s2.classList.remove('splash-anim-in'); void s2.offsetWidth;
+    s2.classList.add('splash-anim-in'); s2.scrollTop=0;
+    var d1=document.getElementById('dot1'),d2=document.getElementById('dot2');
+    if(d1)d1.classList.remove('active'); if(d2)d2.classList.add('active');
+  } catch(e){ console.error('Step2 error:',e); }
+}
+function goToSplashStep1(){
+  try{
+    var s2=document.getElementById('splashStep2'),s2btn=document.getElementById('splashStep2Btn');
+    var s1=document.getElementById('splashStep1'),s1btn=document.getElementById('splashStep1Btn');
+    if(!s1||!s1btn||!s2||!s2btn) return;
+    s2.style.display='none'; s2btn.style.display='none';
+    s1.style.display='flex'; s1btn.style.display='flex';
+    s1.classList.add('splash-anim-back'); s1.scrollTop=0;
+    var d1=document.getElementById('dot1'),d2=document.getElementById('dot2');
+    if(d2)d2.classList.remove('active'); if(d1)d1.classList.add('active');
+  } catch(e){ console.error('Step1 error:',e); }
+}
+function proceedAsRole(role){
+  window._splashIntendedRole=role;
+  document.querySelectorAll('.auth-role-card').forEach(function(c){c.style.outline='none';});
+  var card=document.querySelector(role==='create'?'.manager-role':'.driver-role');
+  if(card) card.style.outline='2.5px solid var(--accent)';
+  // Enable the proceed button once a role is picked
+  var btn=document.getElementById('splashProceedBtn');
+  var cb=document.getElementById('termsCheckbox');
+  if(btn && cb && cb.checked) btn.classList.add('ready');
+}
+</script>
 <div id="splashOverlay" class="splash-overlay">
 
   <!-- ══════════════════════════════════════════
@@ -8081,11 +8119,9 @@ function adminSettings(){
   renderAdmin();
 }
 
-// ── GET STARTED button — backup listener in case onclick attr fails ──
-document.addEventListener('DOMContentLoaded', function(){
-  const btn = document.querySelector('#splashStep1Btn .splash-proceed-btn');
-  if(btn){ btn.removeAttribute('onclick'); btn.addEventListener('click', goToSplashStep2); }
-});
+
+
+
 
 
 
