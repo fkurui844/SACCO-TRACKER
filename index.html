@@ -749,6 +749,25 @@ main{padding:13px 13px 74px}
 .target-close:hover{background:rgba(255,255,255,.3)}
 @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
 
+/* ── Vehicle Location Modal ──────────────── */
+#vehicleLocModal{position:fixed;inset:0;z-index:900;background:rgba(0,0,0,.7);backdrop-filter:blur(4px);display:none;align-items:flex-end;justify-content:center}
+#vehicleLocModal.open{display:flex}
+.vloc-sheet{background:var(--card);width:100%;max-width:520px;border-radius:18px 18px 0 0;padding:0;overflow:hidden;animation:slideUp .3s ease;max-height:92vh;display:flex;flex-direction:column}
+.vloc-handle{width:40px;height:4px;background:var(--border);border-radius:2px;margin:12px auto 0;cursor:pointer;flex-shrink:0}
+.vloc-header{padding:14px 18px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.vloc-plate{font-family:var(--font-d);font-size:1.2rem;letter-spacing:3px;color:var(--text)}
+.vloc-driver{font-family:var(--font-m);font-size:.75rem;color:var(--muted);letter-spacing:1px;margin-top:2px}
+.vloc-close{background:none;border:none;font-size:1.3rem;cursor:pointer;color:var(--muted);padding:0}
+.vloc-map{width:100%;flex:1;min-height:300px;border:none;display:block}
+.vloc-footer{padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0}
+.vloc-footer a,.vloc-footer button{flex:1;padding:11px;text-align:center;border-radius:var(--radius-sm);font-family:var(--font-m);font-size:.8rem;letter-spacing:1.5px;cursor:pointer;text-decoration:none;display:flex;align-items:center;justify-content:center;gap:6px}
+.vloc-gmaps{background:var(--accent);color:#fff;border:none}
+.vloc-refresh{background:var(--surface);color:var(--text);border:1.5px solid var(--border)}
+.vloc-status{font-family:var(--font-m);font-size:.76rem;padding:8px 16px;letter-spacing:.5px;line-height:1.7;flex-shrink:0}
+.vloc-noloc{text-align:center;padding:40px 20px;font-family:var(--font-m);font-size:.82rem;color:var(--muted);letter-spacing:1px}
+@keyframes vloc-pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.vloc-live-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;animation:vloc-pulse 1.5s infinite;margin-right:5px;vertical-align:middle}
+
 /* ── Floating Back Button ────────────────── */
 #floatingBackBtn{
   position:fixed;
@@ -4538,6 +4557,7 @@ function renderAdmin(){
             <div class="abtn-row">
               ${!isOpen?`<button class="bsm bg" onclick="openShift('${car}')">OPEN</button>`:''}
               ${isOpen?`<button class="bsm br" onclick="showCloseShiftSummary('${car}')">CLOSE</button>`:''}
+              <button class="bsm" style="background:rgba(96,165,250,.12);color:#60a5fa;border:1px solid rgba(96,165,250,.4);font-size:.75rem;padding:6px 10px" onclick="openVehicleLocModal('${car}','${(shifts[car]?.driver||'').replace(/'/g,"\\'")}')">📍 LOCATE</button>
             </div>
           </div>`;
         }).join('')}
@@ -4732,6 +4752,7 @@ function renderAdmin(){
               +'</div>'
             +'</div>'
             +'<div style="display:flex;align-items:center;gap:6px;flex-shrink:0">'
+              +'<button onclick="openVehicleLocModal(\''+c+'\',\''+(liveSessions[c]?.driver||'')+'\')" style="padding:6px 10px;background:rgba(96,165,250,.12);color:#60a5fa;border:1px solid rgba(96,165,250,.4);border-radius:var(--radius-sm);font-family:var(--font-m);font-size:.7rem;letter-spacing:1px;cursor:pointer" title="View live location">📍 LOCATE</button>'
               +'<button onclick="adminSetTarget(\''+c+'\')" style="padding:6px 10px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:var(--radius-sm);font-family:var(--font-m);font-size:.7rem;letter-spacing:1px;cursor:pointer" title="Set target">🎯 TARGET</button>'
               +'<button onclick="removeCar('+i+')" style="width:30px;height:30px;background:var(--rlight);color:var(--red);border:1px solid var(--red);border-radius:var(--radius-sm);cursor:pointer;font-size:.8rem;display:flex;align-items:center;justify-content:center" title="Remove vehicle">✕</button>'
             +'</div>'
@@ -7618,8 +7639,148 @@ function startAuthListener(){
 // ══════════════════════════════════════════════
 
 // ══════════════════════════════════════════════
-// GPS LOCATION TRACKING
+// MANAGER: VEHICLE LOCATION VIEWER
 // ══════════════════════════════════════════════
+let _vlocCurrentPlate = null;
+let _vlocRefreshTimer = null;
+
+async function openVehicleLocModal(plate, driverName){
+  _vlocCurrentPlate = plate;
+  const modal = document.getElementById('vehicleLocModal');
+  document.getElementById('vlocPlate').textContent = plate;
+  document.getElementById('vlocDriver').textContent = driverName ? '👤 ' + driverName : '';
+  document.getElementById('vlocNoLoc').style.display = 'flex';
+  document.getElementById('vlocNoLoc').style.flexDirection = 'column';
+  document.getElementById('vlocNoLoc').style.alignItems = 'center';
+  document.getElementById('vlocNoLoc').innerHTML = `
+    <div style="font-size:2.5rem;margin-bottom:12px">📡</div>
+    <div style="font-family:var(--font-d);font-size:.9rem;letter-spacing:2px;margin-bottom:8px;color:var(--text)">LOADING LOCATION...</div>
+    <div style="font-size:.78rem;color:var(--muted)">Fetching latest GPS from Firestore...</div>`;
+  document.getElementById('vlocMap').style.display = 'none';
+  document.getElementById('vlocStatus').textContent = '';
+  document.getElementById('vlocGmapsLink').href = '#';
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+  // Auto-refresh every 30s
+  if(_vlocRefreshTimer) clearInterval(_vlocRefreshTimer);
+  _vlocRefreshTimer = setInterval(refreshVehicleLocation, 30000);
+  await _loadVehicleLocation(plate);
+}
+
+function closeVehicleLocModal(){
+  document.getElementById('vehicleLocModal').classList.remove('open');
+  document.body.style.overflow = '';
+  _vlocCurrentPlate = null;
+  if(_vlocRefreshTimer){ clearInterval(_vlocRefreshTimer); _vlocRefreshTimer = null; }
+  // Clear the iframe to stop tile loading
+  document.getElementById('vlocMap').src = '';
+}
+
+async function refreshVehicleLocation(){
+  if(!_vlocCurrentPlate) return;
+  await _loadVehicleLocation(_vlocCurrentPlate);
+}
+
+async function _loadVehicleLocation(plate){
+  if(!db) return;
+  const noLocEl = document.getElementById('vlocNoLoc');
+  const mapEl   = document.getElementById('vlocMap');
+  const statusEl = document.getElementById('vlocStatus');
+  const gmapsLink = document.getElementById('vlocGmapsLink');
+  try{
+    // Check live sessions first (most recent GPS)
+    const saccoId = getSaccoId();
+    const snap = await db.collection('sessions')
+      .where('carPlate', '==', plate)
+      .where('saccoId', '==', saccoId || '')
+      .orderBy('updatedAt', 'desc')
+      .limit(1)
+      .get();
+
+    if(snap.empty){
+      _showVlocNoData(noLocEl, mapEl, statusEl, gmapsLink, 'No active session found for this vehicle.');
+      return;
+    }
+
+    const sess = snap.docs[0].data();
+    const lat  = sess.lat;
+    const lng  = sess.lng;
+    const gpsTs = sess.gpsTs || sess.updatedAt;
+    const driver = sess.driver || '—';
+    const status = sess.status || 'unknown';
+    const ageMs  = Date.now() - (gpsTs || 0);
+    const ageMins = Math.floor(ageMs / 60000);
+    const ageStr = ageMins < 1 ? 'JUST NOW' : ageMins < 60 ? ageMins + ' MIN AGO' : Math.floor(ageMins/60) + 'H ' + (ageMins%60) + 'M AGO';
+
+    // Update driver name in header if available
+    if(driver && driver !== '—'){
+      document.getElementById('vlocDriver').textContent = '👤 ' + driver;
+    }
+
+    if(!lat || !lng){
+      _showVlocNoData(noLocEl, mapEl, statusEl, gmapsLink,
+        `Driver is logged in but GPS location hasn't been shared yet.\nStatus: ${status.toUpperCase()} · Last update: ${ageStr}`);
+      return;
+    }
+
+    // Stale check — if GPS is older than 3h, warn
+    const isStale = ageMs > 3 * 60 * 60 * 1000;
+
+    // Show map
+    noLocEl.style.display = 'none';
+    mapEl.style.display = 'block';
+    const zoom = 15;
+    mapEl.src = `https://www.openstreetmap.org/export/embed.html?bbox=${lng-0.008},${lat-0.008},${lng+0.008},${lat+0.008}&layer=mapnik&marker=${lat},${lng}`;
+
+    // Google Maps link
+    gmapsLink.href = `https://maps.google.com/?q=${lat},${lng}`;
+
+    // Status bar
+    const statusColors = {driving:'#22c55e', arrived:'#f59e0b', idle:'var(--muted)', online:'var(--accent)', offline:'var(--border)'};
+    const statusIcons  = {driving:'🚌', arrived:'📍', idle:'⏸', online:'✅', offline:'○'};
+    statusEl.innerHTML = `
+      <span class="vloc-live-dot" style="${isStale?'background:var(--accent2)':''}"></span>
+      <strong style="color:${statusColors[status]||'var(--text)'}">${statusIcons[status]||'📍'} ${status.toUpperCase()}</strong>
+      &nbsp;·&nbsp; GPS updated: <strong>${ageStr}</strong>
+      ${isStale ? ' <span style="color:var(--accent2);font-size:.72rem">⚠ MAY BE OUTDATED</span>' : ''}
+      <br>
+      <span style="color:var(--muted)">Coordinates: ${lat.toFixed(5)}, ${lng.toFixed(5)}</span>`;
+
+  } catch(e){
+    // If orderBy requires composite index, fall back to liveSessions in memory
+    if((e.code||'').includes('failed-precondition') || (e.message||'').toLowerCase().includes('index')){
+      // Use in-memory liveSessions
+      const sess = liveSessions[plate];
+      if(sess && sess.lat && sess.lng){
+        const lat = sess.lat, lng = sess.lng;
+        noLocEl.style.display = 'none';
+        mapEl.style.display = 'block';
+        mapEl.src = `https://www.openstreetmap.org/export/embed.html?bbox=${lng-0.008},${lat-0.008},${lng+0.008},${lat+0.008}&layer=mapnik&marker=${lat},${lng}`;
+        gmapsLink.href = `https://maps.google.com/?q=${lat},${lng}`;
+        statusEl.innerHTML = `<span class="vloc-live-dot"></span><strong style="color:#22c55e">LIVE</strong> · ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+      } else {
+        _showVlocNoData(noLocEl, mapEl, statusEl, gmapsLink, 'No GPS data available for this vehicle.\nStart live monitoring in Reports → LIVE to stream locations.');
+      }
+    } else {
+      _showVlocNoData(noLocEl, mapEl, statusEl, gmapsLink, 'Error loading location: ' + e.message);
+    }
+  }
+}
+
+function _showVlocNoData(noLocEl, mapEl, statusEl, gmapsLink, msg){
+  noLocEl.style.display = 'flex';
+  noLocEl.style.flexDirection = 'column';
+  noLocEl.style.alignItems = 'center';
+  noLocEl.innerHTML = `
+    <div style="font-size:2.5rem;margin-bottom:12px">📍</div>
+    <div style="font-family:var(--font-d);font-size:.9rem;letter-spacing:2px;color:var(--muted);margin-bottom:8px">NO LOCATION DATA</div>
+    <div style="font-family:var(--font-m);font-size:.78rem;color:var(--muted);text-align:center;line-height:1.8;white-space:pre-line">${msg}</div>`;
+  mapEl.style.display = 'none';
+  statusEl.textContent = '';
+  gmapsLink.href = '#';
+}
+
+
 function startLocationTracking(){
   // Called on page reload when trip is already active — re-attaches GPS watch
   if(!navigator.geolocation) return;
@@ -7901,7 +8062,8 @@ function renderLiveTab(){
             <span style="font-family:var(--font-m);font-size:.86rem;color:#22c55e;font-weight:700">DESTINATION</span>
           </div>
           <div style="font-size:.78rem;color:#22c55e;font-family:var(--font-m)">🚌 DEPARTED ${minsAgo(v.updatedAt)}</div>
-          ${v.lat&&v.lng?`<a href="https://maps.google.com/?q=${v.lat},${v.lng}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;margin-top:4px;font-family:var(--font-m);font-size:.76rem;color:#60a5fa;text-decoration:none;border:1px solid rgba(96,165,250,.5);padding:3px 8px">📍 VIEW LIVE LOCATION${v.gpsTs?" · "+minsAgo(v.gpsTs):""}</a>`:`<div style="font-size:.75rem;color:var(--muted);margin-top:3px;font-family:var(--font-m)">📍 AWAITING GPS...</div>`}
+          ${v.lat&&v.lng?`<a href="https://maps.google.com/?q=${v.lat},${v.lng}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;margin-top:4px;font-family:var(--font-m);font-size:.76rem;color:#60a5fa;text-decoration:none;border:1px solid rgba(96,165,250,.5);padding:3px 8px">📍 VIEW LIVE LOCATION${v.gpsTs?" · "+minsAgo(v.gpsTs):""}</a>
+          <button onclick="openVehicleLocModal('${v.plate}','${v.driver}')" style="display:inline-flex;align-items:center;gap:4px;margin-top:4px;margin-left:6px;font-family:var(--font-m);font-size:.76rem;color:#60a5fa;background:rgba(96,165,250,.12);border:1px solid rgba(96,165,250,.5);padding:3px 8px;cursor:pointer">🗺 MAP VIEW</button>`:`<div style="font-size:.75rem;color:var(--muted);margin-top:3px;font-family:var(--font-m)">📍 AWAITING GPS...</div>`}
           `:v.status==='arrived'?`
           <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
             <span style="font-family:var(--font-m);font-size:.86rem;color:var(--muted)">${v.from||'?'}</span>
@@ -8550,6 +8712,35 @@ function adminSettings(){
 
     <div style="font-family:var(--font-m);font-size:.72rem;color:var(--muted);text-align:center;margin-top:10px;line-height:1.7">
       Driver receives an email link to set their password &amp; join your Sacco
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════
+     VEHICLE LOCATION MODAL
+════════════════════════════════════════════ -->
+<div id="vehicleLocModal" onclick="if(event.target===this)closeVehicleLocModal()">
+  <div class="vloc-sheet">
+    <div class="vloc-handle" onclick="closeVehicleLocModal()"></div>
+    <div class="vloc-header">
+      <div>
+        <div class="vloc-plate" id="vlocPlate">—</div>
+        <div class="vloc-driver" id="vlocDriver"></div>
+      </div>
+      <button class="vloc-close" onclick="closeVehicleLocModal()">✕</button>
+    </div>
+    <div id="vlocBody" style="flex:1;display:flex;flex-direction:column;overflow:hidden">
+      <div class="vloc-noloc" id="vlocNoLoc">
+        <div style="font-size:2.5rem;margin-bottom:12px">📍</div>
+        <div style="font-family:var(--font-d);font-size:.9rem;letter-spacing:2px;margin-bottom:8px">LOADING LOCATION...</div>
+        <div style="font-size:.78rem">Fetching latest GPS from Firestore...</div>
+      </div>
+      <iframe id="vlocMap" class="vloc-map" style="display:none" allowfullscreen loading="lazy"></iframe>
+    </div>
+    <div class="vloc-status" id="vlocStatus"></div>
+    <div class="vloc-footer">
+      <a id="vlocGmapsLink" class="vloc-gmaps" href="#" target="_blank">🗺 OPEN IN GOOGLE MAPS</a>
+      <button class="vloc-refresh" onclick="refreshVehicleLocation()">⟳ REFRESH</button>
     </div>
   </div>
 </div>
