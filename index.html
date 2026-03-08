@@ -1167,33 +1167,42 @@ function switchToPanel(panel){
   _switchToPanelInternal(panel);
 }
 
-// ── Early stubs for auth action functions ────────────────────
-// All defined in full in the main script. These stubs queue the
-// call until the main script is ready, preventing ReferenceError
-// on any early click.
-function _deferUntilReady(fn, args){
-  var CHECK_MS = 50, MAX_WAIT = 8000, waited = 0;
-  (function poll(){
-    if(typeof window._mainScriptReady !== 'undefined'){
-      fn.apply(null, args||[]);
-    } else if(waited < MAX_WAIT){
-      waited += CHECK_MS;
-      setTimeout(poll, CHECK_MS);
-    }
-  })();
+// ── Auth action placeholders ─────────────────────────────────
+// These are NOT function declarations (which would shadow the main script's
+// async versions). They set window properties so onclick attributes work,
+// and are overwritten by the real async functions when main script loads.
+window.authLogin          = function(){ console.warn('authLogin: main script not yet loaded'); };
+window.authForgotPassword = function(){ console.warn('authForgotPassword: main script not yet loaded'); };
+window.authSetupAdmin     = function(){ console.warn('authSetupAdmin: main script not yet loaded'); };
+window.acceptInvitation   = function(){ console.warn('acceptInvitation: main script not yet loaded'); };
+window.setupNextStep      = function(){ console.warn('setupNextStep: main script not yet loaded'); };
+window.setupPrevStep      = function(){ console.warn('setupPrevStep: main script not yet loaded'); };
+function toggleAuthEye(){
+  var i=document.getElementById('authPass'), b=document.getElementById('authEyeBtn');
+  if(!i) return;
+  i.type=i.type==='password'?'text':'password';
+  if(b) b.textContent=i.type==='password'?'👁':'🙈';
 }
-function authLogin(){         _deferUntilReady(function(){ if(typeof window._authLogin==='function') window._authLogin(); }); }
-function authForgotPassword(){ _deferUntilReady(function(){ if(typeof window._authForgotPassword==='function') window._authForgotPassword(); }); }
-function authSetupAdmin(){    _deferUntilReady(function(){ if(typeof window._authSetupAdmin==='function') window._authSetupAdmin(); }); }
-function acceptInvitation(){  _deferUntilReady(function(){ if(typeof window._acceptInvitation==='function') window._acceptInvitation(); }); }
-function setupNextStep(){     _deferUntilReady(function(){ if(typeof window._setupNextStep==='function') window._setupNextStep(); }); }
-function setupPrevStep(){     _deferUntilReady(function(){ if(typeof window._setupPrevStep==='function') window._setupPrevStep(); }); }
-function toggleAuthEye(){     var i=document.getElementById('authPassword'); if(i) i.type=i.type==='password'?'text':'password'; }
-function toggleSetupEye(){    var i=document.getElementById('setupPassword'); if(i) i.type=i.type==='password'?'text':'password'; }
-function toggleSetupConfirmEye(){ var i=document.getElementById('setupConfirm'); if(i) i.type=i.type==='password'?'text':'password'; }
-function toggleInviteEye(){   var i=document.getElementById('invitePassword'); if(i) i.type=i.type==='password'?'text':'password'; }
-function toggleAbout(el){     var a=document.getElementById('aboutSection'); if(a) a.style.display=a.style.display==='none'?'block':'none'; }
-function goHomeFromAbout(){   var a=document.getElementById('aboutSection'); if(a) a.style.display='none'; }
+function toggleSetupEye(){
+  var i=document.getElementById('setupPass'), b=document.getElementById('setupEyeBtn');
+  if(!i) return;
+  i.type=i.type==='password'?'text':'password';
+  if(b) b.textContent=i.type==='password'?'👁':'🙈';
+}
+function toggleSetupConfirmEye(){
+  var i=document.getElementById('setupPassConfirm'), b=document.getElementById('setupConfirmEyeBtn');
+  if(!i) return;
+  i.type=i.type==='password'?'text':'password';
+  if(b) b.textContent=i.type==='password'?'👁':'🙈';
+}
+function toggleInviteEye(){
+  var i=document.getElementById('inviteNewPass'), b=document.getElementById('inviteEyeBtn');
+  if(!i) return;
+  i.type=i.type==='password'?'text':'password';
+  if(b) b.textContent=i.type==='password'?'👁':'🙈';
+}
+function toggleAbout(el){ var a=document.getElementById('aboutSection'); if(a) a.style.display=a.style.display==='none'?'block':'none'; }
+function goHomeFromAbout(){ var a=document.getElementById('aboutSection'); if(a) a.style.display='none'; }
 function goToSplashStep2(){
   try{
     // If admin already authenticated (page reload), skip WHO ARE YOU and go straight to app
@@ -5138,6 +5147,7 @@ function renderAdmin(){
     </div>
 
     </div>`;
+}
 
 // ══════════════════════════════════════════════
 // ADMIN ACTIONS
@@ -7262,6 +7272,8 @@ async function authLogin(){
 
   btn.disabled=true;
   btn.innerHTML='<span class="auth-spinner"></span>LOGGING IN...';
+  // Failsafe: always re-enable button after 15s so it never stays stuck
+  const _btnFailsafe = setTimeout(resetBtn, 15000);
 
   try{
     // ── Make sure Firebase is ready ──────────────────────────────────────
@@ -7303,21 +7315,21 @@ async function authLogin(){
     // ── STEP 3: Route — never leave the user stuck ───────────────────────
     if(profile){
       // ✅ Normal path — profile found
+      clearTimeout(_btnFailsafe);
       window._loginHandled = true;
       onDriverAuthenticated(user, profile);
       setTimeout(()=>{ window._loginHandled = false; }, 3000);
 
     } else if(profileErr && profileErr.code === 'unavailable'){
       // 🌐 No internet / Firestore offline
+      clearTimeout(_btnFailsafe);
       resetBtn();
       showAuthError('authLoginError',
         '⚠ CANNOT REACH DATABASE\n' +
         'Check your internet connection and try again.');
 
     } else if(profileErr && profileErr.code === 'permission-denied'){
-      // 🔒 Firestore rules are blocking reads — but Firebase Auth worked fine.
-      // Build a profile from the Auth user object and let them in.
-      // The admin can fix Firestore rules once inside.
+      clearTimeout(_btnFailsafe);
       btn.innerHTML='<span class="auth-spinner"></span>BYPASSING FIRESTORE...';
       const bypassProfile = {
         uid:           user.uid,
@@ -7328,7 +7340,7 @@ async function authLogin(){
         saccoId:       user.uid,
         active:        true,
         createdAt:     Date.now(),
-        _rulesBlocked: true  // flag so UI can show a warning
+        _rulesBlocked: true
       };
       window._loginHandled = true;
       onDriverAuthenticated(user, bypassProfile);
@@ -7378,6 +7390,7 @@ async function authLogin(){
     }
 
   } catch(e){
+    clearTimeout(_btnFailsafe);
     resetBtn();
     const msgs={
       'auth/user-not-found':         '⚠ NO ACCOUNT FOUND WITH THAT EMAIL.\nIf you\'re new, use CREATE ACCOUNT instead.',
@@ -7768,34 +7781,52 @@ function toggleInviteEye(){
 // ── AUTH STATE LISTENER ────────────────────────────────────────
 // Flags that control listener behavior
 window._pendingProfileWrite = window._pendingProfileWrite || false;
-window._intentionalSignOut  = false; // set true before manual auth.signOut()
-window._loginHandled        = false; // set true when authLogin/setup routes directly
+window._intentionalSignOut  = false;
+window._loginHandled        = false;
 
-// ── Register real implementations so early stubs can resolve ──
-window._authLogin          = authLogin;
-window._authForgotPassword = authForgotPassword;
-window._authSetupAdmin     = authSetupAdmin;
-window._acceptInvitation   = acceptInvitation;
-window._setupNextStep      = setupNextStep;
-window._setupPrevStep      = setupPrevStep;
-// Signal that the main script is fully loaded
-window._mainScriptReady    = true;
-// Also override the stubs directly so future calls skip the polling
-window.authLogin           = authLogin;
-window.authForgotPassword  = authForgotPassword;
-window.authSetupAdmin      = authSetupAdmin;
-window.acceptInvitation    = acceptInvitation;
-window.setupNextStep       = setupNextStep;
-window.setupPrevStep       = setupPrevStep;
-window.toggleAuthEye       = toggleAuthEye;
-window.toggleSetupEye      = toggleSetupEye;
-window.toggleSetupConfirmEye = toggleSetupConfirmEye;
-window.toggleInviteEye     = toggleInviteEye;
-window.toggleAbout         = toggleAbout;
-window.goHomeFromAbout     = goHomeFromAbout;
-window.switchToPanel       = switchToPanel;
-window.showAuthOverlay     = showAuthOverlay;
-window.hideAuthOverlay     = hideAuthOverlay;
+// ── Wire auth buttons directly via addEventListener ──────────
+// This is bulletproof: bypasses any onclick/stub confusion entirely.
+// Runs as soon as the main script executes (DOM already ready at this point).
+(function wireAuthButtons(){
+  function byId(id){ return document.getElementById(id); }
+
+  // LOG IN button
+  const loginBtn = byId('authLoginBtn');
+  if(loginBtn){
+    loginBtn.removeAttribute('onclick');
+    loginBtn.addEventListener('click', function(){ authLogin(); });
+  }
+  // Also wire Enter key on password field
+  const passField = byId('authPass');
+  if(passField){
+    passField.addEventListener('keydown', function(e){
+      if(e.key==='Enter') authLogin();
+    });
+  }
+  // Eye toggles
+  const authEye = byId('authEyeBtn');
+  if(authEye){ authEye.removeAttribute('onclick'); authEye.addEventListener('click', toggleAuthEye); }
+  const setupEye = byId('setupEyeBtn');
+  if(setupEye){ setupEye.removeAttribute('onclick'); setupEye.addEventListener('click', toggleSetupEye); }
+  const setupConfirmEye = byId('setupConfirmEyeBtn');
+  if(setupConfirmEye){ setupConfirmEye.removeAttribute('onclick'); setupConfirmEye.addEventListener('click', toggleSetupConfirmEye); }
+  const inviteEye = byId('inviteEyeBtn');
+  if(inviteEye){ inviteEye.removeAttribute('onclick'); inviteEye.addEventListener('click', toggleInviteEye); }
+
+  // Setup form
+  const setupBtn = byId('setupBtn');
+  if(setupBtn){ setupBtn.removeAttribute('onclick'); setupBtn.addEventListener('click', function(){ authSetupAdmin(); }); }
+  const setupNextBtn = byId('setupNextBtn');
+  if(setupNextBtn){ setupNextBtn.removeAttribute('onclick'); setupNextBtn.addEventListener('click', function(){ setupNextStep(); }); }
+
+  // Forgot password
+  const forgotBtn = byId('authForgotBtn');
+  if(forgotBtn){ forgotBtn.removeAttribute('onclick'); forgotBtn.addEventListener('click', function(){ authForgotPassword(); }); }
+
+  // Accept invitation
+  const inviteBtn = byId('inviteAcceptBtn');
+  if(inviteBtn){ inviteBtn.removeAttribute('onclick'); inviteBtn.addEventListener('click', function(){ acceptInvitation(); }); }
+})();
 
 function startAuthListener(){
   if(!auth) return;
@@ -8647,6 +8678,7 @@ function renderNotesList(){
     // Splash is showing — it will call proceedFromSplash() then showAuthOverlay()
     // We still need to init Firebase in the background
     if(fbConfigured && initFirebase()){
+      startAuthListener(); // needed so existing sessions restore correctly
       if(isOnline()){ loadFirebaseData(true); startLiveListener(); }
     }
     return;
