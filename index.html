@@ -444,8 +444,8 @@ main{padding:13px 13px 74px}
 .auth-landing-card.driver-card .auth-landing-card-title{color:var(--accent)}
 .auth-landing-card-sub{font-family:var(--font-m);font-size:.82rem;color:var(--muted);letter-spacing:1px;line-height:1.7}
 .auth-landing-card-arrow{position:absolute;top:50%;right:16px;transform:translateY(-50%);font-size:1.4rem;color:var(--border)}
-.auth-back-btn{background:none;border:none;font-family:var(--font-m);font-size:.84rem;color:var(--muted);letter-spacing:1px;cursor:pointer;padding:6px 0;display:flex;align-items:center;gap:5px;margin-bottom:14px}
-.auth-back-btn:hover{color:var(--accent)}
+.auth-back-btn{width:100%;background:var(--surface);border:1.5px solid var(--border);border-radius:var(--radius-sm);font-family:var(--font-m);font-size:.84rem;color:var(--muted);letter-spacing:1.5px;cursor:pointer;padding:13px 16px;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:14px;transition:background .2s,color .2s,border-color .2s}
+.auth-back-btn:hover{background:var(--card);color:var(--text);border-color:var(--accent)}
 .auth-panel-title{font-family:var(--font-d);font-size:1.5rem;letter-spacing:3px;margin-bottom:4px}
 .auth-panel-sub{font-family:var(--font-m);font-size:.82rem;color:var(--muted);letter-spacing:1px;line-height:1.7;margin-bottom:18px}
 /* DRIVER PAGES */
@@ -748,6 +748,36 @@ main{padding:13px 13px 74px}
 .target-close{background:rgba(255,255,255,.2);border:2px solid rgba(255,255,255,.4);color:#fff;font-family:var(--font-d);font-size:1.1rem;letter-spacing:3px;padding:13px 32px;cursor:pointer;transition:background .2s}
 .target-close:hover{background:rgba(255,255,255,.3)}
 @keyframes bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-12px)}}
+
+/* ── Floating Back Button ────────────────── */
+#floatingBackBtn{
+  position:fixed;
+  bottom:80px;
+  left:16px;
+  z-index:500;
+  background:var(--card);
+  border:1.5px solid var(--border);
+  border-radius:50px;
+  padding:9px 16px 9px 12px;
+  display:none;
+  align-items:center;
+  gap:7px;
+  font-family:var(--font-m);
+  font-size:.78rem;
+  letter-spacing:1px;
+  color:var(--text);
+  cursor:pointer;
+  box-shadow:0 4px 18px rgba(0,0,0,.18);
+  transition:transform .15s,box-shadow .15s,opacity .2s;
+  animation:backBtnPop .2s cubic-bezier(.34,1.56,.64,1) both;
+}
+#floatingBackBtn:hover{transform:translateY(-2px);box-shadow:0 6px 22px rgba(0,0,0,.25)}
+#floatingBackBtn:active{transform:scale(.95)}
+#floatingBackBtn .fbb-arrow{font-size:1rem;line-height:1}
+#floatingBackBtn .fbb-label{max-width:100px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+@keyframes backBtnPop{from{opacity:0;transform:scale(.8) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
+/* Hide on print */
+@media print{#floatingBackBtn{display:none!important}}
 
 @media print{
   .bnav,.hico,header .hright,.exprow,.fchips,.rtabs,.queue-banner,.timeout-overlay,.modal-overlay{display:none!important}
@@ -1365,7 +1395,6 @@ function proceedFromSplash(){
 
     <!-- ═══ PANEL: CREATE ADMIN ACCOUNT ═══ -->
     <div id="authPanelCreate" style="display:none">
-      <button class="auth-back-btn" onclick="switchToPanel('landing')">‹ BACK</button>
       <div class="auth-panel-title" style="color:var(--accent2)">MANAGER SETUP</div>
       <div class="auth-panel-sub">AS A MANAGER YOU CAN REGISTER DRIVERS & CARS,<br>SET TARGETS, OPEN SHIFTS AND VIEW ALL REPORTS.</div>
 
@@ -1463,11 +1492,11 @@ function proceedFromSplash(){
       <button class="auth-btn secondary" id="setupBackBtn" onclick="setupPrevStep()" style="display:none">
         ← BACK TO DETAILS
       </button>
+      <button class="auth-back-btn" id="setupLandingBackBtn" onclick="switchToPanel('landing')">‹ BACK TO HOME</button>
     </div>
 
     <!-- ═══ PANEL: LOGIN ═══ -->
     <div id="authPanelLogin" style="display:none">
-      <button class="auth-back-btn" onclick="switchToPanel('landing')">‹ BACK</button>
       <div class="auth-panel-title">LOG IN</div>
       <div style="display:flex;gap:8px;margin-bottom:14px">
         <div style="display:flex;align-items:center;gap:5px;background:rgba(240,165,0,.1);border:1px solid rgba(240,165,0,.3);padding:5px 10px;border-radius:99px;font-family:var(--font-m);font-size:.72rem;letter-spacing:1px;color:var(--accent2)">🏢 MANAGER</div>
@@ -1491,11 +1520,11 @@ function proceedFromSplash(){
       </div>
       <button class="auth-btn" id="authLoginBtn" onclick="authLogin()">LOG IN</button>
       <button class="auth-link" onclick="switchToPanel('forgot')">Forgot your password?</button>
+      <button class="auth-back-btn" onclick="switchToPanel('landing')">‹ BACK TO HOME</button>
     </div>
 
     <!-- ═══ PANEL: FORGOT PASSWORD ═══ -->
     <div id="authPanelForgot" style="display:none">
-      <button class="auth-back-btn" onclick="switchToPanel('login')">‹ BACK TO LOGIN</button>
 
       <!-- Input state -->
       <div id="forgotInputState">
@@ -1527,6 +1556,7 @@ function proceedFromSplash(){
         <button class="auth-btn" onclick="switchToPanel('login')">BACK TO LOGIN</button>
         <button class="auth-link" onclick="document.getElementById('forgotSentState').style.display='none';document.getElementById('forgotInputState').style.display='block';">RESEND LINK</button>
       </div>
+      <button class="auth-back-btn" onclick="switchToPanel('login')">‹ BACK TO LOGIN</button>
     </div>
 
     <!-- ═══ PANEL: DRIVER INVITATION (magic link acceptance) ═══ -->
@@ -2047,6 +2077,7 @@ let currentPage        = 'log';
 let reportFilter       = 'all';
 let filterCar='', filterDriver='', filterFrom='', filterTo='';
 let adminTab           = 'shifts';
+let _prevAdminTab      = 'shifts';
 let reportTab          = 'overview';
 let adminUnlocked      = false;
 // Dev access is guarded by a session token — not a plain boolean.
@@ -2203,6 +2234,10 @@ function autoLogout(){
 // NAVIGATION
 // ══════════════════════════════════════════════
 function switchPage(p){
+  // Record navigation history
+  if(typeof currentPage !== 'undefined' && currentPage !== p){
+    navHistoryPush({ type:'page', page:currentPage, tab:adminTab });
+  }
   currentPage=p;
   document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
   document.querySelectorAll('.nbtn').forEach(x=>x.classList.remove('active'));
@@ -2219,7 +2254,95 @@ function switchPage(p){
   if(p==='admin')       renderAdmin();
   if(p==='performance') renderPerformancePage();
   if(p==='notes')       renderNotesPage();
+  updateFloatingBack();
 }
+
+// ══════════════════════════════════════════════
+// NAVIGATION HISTORY & FLOATING BACK BUTTON
+// ══════════════════════════════════════════════
+const _navHistory = [];
+const _NAV_MAX = 20;
+
+// Page labels for the back button label
+const _pageLabels = {
+  log:'LOG TRIP', reports:'REPORTS', admin:'DASHBOARD',
+  performance:'MY STATS', notes:'MY NOTES',
+  landing:'HOME', login:'LOG IN', create:'NEW ACCOUNT',
+  forgot:'FORGOT PW', invite:'ACCEPT INVITE',
+  shifts:'SHIFTS TAB', drivers:'DRIVERS TAB', cars:'CARS TAB',
+  stations:'STATIONS TAB', trips:'TRIPS TAB', config:'CONFIG',
+  platform:'PLATFORM', settings:'SETTINGS',
+};
+
+function navHistoryPush(state){
+  if(!state) return;
+  // Avoid pushing identical consecutive states
+  const last = _navHistory[_navHistory.length-1];
+  if(last && last.type===state.type && last.page===state.page && last.tab===state.tab && last.panel===state.panel) return;
+  _navHistory.push(state);
+  if(_navHistory.length > _NAV_MAX) _navHistory.shift();
+  updateFloatingBack();
+}
+
+function navHistoryBack(){
+  if(!_navHistory.length) return;
+  const prev = _navHistory.pop();
+  updateFloatingBack();
+
+  if(prev.type === 'page'){
+    // Restore page (and tab if admin)
+    if(prev.tab && prev.page === 'admin') adminTab = prev.tab;
+    currentPage = prev.page;
+    document.querySelectorAll('.page').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.nbtn').forEach(x=>x.classList.remove('active'));
+    const pageEl = document.getElementById('page-'+prev.page);
+    if(pageEl) pageEl.classList.add('active');
+    const navEl = document.getElementById('nav-'+prev.page);
+    if(navEl) navEl.classList.add('active');
+    document.querySelectorAll('.topnav-links a').forEach(a=>a.classList.remove('tnav-active'));
+    const tnav = document.getElementById('tnav-'+prev.page);
+    if(tnav) tnav.classList.add('tnav-active');
+    if(prev.page==='log')         renderLog();
+    if(prev.page==='reports')     renderReports();
+    if(prev.page==='admin')       renderAdmin();
+    if(prev.page==='performance') renderPerformancePage();
+    if(prev.page==='notes')       renderNotesPage();
+  } else if(prev.type === 'adminTab'){
+    adminTab = prev.tab;
+    renderAdmin();
+  } else if(prev.type === 'authPanel'){
+    _switchToPanelInternal(prev.panel);
+  } else if(prev.type === 'modal'){
+    // Close whichever modal is open
+    if(document.getElementById('inviteDriverModal')?.style.display==='flex') closeInviteModal();
+    if(document.getElementById('addCarModal')?.style.display==='flex') closeAddCarModal();
+  }
+}
+
+function updateFloatingBack(){
+  const btn = document.getElementById('floatingBackBtn');
+  const lbl = document.getElementById('floatingBackLabel');
+  if(!btn) return;
+  // Hide back button on splash/auth screens
+  const authVisible = document.getElementById('authOverlay')?.style.display !== 'none';
+  const splashVisible = document.getElementById('splashOverlay')?.style.display !== 'none';
+  if(authVisible || splashVisible || !_navHistory.length){
+    btn.style.display = 'none';
+    return;
+  }
+  const prev = _navHistory[_navHistory.length-1];
+  let label = 'BACK';
+  if(prev){
+    if(prev.type === 'page') label = _pageLabels[prev.tab && prev.page==='admin' ? prev.tab : prev.page] || 'BACK';
+    if(prev.type === 'adminTab') label = _pageLabels[prev.tab] || 'BACK';
+    if(prev.type === 'authPanel') label = _pageLabels[prev.panel] || 'BACK';
+    if(prev.type === 'modal') label = 'CLOSE';
+  }
+  lbl.textContent = label;
+  btn.style.display = 'flex';
+}
+
+
 
 function showNavFor(role){
   // 'admin' shows admin nav, 'driver' shows driver nav, null hides both
@@ -4240,6 +4363,12 @@ function renderTargetsOverview(){
 }
 
 function renderAdmin(){
+  // Track admin tab navigation for back button
+  if(typeof _prevAdminTab !== 'undefined' && _prevAdminTab !== adminTab && currentPage === 'admin'){
+    navHistoryPush({ type:'adminTab', tab:_prevAdminTab });
+  }
+  _prevAdminTab = adminTab;
+  updateFloatingBack();
   const el=document.getElementById('page-admin');
   if(!adminUnlocked){
     const locked=isAdminLocked();
@@ -5034,6 +5163,7 @@ function openFirebaseAuth(){
 }
 
 function openInviteModal(){
+  navHistoryPush({ type:'modal', modal:'inviteDriver' });
   const modal = document.getElementById('inviteDriverModal');
   if(!modal) return;
 
@@ -5069,11 +5199,15 @@ function closeInviteModal(){
     modal.style.display = 'none';
     document.body.style.overflow = '';
   }
+  // Remove modal from history if it's the last entry
+  if(_navHistory.length && _navHistory[_navHistory.length-1]?.type==='modal') _navHistory.pop();
+  updateFloatingBack();
   // Refresh driver list after closing
   setTimeout(loadRegisteredDrivers, 200);
 }
 
 function openAddCarModal(){
+  navHistoryPush({ type:'modal', modal:'addCar' });
   const modal = document.getElementById('addCarModal');
   if(!modal) return;
   const plateEl = document.getElementById('modalCarPlate');
@@ -5092,6 +5226,8 @@ function openAddCarModal(){
 function closeAddCarModal(){
   const modal = document.getElementById('addCarModal');
   if(modal){ modal.style.display='none'; document.body.style.overflow=''; }
+  if(_navHistory.length && _navHistory[_navHistory.length-1]?.type==='modal') _navHistory.pop();
+  updateFloatingBack();
 }
 
 function modalAddCar(){
@@ -6441,9 +6577,13 @@ function initSplash(){
 
 function showAuthOverlay(){
   document.getElementById('authOverlay').classList.remove('hidden');
+  // Clear nav history when showing auth — user is logged out
+  _navHistory.length = 0;
+  updateFloatingBack();
 }
 function hideAuthOverlay(){
   document.getElementById('authOverlay').classList.add('hidden');
+  updateFloatingBack();
 }
 
 function showAuthPanel(panel){ switchToPanel(panel); }
@@ -6468,7 +6608,7 @@ function goHomeFromAbout(){
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-function switchToPanel(panel){
+function _switchToPanelInternal(panel){
   // panel: 'landing' | 'create' | 'login' | 'forgot' | 'invite'
   const map={
     landing: 'authPanelLanding',
@@ -6523,6 +6663,30 @@ function switchToPanel(panel){
     if(panel==='invite') document.getElementById('inviteEmail')?.focus();
   }, 150);
 }
+
+// Determine which auth panel is currently visible
+function _currentAuthPanel(){
+  const map = {landing:'authPanelLanding',create:'authPanelCreate',login:'authPanelLogin',forgot:'authPanelForgot',invite:'authPanelInvite'};
+  for(const [key,id] of Object.entries(map)){
+    const el = document.getElementById(id);
+    if(el && el.style.display !== 'none') return key;
+  }
+  return null;
+}
+
+function switchToPanel(panel){
+  const prev = _currentAuthPanel();
+  if(prev && prev !== panel && prev !== 'landing'){
+    // Push auth panel to history (but don't push 'landing' navigations — landing has no back)
+    navHistoryPush({ type:'authPanel', panel:prev });
+  } else if(prev === 'landing' && (panel === 'create' || panel === 'login')){
+    // Allow going back to landing from create/login
+    navHistoryPush({ type:'authPanel', panel:'landing' });
+  }
+  _switchToPanelInternal(panel);
+  updateFloatingBack();
+}
+
 
 function switchAuthRole(role){
   // Role is now auto-detected from Firestore — this is a no-op stub
@@ -6731,6 +6895,7 @@ async function setupNextStep(){
   document.getElementById('setupNextBtn').style.display='none';
   document.getElementById('setupBtn').style.display='block';
   document.getElementById('setupBackBtn').style.display='block';
+  document.getElementById('setupLandingBackBtn').style.display='none';
   document.getElementById('setupReviewEmail').textContent=email.toLowerCase();
   // Update step indicators
   document.getElementById('setupStep1').className='setup-step done';
@@ -6746,6 +6911,7 @@ function setupPrevStep(){
   document.getElementById('setupNextBtn').style.display='block';
   document.getElementById('setupBtn').style.display='none';
   document.getElementById('setupBackBtn').style.display='none';
+  document.getElementById('setupLandingBackBtn').style.display='flex';
   document.getElementById('setupStep1').className='setup-step active';
   document.getElementById('setupStep2').className='setup-step';
   clearAuthErrors();
@@ -8387,6 +8553,14 @@ function adminSettings(){
     </div>
   </div>
 </div>
+
+<!-- ════════════════════════════════════════════
+     FLOATING BACK BUTTON
+════════════════════════════════════════════ -->
+<button id="floatingBackBtn" onclick="navHistoryBack()" title="Go back">
+  <span class="fbb-arrow">‹</span>
+  <span class="fbb-label" id="floatingBackLabel">BACK</span>
+</button>
 
 <!-- ════════════════════════════════════════════
      ADD CAR MODAL
