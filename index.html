@@ -1080,7 +1080,7 @@ main{padding:13px 13px 74px}
                    font-family:var(--font-m);font-size:.78rem;letter-spacing:1px;color:var(--muted)">
           </div>
           <!-- Dashboard -->
-          <button onclick="closeAvatarMenu();adminTab='dashboard';switchPage('admin');renderAdmin()"
+          <button onclick="goToDashboard()"
             style="display:flex;align-items:center;gap:10px;width:100%;padding:12px 16px;
                    background:none;border:none;border-bottom:1px solid var(--border);
                    font-family:var(--font-m);font-size:.82rem;letter-spacing:1px;
@@ -1090,7 +1090,7 @@ main{padding:13px 13px 74px}
             📊 <span>DASHBOARD</span>
           </button>
           <!-- Live Map -->
-          <button onclick="closeAvatarMenu();adminTab='dashboard';switchPage('admin');setTimeout(function(){reportTab='live';renderReports();},100)"
+          <button onclick="goToLiveMap()"
             style="display:flex;align-items:center;gap:10px;width:100%;padding:12px 16px;
                    background:none;border:none;border-bottom:1px solid var(--border);
                    font-family:var(--font-m);font-size:.82rem;letter-spacing:1px;
@@ -1100,7 +1100,7 @@ main{padding:13px 13px 74px}
             📡 <span>LIVE MAP</span>
           </button>
           <!-- Manage Shifts -->
-          <button onclick="closeAvatarMenu();adminTab='shifts';switchPage('admin');renderAdmin()"
+          <button onclick="goToManageShifts()"
             style="display:flex;align-items:center;gap:10px;width:100%;padding:12px 16px;
                    background:none;border:none;border-bottom:1px solid var(--border);
                    font-family:var(--font-m);font-size:.82rem;letter-spacing:1px;
@@ -1110,7 +1110,7 @@ main{padding:13px 13px 74px}
             🕐 <span>MANAGE SHIFTS</span>
           </button>
           <!-- Drivers -->
-          <button onclick="closeAvatarMenu();adminTab='drivers';switchPage('admin');renderAdmin();setTimeout(loadRegisteredDrivers,100)"
+          <button onclick="goToDrivers()"
             style="display:flex;align-items:center;gap:10px;width:100%;padding:12px 16px;
                    background:none;border:none;border-bottom:1px solid var(--border);
                    font-family:var(--font-m);font-size:.82rem;letter-spacing:1px;
@@ -1120,7 +1120,7 @@ main{padding:13px 13px 74px}
             👤 <span>DRIVERS</span>
           </button>
           <!-- Cars -->
-          <button onclick="closeAvatarMenu();adminTab='cars';switchPage('admin');renderAdmin()"
+          <button onclick="goToCars()"
             style="display:flex;align-items:center;gap:10px;width:100%;padding:12px 16px;
                    background:none;border:none;border-bottom:1px solid var(--border);
                    font-family:var(--font-m);font-size:.82rem;letter-spacing:1px;
@@ -1130,7 +1130,7 @@ main{padding:13px 13px 74px}
             🚌 <span>CARS</span>
           </button>
           <!-- Stations -->
-          <button onclick="closeAvatarMenu();adminTab='stations';switchPage('admin');renderAdmin()"
+          <button onclick="goToStations()"
             style="display:flex;align-items:center;gap:10px;width:100%;padding:12px 16px;
                    background:none;border:none;border-bottom:1px solid var(--border);
                    font-family:var(--font-m);font-size:.82rem;letter-spacing:1px;
@@ -1140,7 +1140,7 @@ main{padding:13px 13px 74px}
             📍 <span>STATIONS</span>
           </button>
           <!-- Trips -->
-          <button onclick="closeAvatarMenu();adminTab='trips';switchPage('admin');renderAdmin()"
+          <button onclick="goToTrips()"
             style="display:flex;align-items:center;gap:10px;width:100%;padding:12px 16px;
                    background:none;border:none;border-bottom:1px solid var(--border);
                    font-family:var(--font-m);font-size:.82rem;letter-spacing:1px;
@@ -1150,7 +1150,7 @@ main{padding:13px 13px 74px}
             🗂 <span>TRIPS</span>
           </button>
           <!-- Settings -->
-          <button onclick="closeAvatarMenu();isAdminUser?(adminTab='settings',switchPage('admin'),renderAdmin()):goDriverSettings()"
+          <button onclick="goToSettings()"
             style="display:flex;align-items:center;gap:10px;width:100%;padding:12px 16px;
                    background:none;border:none;border-bottom:1px solid var(--border);
                    font-family:var(--font-m);font-size:.82rem;letter-spacing:1px;
@@ -1927,9 +1927,11 @@ function proceedFromSplash(){
 
 <!-- ADMIN NAV (shown only for admin users) -->
 <nav class="bnav" id="navAdmin" style="display:none">
+  <span></span>
   <button class="nbtn" id="nav-home" onclick="switchPage('home')">
     <span class="ni">🏠</span><span class="nl">HOME</span>
   </button>
+  <span></span>
 </nav>
 
 <!-- DRIVER NAV (shown only for driver users) -->
@@ -4999,33 +5001,88 @@ function renderAdmin(){
     <!-- TRIPS -->
     <div class="asect ${adminTab==='trips'?'active':''}">
       <div class="card">
-        <div class="ctitle">LOCAL TRIPS <span class="pill">${localTrips.length}</span></div>
-        ${!localTrips.length ? `<div style="text-align:center;padding:20px;font-family:var(--font-m);font-size:.84rem;color:var(--muted);letter-spacing:1px;line-height:1.8;border:2px dashed var(--border)">
-          <div style="font-size:1.5rem;margin-bottom:8px">📋</div>
-          NO TRIPS LOGGED YET<br>
-          <span style="font-size:.75rem">TRIPS APPEAR HERE ONCE DRIVERS START LOGGING</span>
-        </div>` : ''}
-        <div class="csub">// EDIT OR DELETE LOCAL TRIP RECORDS</div>
-        ${localTrips.length===0?'<div class="empty">NO LOCAL TRIPS</div>':localTrips.slice(0,30).map(t=>`
-          <div class="aitem" style="margin-bottom:7px">
-            <div style="flex:1">
-              <div class="aitem-name" style="font-size:.92rem">${t.fromStation} → ${t.toStation}</div>
-              <div class="aitem-sub">${t.driver} · ${t.carPlate} · KES ${t.amount} · ${t.date}</div>
-              ${t.notes?`<div class="aitem-sub">📝 ${t.notes}</div>`:''}
-            </div>
-            <div class="abtn-row">
-              <button class="aedit" onclick="openEditTrip(${t.id})">✏</button>
-              <button class="adel" onclick="deleteTrip(${t.id})">✕</button>
-            </div>
-          </div>`).join('')}
+        <div class="ctitle">TRIP SUMMARY <span class="pill">${localTrips.length} total</span></div>
+        <div class="csub">// TRIPS PER VEHICLE TODAY — ALL REGISTERED CARS SHOWN</div>
+        ${!CARS.length ? `
+          <div style="text-align:center;padding:28px 16px;border:2px dashed var(--border)">
+            <div style="font-size:1.8rem;margin-bottom:8px">🚌</div>
+            <div style="font-family:var(--font-m);font-size:.84rem;color:var(--muted);letter-spacing:1px">NO CARS REGISTERED YET</div>
+          </div>` : (() => {
+          const today = new Date().toLocaleDateString('en-GB');
+          const todayTrips = localTrips.filter(t=>t.date===today);
+          const rows = CARS.map(car => {
+            const carTrips = todayTrips.filter(t=>t.carPlate===car);
+            const allCarTrips = localTrips.filter(t=>t.carPlate===car);
+            const rev = carTrips.reduce((s,t)=>s+Number(t.amount||0),0);
+            const s = shifts[car];
+            const isOpen = s?.open===true;
+            const lastDriver = carTrips.length ? carTrips[carTrips.length-1].driver : (s?.openedBy||'—');
+            const tripCount = carTrips.length;
+            const statusColor = tripCount===0 ? 'var(--muted)' : tripCount<3 ? 'var(--accent2)' : 'var(--stat-green)';
+            const statusBg = tripCount===0 ? 'rgba(100,116,139,.12)' : tripCount<3 ? 'rgba(245,158,11,.1)' : 'rgba(16,185,129,.1)';
+            return `<div style="display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid var(--border)">
+              <div style="width:42px;height:42px;border-radius:10px;background:${statusBg};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <span style="font-family:var(--font-d);font-size:1.2rem;color:${statusColor}">${tripCount}</span>
+              </div>
+              <div style="flex:1;min-width:0">
+                <div style="font-family:var(--font-d);font-size:.95rem;letter-spacing:2px;color:var(--text)">${car}</div>
+                <div style="font-family:var(--font-m);font-size:.72rem;color:var(--muted);letter-spacing:1px;margin-top:2px">
+                  ${lastDriver!=='—'?lastDriver.split(' ')[0]+' · ':''}${tripCount===0?'<span style="color:var(--muted)">NO TRIPS TODAY</span>':`KES ${rev.toLocaleString()} today`}
+                  ${allCarTrips.length!==tripCount?' · '+allCarTrips.length+' all time':''}
+                </div>
+              </div>
+              <div style="text-align:right;flex-shrink:0">
+                <div style="font-family:var(--font-m);font-size:.7rem;color:${isOpen?'var(--stat-green)':'var(--muted)'};letter-spacing:1px">${isOpen?'● OPEN':'○ CLOSED'}</div>
+                ${tripCount>0?`<button onclick="filterCar='${car}';adminTab='dashboard';switchPage('admin');renderAdmin()" style="margin-top:5px;padding:4px 10px;background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:var(--radius-sm);font-family:var(--font-m);font-size:.68rem;letter-spacing:1px;cursor:pointer">VIEW →</button>`:''}
+              </div>
+            </div>`;
+          }).join('');
+          return `<div style="padding:0 2px">${rows}</div>
+          <div style="display:flex;justify-content:space-between;padding:12px 2px 0;border-top:1px solid var(--border);margin-top:4px">
+            <span style="font-family:var(--font-d);font-size:.78rem;letter-spacing:2px;color:var(--muted)">TODAY</span>
+            <span style="font-family:var(--font-d);font-size:.95rem;color:var(--accent)">KES ${todayTrips.reduce((s,t)=>s+Number(t.amount||0),0).toLocaleString()} · ${todayTrips.length} trips</span>
+          </div>`;
+        })()}
       </div>
     </div>
 
     <!-- SETTINGS — Manager only, no Firebase/dev access -->
     <div class="asect ${adminTab==='settings'?'active':''}">
+
+      <!-- SACCO IDENTITY CARD -->
       <div class="card" style="border-left:4px solid var(--accent);margin-bottom:14px">
-        <div class="ctitle" style="margin-bottom:4px">🏢 SACCO NAME</div>
-        <div class="csub" style="margin-top:0;margin-bottom:14px">// CHANGE HOW YOUR SACCO APPEARS ACROSS THE APP</div>
+        <div class="ctitle" style="margin-bottom:4px">🏢 SACCO IDENTITY</div>
+        <div class="csub" style="margin-top:0;margin-bottom:16px">// SET YOUR SACCO NAME AND LOGO</div>
+
+        <!-- Logo upload -->
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:18px;padding:14px;background:var(--surface);border-radius:var(--radius-sm)">
+          <div id="saccoLogoPreview" onclick="document.getElementById('saccoLogoInput').click()"
+            style="width:72px;height:72px;border-radius:14px;background:var(--card);border:2px dashed var(--border);
+                   display:flex;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;flex-shrink:0;transition:border-color .2s"
+            onmouseover="this.style.borderColor='var(--accent)'" onmouseout="this.style.borderColor='var(--border)'">
+            ${(()=>{const s=localStorage.getItem('mh_sacco_logo');return s?`<img src="${s}" style="width:100%;height:100%;object-fit:cover">` : '<span style="font-size:2rem">🏢</span>';})()}
+          </div>
+          <div style="flex:1">
+            <div style="font-family:var(--font-d);font-size:.85rem;letter-spacing:1.5px;color:var(--text);margin-bottom:4px">SACCO LOGO</div>
+            <div style="font-family:var(--font-m);font-size:.72rem;color:var(--muted);letter-spacing:.8px;line-height:1.7;margin-bottom:10px">TAP TO UPLOAD A PHOTO OR LOGO<br>SHOWN AS YOUR SACCO PROFILE IMAGE</div>
+            <div style="display:flex;gap:8px">
+              <button onclick="document.getElementById('saccoLogoInput').click()"
+                style="padding:7px 14px;background:rgba(26,122,60,.15);color:var(--accent);border:1px solid var(--accent);
+                       border-radius:var(--radius-sm);font-family:var(--font-m);font-size:.72rem;letter-spacing:1px;cursor:pointer">
+                📷 UPLOAD
+              </button>
+              <button onclick="localStorage.removeItem('mh_sacco_logo');adminTab='settings';renderAdmin();toast('LOGO REMOVED')"
+                style="padding:7px 14px;background:var(--rlight);color:var(--red);border:1px solid var(--red);
+                       border-radius:var(--radius-sm);font-family:var(--font-m);font-size:.72rem;letter-spacing:1px;cursor:pointer">
+                ✕ REMOVE
+              </button>
+            </div>
+          </div>
+        </div>
+        <input type="file" id="saccoLogoInput" accept="image/*" style="display:none"
+          onchange="(function(f){if(!f)return;const r=new FileReader();r.onload=function(e){localStorage.setItem('mh_sacco_logo',e.target.result);adminTab='settings';renderAdmin();toast('LOGO SAVED ✅')};r.readAsDataURL(f)})(this.files[0])">
+
+        <!-- Sacco name -->
         <div class="irow" style="margin-bottom:12px">
           <div class="field" style="flex:1">
             <label>SACCO / Company Name</label>
@@ -5042,6 +5099,7 @@ function renderAdmin(){
         <div id="saccoSettingsFeedback" style="font-family:var(--font-m);font-size:.78rem;color:var(--accent);letter-spacing:1px;margin-top:10px;display:none">✅ SACCO NAME UPDATED!</div>
       </div>
 
+      <!-- MANAGER PIN CARD -->
       <div class="card" style="border-left:4px solid #8b5cf6">
         <div class="ctitle" style="margin-bottom:4px">🔑 MANAGER PIN</div>
         <div class="csub" style="margin-top:0;margin-bottom:14px">// PIN PROTECTS DASHBOARD ACCESS ON SHARED DEVICES</div>
@@ -8802,6 +8860,78 @@ function goDriverSettings(){
 }
 // Admin settings — open admin panel on config tab (SACCO name, etc.)
 function adminSettings(){
+  adminTab = 'settings';
+  switchPage('admin');
+  renderAdmin();
+}
+
+// ══════════════════════════════════════════════
+// PROFILE DROPDOWN — DEDICATED NAV FUNCTIONS
+// Each maps to exactly one feature, no duplication
+// ══════════════════════════════════════════════
+
+// Dashboard: full fleet overview — driver targets, vehicle performance, fuel, revenue
+function goToDashboard(){
+  closeAvatarMenu();
+  adminTab = 'dashboard';
+  switchPage('admin');
+  renderAdmin();
+}
+
+// Live Map: real-time positions of all logged-in drivers/vehicles
+function goToLiveMap(){
+  closeAvatarMenu();
+  adminTab = 'dashboard';
+  switchPage('admin');
+  reportTab = 'live';
+  renderAdmin();
+  setTimeout(function(){ renderReports(); if(!liveSessionSub&&db) startSessionListener(); }, 120);
+}
+
+// Manage Shifts: open or close shifts per vehicle
+function goToManageShifts(){
+  closeAvatarMenu();
+  adminTab = 'shifts';
+  switchPage('admin');
+  renderAdmin();
+}
+
+// Drivers: add/remove drivers, set targets, view driver details
+function goToDrivers(){
+  closeAvatarMenu();
+  adminTab = 'drivers';
+  switchPage('admin');
+  renderAdmin();
+  setTimeout(loadRegisteredDrivers, 100);
+}
+
+// Cars: add/remove vehicles from the fleet
+function goToCars(){
+  closeAvatarMenu();
+  adminTab = 'cars';
+  switchPage('admin');
+  renderAdmin();
+}
+
+// Stations: record the stops/stages this SACCO operates
+function goToStations(){
+  closeAvatarMenu();
+  adminTab = 'stations';
+  switchPage('admin');
+  renderAdmin();
+}
+
+// Trips: per-vehicle trip counts for today, including 0-trip vehicles
+function goToTrips(){
+  closeAvatarMenu();
+  adminTab = 'trips';
+  switchPage('admin');
+  renderAdmin();
+}
+
+// Settings: change sacco name, upload sacco logo/photo, update manager PIN
+function goToSettings(){
+  closeAvatarMenu();
   adminTab = 'settings';
   switchPage('admin');
   renderAdmin();
