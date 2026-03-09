@@ -1090,6 +1090,26 @@ main{padding:13px 13px 74px}
             onmouseout="this.style.background='none'">
             📊 <span>DASHBOARD</span>
           </button>
+          <!-- Shifts -->
+          <button onclick="closeAvatarMenu();adminTab='shifts';switchPage('admin');renderAdmin()"
+            style="display:flex;align-items:center;gap:10px;width:100%;padding:12px 16px;
+                   background:none;border:none;border-bottom:1px solid var(--border);
+                   font-family:var(--font-m);font-size:.82rem;letter-spacing:1px;
+                   color:var(--text);cursor:pointer;text-align:left;transition:background .15s"
+            onmouseover="this.style.background='var(--surface)'"
+            onmouseout="this.style.background='none'">
+            🕐 <span>SHIFTS</span>
+          </button>
+          <!-- Drivers -->
+          <button onclick="closeAvatarMenu();adminTab='drivers';switchPage('admin');renderAdmin();setTimeout(loadRegisteredDrivers,100)"
+            style="display:flex;align-items:center;gap:10px;width:100%;padding:12px 16px;
+                   background:none;border:none;border-bottom:1px solid var(--border);
+                   font-family:var(--font-m);font-size:.82rem;letter-spacing:1px;
+                   color:var(--text);cursor:pointer;text-align:left;transition:background .15s"
+            onmouseover="this.style.background='var(--surface)'"
+            onmouseout="this.style.background='none'">
+            👤 <span>DRIVERS</span>
+          </button>
           <!-- Cars -->
           <button onclick="closeAvatarMenu();adminTab='cars';switchPage('admin');renderAdmin()"
             style="display:flex;align-items:center;gap:10px;width:100%;padding:12px 16px;
@@ -2051,9 +2071,6 @@ function proceedFromStep3(){
   </button>
   <button class="nbtn" id="nav-reports" onclick="switchPage('reports')">
     <span class="ni">📈</span><span class="nl">REPORTS</span>
-  </button>
-  <button class="nbtn" onclick="adminLogoutQuick()">
-    <span class="ni">🚪</span><span class="nl">LOG OUT</span>
   </button>
 </nav>
 
@@ -4045,7 +4062,6 @@ function renderLog(){
             🚌 ${canStart?'START TRIP':`BLOCKED — ${why}`}
           </button>`;
         })()}
-        <button class="bout" onclick="authLogout()">🚪 LOG OUT</button>
         <button class="bout" style="margin-top:4px;font-size:.84rem" onclick="switchPage('performance')">📈 MY STATS</button>
       </div>
       ${renderTodayHistory()}`;
@@ -4186,7 +4202,6 @@ function renderLog(){
         </div>
       </div>
       <button class="bb bstart" onclick="newTrip()">🚌 START NEXT TRIP</button>
-      <button class="bout" onclick="authLogout()">🚪 END SHIFT &amp; LOG OUT</button>
       ${renderTodayHistory()}`;
     return;
   }
@@ -4810,14 +4825,6 @@ function renderAdmin(){
           <div class="dash-status">System Operational</div>
           <div class="dash-title">${saccoLabel} Dashboard</div>
           <div class="dash-sub">Monitor real-time fleet metrics, driver performance, and operational efficiency across your Sacco.</div>
-          <div class="dash-actions">
-            <button class="dash-btn-primary" onclick="openInviteModal()">
-              <span>＋</span> Add Driver
-            </button>
-            <button class="dash-btn-outline" onclick="openAddCarModal()">
-              🚌 Register Vehicle
-            </button>
-          </div>
         </div>
       </div>
     </div>
@@ -4857,7 +4864,6 @@ function renderAdmin(){
       <div class="dcol-card">
         <div class="dcol-head">
           <div class="dcol-title">🚌 Vehicle Performance</div>
-          <span class="dcol-link" onclick="adminTab='cars';renderAdmin()">View All</span>
         </div>
         ${renderVehiclePerformanceTable()}
       </div>
@@ -4871,18 +4877,6 @@ function renderAdmin(){
         ${renderTargetsOverview()}
       </div>
 
-    </div>
-
-    <!-- ── TABS (mobile/secondary) ── -->
-    <div style="margin-top:24px">
-    <div class="atabs">
-      <button class="atab ${adminTab==='shifts'?'active':''}" onclick="adminTab='shifts';renderAdmin()">SHIFTS</button>
-      <button class="atab ${adminTab==='drivers'?'active':''}" onclick="adminTab='drivers';renderAdmin();setTimeout(loadRegisteredDrivers,100)">DRIVERS</button>
-      <button class="atab ${adminTab==='cars'?'active':''}" onclick="adminTab='cars';renderAdmin()">CARS</button>
-      <button class="atab ${adminTab==='stations'?'active':''}" onclick="adminTab='stations';renderAdmin()">STATIONS</button>
-      <button class="atab ${adminTab==='trips'?'active':''}" onclick="adminTab='trips';renderAdmin()">TRIPS</button>
-      <button class="atab ${adminTab==='settings'?'active':''}" onclick="adminTab='settings';renderAdmin()">⚙ SETTINGS</button>
-    </div>
     </div>
 
     <!-- SHIFTS -->
