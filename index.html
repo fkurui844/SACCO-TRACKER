@@ -5109,12 +5109,16 @@ function renderAdmin(){
       </div>
     </div>
 
+    <!-- ── LIVE MAP ── -->
+    <div class="asect ${adminTab==='live'?'active':''}" id="asect-live"></div>
+
     <!-- ── REPORTS (visible only on dashboard view) ── -->
     <div id="page-reports" style="margin-top:20px;${adminTab!=='dashboard'?'display:none':''}"></div>
 
     </div>`;
-  // Only render reports when on the main dashboard view
+  // Render the right content after innerHTML is set
   if(adminTab==='dashboard') setTimeout(renderReports, 80);
+  if(adminTab==='live')      setTimeout(renderLiveMap, 80);
 }
 
 // ══════════════════════════════════════════════
@@ -8095,7 +8099,7 @@ function startSessionListener(){
           const s = {...doc.data(), _id: doc.id};
           liveSessions[s.carPlate] = s; // latest doc per plate
         });
-        if(currentPage==='admin'&&reportTab==='live') renderLiveTab();
+        if(currentPage==='admin'&&adminTab==='live') renderLiveMap();
       }, err=>{ console.warn('Session listener error:', err); });
   } catch(e){}
 }
@@ -8129,7 +8133,7 @@ function startLiveListener(){
             if(!liveTrips.find(t=>t._fbId===trip._fbId)){
               liveTrips.unshift(trip);
               liveNewIds.add(trip._fbId);
-              setTimeout(()=>{liveNewIds.delete(trip._fbId);renderLiveTab();},4000);
+              setTimeout(()=>{liveNewIds.delete(trip._fbId);if(adminTab==='live')renderLiveMap();},4000);
             }
           }
         });
@@ -8138,7 +8142,7 @@ function startLiveListener(){
         // Keep last 200
         if(liveTrips.length>200)liveTrips=liveTrips.slice(0,200);
         updateListenerStatus(true);
-        if(currentPage==='admin'&&reportTab==='live')renderLiveTab();
+        if(currentPage==='admin'&&adminTab==='live') renderLiveMap();
       }, err=>{
         console.error('Live listener error:',err);
         updateListenerStatus(false);
@@ -8151,25 +8155,213 @@ function stopLiveListener(){
   liveTrips=[];
   stopSessionListener();
   updateListenerStatus(false);
-  if(currentPage==='admin'&&reportTab==='live')renderLiveTab();
+  if(currentPage==='admin'&&adminTab==='live') renderLiveMap();
 }
 
 function updateListenerStatus(state){
-  const el=document.getElementById('listenerStatusBar');
-  if(!el)return;
-  if(state===true){
-    el.className='listener-status on';
-    el.innerHTML=`<span class="live-dot"></span>LIVE — LISTENING FOR NEW TRIPS`;
-  }else if(state==='connecting'){
-    el.className='listener-status on';
-    el.innerHTML=`<span class="live-dot"></span>CONNECTING...`;
-  }else{
-    el.className='listener-status off';
-    el.innerHTML=`● LISTENER OFF — ${appConfig.projectId?'TAP START':'CONFIGURE FIREBASE IN ADMIN'}`;
-  }
+  ['listenerStatusBar','liveMapStatusBar'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el)return;
+    if(state===true){
+      el.className='listener-status on';
+      el.innerHTML=`<span class="live-dot"></span>LIVE — FLEET MONITORING ACTIVE`;
+    }else if(state==='connecting'){
+      el.className='listener-status on';
+      el.innerHTML=`<span class="live-dot"></span>CONNECTING...`;
+    }else{
+      el.className='listener-status off';
+      el.innerHTML=`● LISTENER OFF — ${appConfig.projectId?'TAP START TO MONITOR':'CONFIGURE FIREBASE FIRST'}`;
+    }
+  });
 }
 
-function renderLiveTab(){
+function renderLiveMap(){
+  const el = document.getElementById('asect-live');
+  if(!el) return;
+
+  const today   = new Date().toLocaleDateString('en-GB');
+  const now     = Date.now();
+  const todayLive = liveTrips.filter(t=>t.date===today);
+  const totalRev  = todayLive.reduce((s,t)=>s+(t.amount||0),0);
+  const isOn      = !!liveUnsubscribe;
+
+  // Build per-car data from sessions + trips
+  const knownPlates = new Set([
+    ...Object.keys(liveSessions),
+    ...todayLive.map(t=>t.carPlate).filter(Boolean)
+  ]);
+
+  const STALE_MS = 14*60*60*1000;
+  const fleetData = [...knownPlates].map(plate=>{
+    const sess     = liveSessions[plate] || null;
+    const cTrips   = todayLive.filter(t=>t.carPlate===plate);
+    const lastTrip = cTrips.length ? cTrips.reduce((a,b)=>((a.dateMs||0)>(b.dateMs||0)?a:b)) : null;
+    const cRev     = cTrips.reduce((s,t)=>s+(t.amount||0),0);
+    let status = 'offline';
+    if(sess){
+      const age = now-(sess.updatedAt||0);
+      if(age < STALE_MS) status = sess.status||'online';
+      if(age > 3*60*60*1000) status = 'offline';
+    } else if(lastTrip && (now-(lastTrip.dateMs||0)) < 90*60*1000){
+      status = 'idle';
+    }
+    return {
+      plate, driver: sess?.driver||lastTrip?.driver||'—', status,
+      from: sess?.from||lastTrip?.fromStation||'',
+      to:   sess?.to||lastTrip?.toStation||'',
+      updatedAt: sess?.updatedAt||lastTrip?.dateMs||0,
+      loginTime: sess?.loginTime||null,
+      lat: sess?.lat||null, lng: sess?.lng||null,
+      gpsTs: sess?.gpsTs||null,
+      lastTrip, trips: cTrips.length, revenue: cRev
+    };
+  }).filter(v=>v.status!=='offline'||v.trips>0)
+    .sort((a,b)=>{
+      const o={driving:0,arrived:1,idle:2,online:3,offline:4};
+      return (o[a.status]??5)-(o[b.status]??5)||b.updatedAt-a.updatedAt;
+    });
+
+  const drivingCount = fleetData.filter(v=>v.status==='driving').length;
+  const onlineCount  = fleetData.filter(v=>['driving','arrived','online'].includes(v.status)).length;
+
+  function minsAgo(ms){ const m=Math.floor((now-(ms||0))/60000); return m<1?'JUST NOW':m<60?m+'M AGO':Math.floor(m/60)+'H '+m%60+'M AGO'; }
+  function sColor(s){ return {driving:'#22c55e',arrived:'#f59e0b',idle:'var(--muted)',online:'var(--accent)',offline:'var(--border)'}[s]||'var(--muted)'; }
+  function sBorder(s){ return {driving:'#22c55e',arrived:'#f59e0b',idle:'var(--border)',online:'var(--accent)',offline:'var(--border)'}[s]||'var(--border)'; }
+
+  el.innerHTML = `
+    <!-- Listener toggle bar -->
+    <div class="listener-status ${isOn?'on':'off'}" id="liveMapStatusBar">
+      ${isOn?`<span class="live-dot"></span>LIVE — FLEET MONITORING ACTIVE`
+             :`● LISTENER OFF — ${appConfig.projectId?'TAP START TO MONITOR':'CONFIGURE FIREBASE FIRST'}`}
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      ${isOn
+        ? `<button class="bsm br" style="flex:1;padding:10px" onclick="stopLiveListener();renderLiveMap()">⬛ STOP MONITORING</button>`
+        : `<button class="bsm bg" style="flex:1;padding:10px" onclick="startLiveListener();setTimeout(renderLiveMap,400)">▶ START LIVE MONITORING</button>`}
+      <button class="bsm" style="padding:10px;background:var(--surface);border:1px solid var(--border);color:var(--muted)"
+        onclick="renderLiveMap()">↺</button>
+    </div>
+
+    <!-- Fleet summary strip -->
+    <div class="live-stats" style="margin-bottom:16px">
+      <div class="live-stat"><div class="lsl">ON THE ROAD</div><div class="lsv" style="color:#22c55e">${drivingCount}</div></div>
+      <div class="live-stat"><div class="lsl">ONLINE TODAY</div><div class="lsv" style="color:var(--accent)">${onlineCount}</div></div>
+      <div class="live-stat"><div class="lsl">TODAY TRIPS</div><div class="lsv">${todayLive.length}</div></div>
+      <div class="live-stat"><div class="lsl">TODAY REVENUE</div><div class="lsv" style="font-size:.8rem">KES ${(totalRev/1000).toFixed(1)}K</div></div>
+    </div>
+
+    ${fleetData.length ? `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+      <div style="font-family:var(--font-d);font-size:.82rem;letter-spacing:2px;color:var(--muted)">🚌 FLEET STATUS</div>
+      <div style="font-family:var(--font-m);font-size:.75rem;color:var(--muted)">${new Date().toLocaleTimeString()}</div>
+    </div>
+
+    ${fleetData.map(v=>`
+    <div style="background:var(--card);border:2px solid ${sBorder(v.status)};margin-bottom:10px;overflow:hidden;transition:border-color .4s">
+      <div style="display:grid;grid-template-columns:auto 1fr auto;align-items:stretch">
+
+        <!-- Plate badge -->
+        <div style="background:${sBorder(v.status)};padding:10px 14px;display:flex;align-items:center;justify-content:center;min-width:82px;transition:background .4s">
+          <div style="text-align:center">
+            <div style="font-family:var(--font-d);font-size:1rem;letter-spacing:2.5px;color:${v.status==='offline'?'var(--muted)':'#fff'};line-height:1">${v.plate}</div>
+            ${v.status==='driving'?`<div style="font-family:var(--font-m);font-size:.68rem;color:rgba(255,255,255,.85);letter-spacing:1px;margin-top:3px">IN MOTION</div>`:
+              v.status==='arrived'?`<div style="font-family:var(--font-m);font-size:.68rem;color:rgba(255,255,255,.85);letter-spacing:1px;margin-top:3px">ARRIVED</div>`:
+              v.status==='online'?`<div style="font-family:var(--font-m);font-size:.68rem;color:rgba(255,255,255,.85);letter-spacing:1px;margin-top:3px">READY</div>`:''}
+          </div>
+        </div>
+
+        <!-- Driver + route info -->
+        <div style="padding:10px 12px">
+          <div style="font-family:var(--font-m);font-size:.94rem;font-weight:700;color:var(--text);letter-spacing:1px;margin-bottom:4px">${v.driver}</div>
+          ${v.status==='driving' ? `
+            <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
+              <span style="font-family:var(--font-m);font-size:.82rem;color:var(--muted)">${v.from||'—'}</span>
+              <span style="color:#22c55e">→</span>
+              <span style="font-family:var(--font-m);font-size:.82rem;color:#22c55e;font-weight:700">EN ROUTE</span>
+            </div>
+            <div style="font-size:.75rem;color:#22c55e;font-family:var(--font-m)">🚌 DEPARTED ${minsAgo(v.updatedAt)}</div>
+            ${v.lat&&v.lng ? `
+            <div style="display:flex;gap:6px;margin-top:5px">
+              <a href="https://maps.google.com/?q=${v.lat},${v.lng}" target="_blank"
+                style="display:inline-flex;align-items:center;gap:4px;font-family:var(--font-m);font-size:.74rem;color:#60a5fa;text-decoration:none;border:1px solid rgba(96,165,250,.4);padding:4px 9px;border-radius:4px;background:rgba(96,165,250,.08)">
+                📍 OPEN IN MAPS${v.gpsTs?' · '+minsAgo(v.gpsTs):''}
+              </a>
+              <button onclick="openVehicleLocModal('${v.plate}','${v.driver}')"
+                style="display:inline-flex;align-items:center;gap:4px;font-family:var(--font-m);font-size:.74rem;color:#60a5fa;background:rgba(96,165,250,.08);border:1px solid rgba(96,165,250,.4);padding:4px 9px;border-radius:4px;cursor:pointer">
+                🗺 MAP VIEW
+              </button>
+            </div>` : `<div style="font-size:.72rem;color:var(--muted);margin-top:4px;font-family:var(--font-m)">📍 GPS SIGNAL AWAITED...</div>`}
+          ` : v.status==='arrived' ? `
+            <div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
+              <span style="font-family:var(--font-m);font-size:.82rem;color:var(--muted)">${v.from||'—'}</span>
+              <span style="color:#f59e0b">→</span>
+              <span style="font-family:var(--font-m);font-size:.82rem;color:#f59e0b;font-weight:700">${v.to||'LOGGING...'}</span>
+            </div>
+            <div style="font-size:.75rem;color:#f59e0b;font-family:var(--font-m)">📍 ARRIVED ${minsAgo(v.updatedAt)}</div>
+          ` : v.status==='online' ? `
+            <div style="font-size:.82rem;color:var(--accent);margin-bottom:2px">✅ LOGGED IN — AWAITING TRIP</div>
+            <div style="font-size:.74rem;color:var(--muted)">${v.loginTime?'SINCE '+minsAgo(v.loginTime):minsAgo(v.updatedAt)}</div>
+          ` : v.status==='idle' ? `
+            <div style="font-size:.82rem;color:var(--muted)">LAST: ${v.from||'—'} → ${v.to||'—'}</div>
+            <div style="font-size:.74rem;color:var(--muted)">${minsAgo(v.updatedAt)}</div>
+          ` : `
+            <div style="font-size:.82rem;color:var(--muted)">LAST SEEN ${minsAgo(v.updatedAt)}</div>
+          `}
+        </div>
+
+        <!-- Right: trips + revenue -->
+        <div style="padding:10px 12px;text-align:right;display:flex;flex-direction:column;justify-content:center;border-left:1px solid var(--border);min-width:62px">
+          <div style="font-family:var(--font-d);font-size:1.4rem;color:var(--accent);line-height:1">${v.trips}</div>
+          <div style="font-family:var(--font-m);font-size:.7rem;color:var(--muted);letter-spacing:1px">TRIPS</div>
+          ${v.revenue?`<div style="font-family:var(--font-m);font-size:.8rem;color:var(--accent2);margin-top:3px;font-weight:700">KES ${(v.revenue/1000).toFixed(1)}K</div>`:''}
+        </div>
+      </div>
+      ${v.status==='driving'?`<div style="height:3px;background:rgba(34,197,94,.15)"><div style="height:100%;background:#22c55e;width:62%"></div></div>`
+        :v.status==='arrived'?`<div style="height:3px;background:rgba(245,158,11,.15)"><div style="height:100%;background:#f59e0b;width:88%"></div></div>`:''}
+    </div>`).join('')}
+
+    <!-- Trip feed -->
+    ${todayLive.length ? `
+    <div style="font-family:var(--font-d);font-size:.78rem;letter-spacing:2px;color:var(--muted);margin:14px 0 8px">📋 TODAY'S TRIP FEED</div>
+    ${liveTrips.slice(0,50).map(t=>`
+      <div class="live-item ${liveNewIds.has(t._fbId)?'new':''}">
+        <div class="live-top">
+          <span style="display:flex;align-items:center;gap:6px">
+            <span style="font-family:var(--font-m);font-size:.82rem;background:var(--accent);color:#fff;padding:2px 8px;letter-spacing:1px">${t.carPlate||'—'}</span>
+            <span class="live-route">${t.fromStation||'?'} → ${t.toStation||'?'}</span>
+          </span>
+          <span class="live-amt">KES ${Number(t.amount||0).toLocaleString()}</span>
+        </div>
+        <div class="live-bot">
+          <span>${t.driver||'—'}${t.distance?` · 📏 ${t.distance}km`:''}</span>
+          <span class="live-time">${t.time||t.date||''}</span>
+        </div>
+      </div>`).join('')}` : ''}
+
+    ` : `
+    <!-- Empty state -->
+    <div style="text-align:center;padding:40px 20px;border:2px dashed var(--border);border-radius:var(--radius)">
+      <div style="font-size:2.5rem;margin-bottom:12px">🚌</div>
+      <div style="font-family:var(--font-d);font-size:1rem;letter-spacing:2px;color:var(--muted);margin-bottom:8px">
+        ${isOn ? 'NO VEHICLES ONLINE YET' : 'MONITORING NOT STARTED'}
+      </div>
+      <div style="font-family:var(--font-m);font-size:.78rem;color:var(--muted);letter-spacing:1px;line-height:2">
+        ${isOn
+          ? 'VEHICLES APPEAR HERE WHEN<br>DRIVERS LOG INTO THE APP AND START A TRIP'
+          : 'TAP <strong style="color:var(--text)">START LIVE MONITORING</strong> ABOVE<br>TO TRACK YOUR FLEET IN REAL TIME'}
+      </div>
+      ${CARS.length ? `
+      <div style="margin-top:20px">
+        <div style="font-family:var(--font-m);font-size:.74rem;color:var(--muted);letter-spacing:1px;margin-bottom:10px">REGISTERED VEHICLES — AWAITING LOGIN</div>
+        <div style="display:flex;flex-wrap:wrap;gap:7px;justify-content:center">
+          ${CARS.map(c=>`<span style="font-family:var(--font-d);font-size:.85rem;padding:6px 14px;background:var(--surface);border:1px solid var(--border);letter-spacing:2px;color:var(--muted)">${c}</span>`).join('')}
+        </div>
+      </div>` : ''}
+    </div>`}
+  `;
+}
+
+
   const el=document.getElementById('rsect-live');
   if(!el)return;
   const today=new Date().toLocaleDateString('en-GB');
@@ -8867,14 +9059,11 @@ function goToDashboard(){
 // Live Map: real-time positions of all logged-in drivers/vehicles
 function goToLiveMap(){
   closeAvatarMenu();
-  adminTab = 'dashboard';
-  reportTab = 'live';
+  adminTab = 'live';
   switchPage('admin');
   renderAdmin();
-  setTimeout(function(){
-    renderReports();
-    if(!liveSessionSub && db) startSessionListener();
-  }, 120);
+  if(!liveSessionSub && db) startSessionListener();
+  if(!liveUnsubscribe && db) startLiveListener();
 }
 
 // Manage Shifts: open or close shifts per vehicle
