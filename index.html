@@ -1270,10 +1270,9 @@ function proceedAsRole(role){
   document.querySelectorAll('.auth-role-card').forEach(function(c){c.style.outline='none';});
   var card=document.querySelector(role==='create'?'.manager-role':'.driver-role');
   if(card) card.style.outline='2.5px solid var(--accent)';
-  // Enable the proceed button once a role is picked
-  var btn=document.getElementById('splashProceedBtn');
-  var cb=document.getElementById('termsCheckbox');
-  if(btn && cb && cb.checked) btn.classList.add('ready');
+  // Enable step 3 proceed button once a role is picked
+  var btn=document.getElementById('splashStep3ProceedBtn');
+  if(btn) btn.classList.add('ready');
 }
 function toggleProceedBtn(){
   var cb=document.getElementById('termsCheckbox');
@@ -1283,16 +1282,24 @@ function toggleProceedBtn(){
   else btn.classList.remove('ready');
 }
 function proceedFromSplash(){
-  // Defer to the main definition once it's loaded; this stub handles early clicks
+  // Terms agreed — go to step 3 (role selection)
   var cb=document.getElementById('termsCheckbox');
   if(!cb||!cb.checked) return;
+  var s2=document.getElementById('splashStep2'),s2btn=document.getElementById('splashStep2Btn');
+  var s3=document.getElementById('splashStep3'),s3btn=document.getElementById('splashStep3Btn');
+  if(s2) s2.style.display='none';
+  if(s2btn) s2btn.style.display='none';
+  if(s3){ s3.style.display='flex'; s3.scrollTop=0; }
+  if(s3btn) s3btn.style.display='flex';
+  sessionStorage.setItem('_mh_splash_seen','1');
+}
+function proceedFromStep3(){
   var splash=document.getElementById('splashOverlay');
   if(!splash) return;
   splash.classList.add('hiding');
   setTimeout(function(){
     splash.style.display='none';
     var role=window._splashIntendedRole||'landing';
-    // showAuthOverlay / switchToPanel are defined in main script — safe by now
     if(typeof showAuthOverlay==='function') showAuthOverlay();
     if(typeof switchToPanel==='function'){
       if(role==='create') switchToPanel('create');
@@ -1300,7 +1307,6 @@ function proceedFromSplash(){
       else switchToPanel('landing');
     }
   }, 500);
-  sessionStorage.setItem('_mh_splash_seen','1');
 }
 </script>
 <div id="splashOverlay" class="splash-overlay">
@@ -1472,6 +1478,58 @@ function proceedFromSplash(){
       </button>
 
       <!-- Heading -->
+      <div class="splash-step2-heading">TERMS &amp; CONDITIONS</div>
+      <div class="splash-step2-sub">PLEASE READ BEFORE CONTINUING</div>
+
+      <!-- Terms & Conditions -->
+      <div style="background:var(--card);border:1px solid var(--border);padding:14px 16px;margin-bottom:10px;border-radius:var(--radius-sm)">
+        <div style="font-family:var(--font-m);font-size:.82rem;font-weight:700;color:var(--text);letter-spacing:1.5px;margin-bottom:10px">📋 TERMS &amp; CONDITIONS</div>
+        <div style="font-family:var(--font-m);font-size:.74rem;color:var(--muted);line-height:1.8;letter-spacing:.3px;margin-bottom:12px">
+          By using MatatuHub you agree that:<br>
+          • Your fleet and trip data is collected and stored to provide this service<br>
+          • Data is used solely for your SACCO's fleet management<br>
+          • You are responsible for the accuracy of data entered<br>
+          • MatatuHub is not liable for business decisions made using this platform<br>
+          • Datafrica reserves the right to update these terms with notice<br>
+          • <strong style="color:var(--text)">No transport fares or fees are paid through this app</strong> — all payments to drivers and turnboys are made directly at the owner's discretion outside the platform
+        </div>
+        <div style="background:#fff3cd;border-left:3px solid #f59e0b;padding:9px 12px;margin-bottom:12px;font-family:var(--font-m);font-size:.77rem;color:#7a5000;letter-spacing:.4px;line-height:1.8;border-radius:0 var(--radius-sm) var(--radius-sm) 0">
+          ⚠ <strong>PAYMENT DISCLAIMER:</strong> MatatuHub is a fleet tracking and reporting tool only. No transport fares, wages or any payments are processed through this app. All remuneration to drivers and turnboys remains entirely at the SACCO owner's discretion.
+        </div>
+        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
+          <input type="checkbox" id="termsCheckbox" onchange="toggleProceedBtn()"
+            style="width:18px;height:18px;flex-shrink:0;margin-top:1px;accent-color:var(--accent);cursor:pointer">
+          <span style="font-family:var(--font-m);font-size:.78rem;color:var(--text);letter-spacing:.5px;line-height:1.7">
+            I have read and agree to the <strong>MatatuHub Terms &amp; Conditions</strong> and consent to my fleet data being processed to provide this service.
+          </span>
+        </label>
+      </div>
+
+    </div>
+  </div><!-- end #splashStep2 -->
+
+  <!-- Step 2 button area -->
+  <div class="splash-btn-area" id="splashStep2Btn" style="display:none">
+    <button class="splash-proceed-btn" id="splashProceedBtn" onclick="proceedFromSplash()">
+      AGREE &amp; CONTINUE &nbsp;›
+    </button>
+    <div class="splash-dev-line">Developed by <span>DatAfrica</span> &nbsp;·&nbsp; v7.0 · 2025</div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       STEP 3 — WHO ARE YOU? (Role Selection)
+  ══════════════════════════════════════════ -->
+  <div id="splashStep3" class="splash-scroll-area" style="display:none">
+    <div class="splash-step2">
+
+      <!-- Step dots -->
+      <div class="splash-step-dots">
+        <div class="splash-dot" id="dot1c"></div>
+        <div class="splash-dot" id="dot2c"></div>
+        <div class="splash-dot active" id="dot3c"></div>
+      </div>
+
+      <!-- Heading -->
       <div class="splash-step2-heading">WHO ARE YOU?</div>
       <div class="splash-step2-sub">SELECT YOUR ROLE TO CONTINUE</div>
 
@@ -1505,37 +1563,16 @@ function proceedFromSplash(){
         <button onclick="proceedAsRole('login')" style="background:none;border:none;font-family:var(--font-m);font-size:.80rem;color:var(--accent);cursor:pointer;text-decoration:underline;letter-spacing:1px;padding:0">LOG IN HERE</button>
       </div>
 
-      <!-- Terms & Conditions -->
-      <div style="background:var(--card);border:1px solid var(--border);padding:14px 16px;margin-bottom:10px;border-radius:var(--radius-sm)">
-        <div style="font-family:var(--font-m);font-size:.82rem;font-weight:700;color:var(--text);letter-spacing:1.5px;margin-bottom:10px">📋 TERMS &amp; CONDITIONS</div>
-        <div style="font-family:var(--font-m);font-size:.74rem;color:var(--muted);line-height:1.8;letter-spacing:.3px;margin-bottom:12px">
-          By using MatatuHub you agree that:<br>
-          • Your fleet and trip data is collected and stored to provide this service<br>
-          • Data is used solely for your SACCO's fleet management<br>
-          • You are responsible for the accuracy of data entered<br>
-          • MatatuHub is not liable for business decisions made using this platform<br>
-          • Datafrica reserves the right to update these terms with notice<br>
-          • <strong style="color:var(--text)">No transport fares or fees are paid through this app</strong> — all payments to drivers and turnboys are made directly at the owner's discretion outside the platform
-        </div>
-        <div style="background:#fff3cd;border-left:3px solid #f59e0b;padding:9px 12px;margin-bottom:12px;font-family:var(--font-m);font-size:.77rem;color:#7a5000;letter-spacing:.4px;line-height:1.8;border-radius:0 var(--radius-sm) var(--radius-sm) 0">
-          ⚠ <strong>PAYMENT DISCLAIMER:</strong> MatatuHub is a fleet tracking and reporting tool only. No transport fares, wages or any payments are processed through this app. All remuneration to drivers and turnboys remains entirely at the SACCO owner's discretion.
-        </div>
-        <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
-          <input type="checkbox" id="termsCheckbox" onchange="toggleProceedBtn()"
-            style="width:18px;height:18px;flex-shrink:0;margin-top:1px;accent-color:var(--accent);cursor:pointer">
-          <span style="font-family:var(--font-m);font-size:.78rem;color:var(--text);letter-spacing:.5px;line-height:1.7">
-            I have read and agree to the <strong>MatatuHub Terms &amp; Conditions</strong> and consent to my fleet data being processed to provide this service.
-          </span>
-        </label>
-      </div>
-
     </div>
-  </div><!-- end #splashStep2 -->
+  </div><!-- end #splashStep3 -->
 
-  <!-- Step 2 button area -->
-  <div class="splash-btn-area" id="splashStep2Btn" style="display:none">
-    <button class="splash-proceed-btn" id="splashProceedBtn" onclick="proceedFromSplash()">
-      AGREE &amp; CONTINUE &nbsp;›
+  <!-- Step 3 button area -->
+  <div class="splash-btn-area" id="splashStep3Btn" style="display:none">
+    <button class="splash-proceed-btn ready" id="splashStep3ProceedBtn" onclick="proceedFromStep3()">
+      CONTINUE &nbsp;›
+    </button>
+    <button onclick="goToSplashStep2()" style="background:none;border:1.5px solid var(--border);font-family:var(--font-m);font-size:.80rem;color:var(--muted);letter-spacing:1.5px;cursor:pointer;padding:11px 20px;border-radius:var(--radius-sm);width:100%;margin-top:8px;transition:var(--transition)" onmouseover="this.style.background='var(--surface)'" onmouseout="this.style.background='none'">
+      ‹ BACK
     </button>
     <div class="splash-dev-line">Developed by <span>DatAfrica</span> &nbsp;·&nbsp; v7.0 · 2025</div>
   </div>
@@ -6712,10 +6749,14 @@ async function changeDevPin(){
 
 function goToSplashStep2(){
   try{
+    // Hide step 1
     const s1=document.getElementById('splashStep1'),s1btn=document.getElementById('splashStep1Btn');
+    if(s1) s1.style.display='none'; if(s1btn) s1btn.style.display='none';
+    // Hide step 3 (in case we're going back from it)
+    const s3=document.getElementById('splashStep3'),s3btn=document.getElementById('splashStep3Btn');
+    if(s3) s3.style.display='none'; if(s3btn) s3btn.style.display='none';
     const s2=document.getElementById('splashStep2'),s2btn=document.getElementById('splashStep2Btn');
-    if(!s1||!s1btn||!s2||!s2btn) return;
-    s1.style.display='none'; s1btn.style.display='none';
+    if(!s2||!s2btn) return;
     s2.style.removeProperty('display'); s2.style.display='flex';
     s2btn.style.removeProperty('display'); s2btn.style.display='flex';
     s2.classList.remove('splash-anim-in'); void s2.offsetWidth;
@@ -6743,6 +6784,9 @@ function proceedAsRole(role){
   document.querySelectorAll('.auth-role-card').forEach(c=>c.style.outline='none');
   const card = document.querySelector(role==='create'?'.manager-role':'.driver-role');
   if(card) card.style.outline='2.5px solid var(--accent)';
+  // Enable step 3 proceed button
+  const btn = document.getElementById('splashStep3ProceedBtn');
+  if(btn) btn.classList.add('ready');
 }
 
 function toggleProceedBtn(){
@@ -6758,15 +6802,24 @@ function proceedFromSplash(){
   if(!cb || !cb.checked){ 
     const lbl = document.getElementById('termsCheckbox');
     if(lbl) lbl.focus();
-    return; // do nothing if not agreed
+    return;
   }
+  // Go to step 3 — role selection
+  const s2=document.getElementById('splashStep2'),s2btn=document.getElementById('splashStep2Btn');
+  const s3=document.getElementById('splashStep3'),s3btn=document.getElementById('splashStep3Btn');
+  if(s2) s2.style.display='none';
+  if(s2btn) s2btn.style.display='none';
+  if(s3){ s3.style.removeProperty('display'); s3.style.display='flex'; s3.scrollTop=0; }
+  if(s3btn){ s3btn.style.removeProperty('display'); s3btn.style.display='flex'; }
+  sessionStorage.setItem('_mh_splash_seen', '1');
+}
+
+function proceedFromStep3(){
   const splash = document.getElementById('splashOverlay');
   if(!splash) return;
-  // Fade out
   splash.classList.add('hiding');
   setTimeout(()=>{
     splash.style.display = 'none';
-    // Route to correct auth panel based on role selected in Step 2
     const role = window._splashIntendedRole || 'landing';
     showAuthOverlay();
     if(role === 'create'){
@@ -6776,7 +6829,6 @@ function proceedFromSplash(){
     } else {
       switchToPanel('landing');
     }
-    // If Firebase hasn't been configured yet, prompt the admin to set it up
     const fbConfigured = !!(appConfig.apiKey && appConfig.projectId);
     if(!fbConfigured){
       setTimeout(()=>{
@@ -6784,8 +6836,6 @@ function proceedFromSplash(){
       }, 600);
     }
   }, 500);
-  // Remember that user has seen the splash (don't show again this session)
-  sessionStorage.setItem('_mh_splash_seen', '1');
 }
 
 function initSplash(){
