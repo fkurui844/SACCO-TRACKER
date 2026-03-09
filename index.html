@@ -4665,6 +4665,8 @@ function renderAdmin(){
   if(topNav && window.innerWidth>=768) topNav.style.display='flex';
 
   el.innerHTML=`
+    <!-- ── DASHBOARD VIEW ── -->
+    ${adminTab==='dashboard' ? `
     ${currentDriverDoc?._rulesBlocked ? `
     <div class="rules-banner" style="margin-bottom:16px;border-bottom:none">
       <div class="rules-banner-ico">🔒</div>
@@ -4678,8 +4680,6 @@ function renderAdmin(){
         </div>
       </div>
     </div>` : ''}
-
-    <!-- ── HERO ── -->
     <div class="dash-hero">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px">
         <div>
@@ -4689,8 +4689,6 @@ function renderAdmin(){
         </div>
       </div>
     </div>
-
-    <!-- ── STAT CARDS ── -->
     <div class="dash-stats">
       <div class="stat-card sc-blue">
         <div class="stat-ico si-blue">🚗</div>
@@ -4717,30 +4715,17 @@ function renderAdmin(){
         <div class="stat-label">CRITICAL ALERTS</div>
       </div>
     </div>
-
-    <!-- ── MAIN COLUMNS ── -->
     <div class="dash-cols">
-
-      <!-- Vehicle Performance -->
       <div class="dcol-card">
-        <div class="dcol-head">
-          <div class="dcol-title">🚌 Vehicle Performance</div>
-        </div>
+        <div class="dcol-head"><div class="dcol-title">🚌 Vehicle Performance</div></div>
         ${renderVehiclePerformanceTable()}
       </div>
-
-      <!-- Targets Overview -->
       <div class="dcol-card">
-        <div class="dcol-head">
-          <div class="dcol-title">🎯 Targets Overview</div>
-          <span class="dcol-link">···</span>
-        </div>
+        <div class="dcol-head"><div class="dcol-title">🎯 Targets Overview</div><span class="dcol-link">···</span></div>
         ${renderTargetsOverview()}
       </div>
-
     </div>
-
-    <!-- SHIFTS -->
+    ` : ''}
     <div class="asect ${adminTab==='shifts'?'active':''}">
       <div class="card">
         <div class="ctitle">SHIFT MANAGEMENT</div>
@@ -8874,6 +8859,7 @@ function adminSettings(){
 function goToDashboard(){
   closeAvatarMenu();
   adminTab = 'dashboard';
+  reportTab = 'overview';
   switchPage('admin');
   renderAdmin();
 }
@@ -8882,10 +8868,13 @@ function goToDashboard(){
 function goToLiveMap(){
   closeAvatarMenu();
   adminTab = 'dashboard';
-  switchPage('admin');
   reportTab = 'live';
+  switchPage('admin');
   renderAdmin();
-  setTimeout(function(){ renderReports(); if(!liveSessionSub&&db) startSessionListener(); }, 120);
+  setTimeout(function(){
+    renderReports();
+    if(!liveSessionSub && db) startSessionListener();
+  }, 120);
 }
 
 // Manage Shifts: open or close shifts per vehicle
