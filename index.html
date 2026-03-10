@@ -7559,15 +7559,6 @@ function onDriverAuthenticated(user, profile){
 
   if(profile.role==='admin'){
     // ── ADMIN ────────────────────────────────────────────────
-    // Block suspended managers immediately
-    if(profile.suspended){
-      if(auth) auth.signOut().catch(()=>{});
-      showAuthOverlay();
-      switchToPanel('login');
-      showAuthError('authLoginError',
-        '⚠ YOUR ACCOUNT HAS BEEN SUSPENDED\n\nContact the MatatuHub developer to reinstate your account.');
-      return;
-    }
     isAdminUser   = true;
     adminUnlocked = true;
     if(profile.saccoName) updateSaccoName(profile.saccoName);
@@ -7608,24 +7599,6 @@ function onDriverAuthenticated(user, profile){
 
   } else {
     // ── DRIVER ───────────────────────────────────────────────
-    // Check if the SACCO (manager) has been suspended — block the whole SACCO
-    const managerUid = profile.adminUid || profile.saccoId || null;
-    if(managerUid && db){
-      try{
-        const saccoSnap = await db.collection('saccos').doc(managerUid).get();
-        if(saccoSnap.exists && saccoSnap.data().suspended){
-          if(auth) auth.signOut().catch(()=>{});
-          showAuthOverlay();
-          switchToPanel('login');
-          showAuthError('authLoginError',
-            '⚠ YOUR SACCO HAS BEEN SUSPENDED\n\nAccess has been restricted by the MatatuHub developer.\nPlease contact your SACCO manager for assistance.');
-          return;
-        }
-      } catch(saccoCheckErr){
-        console.warn('SACCO suspension check failed:', saccoCheckErr);
-        // Non-blocking — let driver in if check fails (network issue etc.)
-      }
-    }
     isAdminUser        = false;
     tripState.driver   = profile.name || user.email;
     tripState.carPlate = profile.carPlate || '';
@@ -9424,19 +9397,12 @@ async function devSendMsg(){
 async function devToggleSuspend(docId, email, name, isSuspended){
   if(!isDevEmail()) return;
   const action = isSuspended ? 'REINSTATE' : 'SUSPEND';
-  const confirm = window.confirm(`${action} manager?\n\n${name}\n${email}\n\n${isSuspended?'They will be able to log in again.':'They will be locked out of their account.\n\n⚠ ALL drivers in their SACCO will also be locked out.'}`);
+  const confirm = window.confirm(`${action} manager?\n\n${name}\n${email}\n\n${isSuspended?'They will be able to log in again.':'They will be locked out of their account.'}`);
   if(!confirm) return;
 
   try{
     const newState = !isSuspended;
-    // Update the manager's own profile
     await db.collection('drivers').doc(docId).update({ suspended: newState });
-    // Cascade: update the SACCO-level suspension flag so ALL drivers in this SACCO are blocked
-    try{
-      await db.collection('saccos').doc(docId).set({ suspended: newState, suspendedAt: Date.now() }, { merge: true });
-    } catch(saccoErr){
-      console.warn('Could not update saccos doc:', saccoErr);
-    }
 
     // Update UI without full reload
     const statusEl = document.getElementById('mgr-status-'+docId);
