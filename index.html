@@ -7559,6 +7559,15 @@ function onDriverAuthenticated(user, profile){
 
   if(profile.role==='admin'){
     // ── ADMIN ────────────────────────────────────────────────
+    // Block suspended managers immediately
+    if(profile.suspended){
+      if(auth) auth.signOut().catch(()=>{});
+      showAuthOverlay();
+      switchToPanel('login');
+      showAuthError('authLoginError',
+        '⚠ YOUR ACCOUNT HAS BEEN SUSPENDED\n\nContact the MatatuHub developer to reinstate your account.');
+      return;
+    }
     isAdminUser   = true;
     adminUnlocked = true;
     if(profile.saccoName) updateSaccoName(profile.saccoName);
@@ -7599,6 +7608,24 @@ function onDriverAuthenticated(user, profile){
 
   } else {
     // ── DRIVER ───────────────────────────────────────────────
+    // Check if the SACCO (manager) has been suspended — block the whole SACCO
+    const managerUid = profile.adminUid || profile.saccoId || null;
+    if(managerUid && db){
+      try{
+        const saccoSnap = await db.collection('saccos').doc(managerUid).get();
+        if(saccoSnap.exists && saccoSnap.data().suspended){
+          if(auth) auth.signOut().catch(()=>{});
+          showAuthOverlay();
+          switchToPanel('login');
+          showAuthError('authLoginError',
+            '⚠ YOUR SACCO HAS BEEN SUSPENDED\n\nAccess has been restricted by the MatatuHub developer.\nPlease contact your SACCO manager for assistance.');
+          return;
+        }
+      } catch(saccoCheckErr){
+        console.warn('SACCO suspension check failed:', saccoCheckErr);
+        // Non-blocking — let driver in if check fails (network issue etc.)
+      }
+    }
     isAdminUser        = false;
     tripState.driver   = profile.name || user.email;
     tripState.carPlate = profile.carPlate || '';
@@ -9070,16 +9097,68 @@ async function saveSaccoSettings(){
   if(!nameEl) return;
   const name = nameEl.value.trim().toUpperCase();
   if(!name){ toast('⚠ ENTER A SACCO NAME'); return; }
+
+  const oldName = appConfig.saccoName || currentDriverDoc?.saccoName || '';
+
   updateSaccoName(name);
   appConfig.saccoName = name;
   save('fs_saccoName', name);
+
+  if(fb){ fb.textContent='SAVING...'; fb.style.display='block'; fb.style.color='var(--muted)'; }
+
   try{
     if(db && currentAuthUser?.uid){
-      await db.collection('drivers').doc(currentAuthUser.uid).set({saccoName:name},{merge:true});
+      const adminUid = currentAuthUser.uid;
+      const batch = db.batch();
+
+      // 1. Update admin's own profile
+      batch.set(db.collection('drivers').doc(adminUid), {saccoName: name}, {merge:true});
+
+      // 2. Update all drivers in this sacco
+      const driverSnap = await db.collection('drivers')
+        .where('saccoId','==', adminUid)
+        .where('role','==','driver')
+        .get();
+      driverSnap.forEach(doc => batch.update(doc.ref, {saccoName: name}));
+
+      // 3. Update currentDriverDoc in memory
+      if(currentDriverDoc) currentDriverDoc.saccoName = name;
+
+      await batch.commit();
+
+      // 4. Update trips in background (can be large — do in chunks outside batch)
+      if(oldName && oldName !== name){
+        db.collection('trips')
+          .where('saccoId','==', adminUid)
+          .get()
+          .then(snap => {
+            const CHUNK = 400;
+            const docs = snap.docs;
+            const runChunk = async (start) => {
+              if(start >= docs.length) return;
+              const b = db.batch();
+              docs.slice(start, start + CHUNK).forEach(d => b.update(d.ref, {saccoName: name}));
+              await b.commit();
+              runChunk(start + CHUNK);
+            };
+            runChunk(0);
+          })
+          .catch(()=>{});
+      }
+
+      const driverCount = driverSnap.size;
+      if(fb){
+        fb.textContent = `✅ UPDATED — ${driverCount} DRIVER${driverCount===1?'':'S'} SYNCED`;
+        fb.style.color = 'var(--accent)';
+        setTimeout(()=>{ fb.style.display='none'; }, 3000);
+      }
+      toast(`✅ SACCO NAME UPDATED ACROSS ALL ${driverCount} DRIVER${driverCount===1?'':'S'}`);
     }
-  } catch(e){ console.warn('Sacco name save:', e); }
-  if(fb){ fb.style.display='block'; setTimeout(()=>{ fb.style.display='none'; },2500); }
-  toast('✅ SACCO NAME UPDATED');
+  } catch(e){
+    console.warn('Sacco name save:', e);
+    if(fb){ fb.textContent='⚠ SAVE FAILED — CHECK CONNECTION'; fb.style.color='var(--red)'; setTimeout(()=>fb.style.display='none',3000); }
+    toast('⚠ SACCO NAME SAVE FAILED');
+  }
 }
 
 function saveManagerPin(){
@@ -9345,12 +9424,19 @@ async function devSendMsg(){
 async function devToggleSuspend(docId, email, name, isSuspended){
   if(!isDevEmail()) return;
   const action = isSuspended ? 'REINSTATE' : 'SUSPEND';
-  const confirm = window.confirm(`${action} manager?\n\n${name}\n${email}\n\n${isSuspended?'They will be able to log in again.':'They will be locked out of their account.'}`);
+  const confirm = window.confirm(`${action} manager?\n\n${name}\n${email}\n\n${isSuspended?'They will be able to log in again.':'They will be locked out of their account.\n\n⚠ ALL drivers in their SACCO will also be locked out.'}`);
   if(!confirm) return;
 
   try{
     const newState = !isSuspended;
+    // Update the manager's own profile
     await db.collection('drivers').doc(docId).update({ suspended: newState });
+    // Cascade: update the SACCO-level suspension flag so ALL drivers in this SACCO are blocked
+    try{
+      await db.collection('saccos').doc(docId).set({ suspended: newState, suspendedAt: Date.now() }, { merge: true });
+    } catch(saccoErr){
+      console.warn('Could not update saccos doc:', saccoErr);
+    }
 
     // Update UI without full reload
     const statusEl = document.getElementById('mgr-status-'+docId);
