@@ -5130,6 +5130,7 @@ function renderAdmin(){
     <div class="asect ${adminTab==='live'?'active':''}" id="asect-live"></div>
 
     <!-- ── PLATFORM DASHBOARD (dev only) ── -->
+    ${(currentAuthUser?.email||'').toLowerCase()==='fkurui844@gmail.com' ? `
     <div class="asect ${adminTab==='platform'?'active':''}" id="asect-platform" style="${adminTab==='platform'?'':'display:none'}">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
         <div>
@@ -5141,7 +5142,7 @@ function renderAdmin(){
       <div id="platformStatsContainer">
         <div style="text-align:center;padding:40px 20px;font-family:var(--font-m);font-size:.8rem;color:var(--muted);letter-spacing:1px">⏳ LOADING PLATFORM DATA...</div>
       </div>
-    </div>
+    </div>` : ''}
 
     <!-- ── REPORTS (visible only on dashboard view) ── -->
     <div id="page-reports" style="margin-top:20px;${adminTab!=='dashboard'?'display:none':''}"></div>
@@ -6263,6 +6264,7 @@ async function _hashPin(pin){
 }
 
 async function checkDevPin(){
+  if(!isDevEmail()){ closeDevPinOverlay(); return; }
   if(isDevLocked()){
     toast('🔒 DEV ACCESS LOCKED — TRY IN ' + devLockSecsLeft() + 's');
     return;
@@ -6332,9 +6334,12 @@ function removeDevTabs(){
 let _devTapCount = 0;
 let _devTapTimer = null;
 
+function isDevEmail(){ return (currentAuthUser?.email||'').toLowerCase()==='fkurui844@gmail.com'; }
+
 function devSecretTap(){
-  // Only works when admin is logged in AND is an authorised developer email
+  // Only works when logged in as the authorised developer email
   if(!isAdminUser) return;
+  if(!isDevEmail()) return;
   // Dev access controlled by PIN only
 
   _devTapCount++;
@@ -6371,6 +6376,7 @@ function devSecretTap(){
 }
 
 function openDevTab(tab){
+  if(!isDevEmail()){ return; }
   if(devUnlocked){
     adminTab = tab;
     renderAdmin();
@@ -6402,6 +6408,7 @@ function closeDevPinOverlay(){
 // PLATFORM ANALYTICS — Developer dashboard (MatatuHub-wide stats)
 // ══════════════════════════════════════════════════════════════
 async function loadPlatformStats(){
+  if(!isDevEmail()) return;
   const el = document.getElementById('platformStatsContainer');
   if(!el) return;
   if(!db){
