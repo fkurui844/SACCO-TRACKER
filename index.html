@@ -826,6 +826,30 @@ main{padding:13px 13px 74px}
 .plat-badge.red{background:#fdecea;color:var(--red)}
 .plat-empty{padding:20px;text-align:center;font-family:var(--font-m);font-size:.82rem;color:var(--muted);letter-spacing:1px}
 .plat-updated{font-family:var(--font-m);font-size:.75rem;color:var(--muted);text-align:center;padding:10px;letter-spacing:1px}
+.bill-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px;position:relative;overflow:hidden}
+.bill-card::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--bill-color,var(--accent))}
+.bill-card-top{display:flex;align-items:center;gap:10px;margin-bottom:10px}
+.bill-avatar{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--font-d);font-size:.9rem;font-weight:700;flex-shrink:0}
+.bill-name{font-family:var(--font-m);font-size:.88rem;font-weight:700;color:var(--text);letter-spacing:.5px}
+.bill-email{font-size:.72rem;color:var(--muted);margin-top:1px;word-break:break-all}
+.bill-sacco{font-size:.72rem;color:#f59e0b;margin-top:2px;letter-spacing:.3px}
+.bill-metrics{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:10px}
+.bill-metric{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:8px 6px;text-align:center}
+.bill-metric-val{font-family:var(--font-d);font-size:1.3rem;color:var(--text);line-height:1}
+.bill-metric-lbl{font-family:var(--font-m);font-size:.62rem;color:var(--muted);letter-spacing:1px;margin-top:3px}
+.bill-amount-row{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:8px;margin-bottom:8px}
+.bill-amount-lbl{font-family:var(--font-m);font-size:.75rem;letter-spacing:1px;color:var(--muted)}
+.bill-amount-val{font-family:var(--font-d);font-size:1.1rem;font-weight:700}
+.bill-status{display:inline-flex;align-items:center;gap:5px;font-family:var(--font-m);font-size:.68rem;letter-spacing:1px;padding:3px 10px;border-radius:99px}
+.bill-status.paid{background:rgba(26,122,60,.15);color:var(--accent)}
+.bill-status.due{background:rgba(245,158,11,.15);color:#f59e0b}
+.bill-status.overdue{background:rgba(239,68,68,.15);color:#ef4444}
+.bill-actions{display:flex;gap:7px}
+.bill-btn{flex:1;font-family:var(--font-m);font-size:.7rem;letter-spacing:1px;padding:8px 6px;border-radius:7px;cursor:pointer;text-align:center}
+.bill-summary-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.bill-summary-kpi{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center}
+.bill-summary-val{font-family:var(--font-d);font-size:1.6rem;color:var(--accent2)}
+.bill-summary-lbl{font-family:var(--font-m);font-size:.68rem;color:var(--muted);letter-spacing:1px;margin-top:4px}
 
 /* ── ABOUT SECTION ──────────────────────────────────────────── */
 .about-section{margin-top:20px;border-top:1px solid var(--border);padding-top:18px}
@@ -5317,8 +5341,34 @@ function adminSetTarget(plate){
 }
 function addDriver(){const n=(document.getElementById('newDriver')?.value||'').trim().toUpperCase();if(!n){toast('ENTER NAME');return;}if(DRIVERS.includes(n)){toast('ALREADY EXISTS');return;}DRIVERS.push(n);save('fs_drivers',DRIVERS);toast('DRIVER ADDED ✅');renderAdmin();}
 function removeDriver(i){if(!confirm('Remove '+DRIVERS[i]+'?'))return;const d=DRIVERS[i];delete driverPins[d];save('fs_dpins',driverPins);DRIVERS.splice(i,1);save('fs_drivers',DRIVERS);renderAdmin();}
-function addCar(){const n=(document.getElementById('newCar')?.value||'').trim().toUpperCase();if(!n){toast('ENTER PLATE');return;}if(CARS.includes(n)){toast('ALREADY EXISTS');return;}CARS.push(n);save('fs_cars',CARS);toast('CAR ADDED ✅');renderAdmin();}
-function removeCar(i){if(!confirm('Remove '+CARS[i]+'?'))return;CARS.splice(i,1);save('fs_cars',CARS);renderAdmin();}
+function addCar(){
+  const n=(document.getElementById('newCar')?.value||'').trim().toUpperCase();
+  if(!n){toast('ENTER PLATE');return;}
+  if(CARS.includes(n)){toast('ALREADY EXISTS');return;}
+  CARS.push(n);
+  save('fs_cars',CARS);
+  // Sync car fleet to Firestore for billing visibility
+  _syncFleetToFirestore();
+  toast('CAR ADDED ✅');
+  renderAdmin();
+}
+function removeCar(i){
+  if(!confirm('Remove '+CARS[i]+'?'))return;
+  CARS.splice(i,1);
+  save('fs_cars',CARS);
+  // Sync updated fleet to Firestore
+  _syncFleetToFirestore();
+  renderAdmin();
+}
+function _syncFleetToFirestore(){
+  if(!db||!currentAuthUser?.uid) return;
+  db.collection('drivers').doc(currentAuthUser.uid).set({
+    cars: CARS,
+    carCount: CARS.length,
+    activeDriverCount: DRIVERS.filter(d=>d.active!==false).length,
+    fleetUpdatedAt: Date.now()
+  },{merge:true}).catch(()=>{});
+}
 function addStation(){
   const n=(document.getElementById('newStn')?.value||'').trim().toUpperCase();
   const lat=parseFloat(document.getElementById('newLat')?.value||'');
@@ -6342,6 +6392,10 @@ let _devTapTimer = null;
 
 function isDevEmail(){ return (currentAuthUser?.email||'').toLowerCase()==='fkurui844@gmail.com'; }
 
+// ── Billing rates (editable via devSetRate) ──────────────────
+let RATE_PER_CAR    = 200; // KES per registered car/month
+let RATE_PER_DRIVER = 100; // KES per active driver/month
+
 function devSecretTap(){
   // Only works when logged in as the authorised developer email
   if(!isAdminUser) return;
@@ -6430,18 +6484,20 @@ async function loadPlatformStats(){
     const today = new Date(); today.setHours(0,0,0,0);
 
     // ── Fetch all collections in parallel ──────────────────────
-    const [adminSnap, driverSnap, tripSnap, inviteSnap, sessionSnap, secLogSnap] = await Promise.all([
+    const curMonth = new Date().toISOString().substring(0,7);
+    const [adminSnap, driverSnap, tripSnap, inviteSnap, sessionSnap, secLogSnap, paySnap] = await Promise.all([
       db.collection('drivers').where('role','==','admin').get(),
       db.collection('drivers').where('role','==','driver').get(),
       db.collection('trips').get(),
       db.collection('pendingInvites').get(),
       db.collection('sessions').get().catch(()=>({docs:[],size:0})),
-      db.collection('devAccessLog').get().catch(()=>({docs:[]}))
+      db.collection('devAccessLog').get().catch(()=>({docs:[]})),
+      db.collection('devPayments').where('month','==',curMonth).get().catch(()=>({docs:[]}))
     ]);
+    const paidIds = new Set(paySnap.docs.map(d=>d.data().saccoId));
 
     // ── Saccos ──────────────────────────────────────────────────
     const admins = adminSnap.docs.map(d=>({...d.data(), _docId: d.id}));
-    const totalSaccos = admins.length;
     const newSaccos30 = admins.filter(a=>(a.createdAt||0) >= day30).length;
     const newSaccos7  = admins.filter(a=>(a.createdAt||0) >= day7).length;
 
@@ -6494,6 +6550,31 @@ async function loadPlatformStats(){
 
     // ── Build sacco list sorted by join date ────────────────────
     const saccoList = Object.values(saccoMap).sort((a,b)=>b.joinedAt-a.joinedAt);
+
+    // ── BILLING — compute per sacco ─────────────────────────────
+    const billingCycle = new Date().toLocaleDateString('en-GB',{month:'long',year:'numeric'}).toUpperCase();
+
+    const billingData = admins.map(a => {
+      const sid           = a._docId;
+      const activeDrvList = drivers.filter(d => (d.saccoId===sid||d.adminUid===sid) && d.active!==false);
+      const allDrvList    = drivers.filter(d => d.saccoId===sid || d.adminUid===sid);
+      const carList       = Array.isArray(a.cars) ? a.cars : [];
+      const activeCars    = carList.length;
+      const activeDrivers = activeDrvList.length;
+      const totalDrivers  = allDrvList.length;
+      const rCar          = a.billingRateCar    || RATE_PER_CAR;
+      const rDrv          = a.billingRateDriver || RATE_PER_DRIVER;
+      const carFee        = activeCars    * rCar;
+      const driverFee     = activeDrivers * rDrv;
+      const totalDue      = carFee + driverFee;
+      const lastLogin     = a.fleetUpdatedAt || a.createdAt || 0;
+      return { ...a, activeCars, activeDrivers, totalDrivers, carFee, driverFee, totalDue, lastLogin, carList, rCar, rDrv };
+    }).sort((a,b) => b.totalDue - a.totalDue);
+
+    const totalBillable     = billingData.reduce((s,b)=>s+b.totalDue,0);
+    const totalBillableCars = billingData.reduce((s,b)=>s+b.activeCars,0);
+    const totalBillableDrvs = billingData.reduce((s,b)=>s+b.activeDrivers,0);
+    window._devBilling      = billingData; // for action functions
 
     // ── Recent signups (last 7 days) ────────────────────────────
     const recentSignups = [...admins, ...drivers]
@@ -6602,6 +6683,117 @@ async function loadPlatformStats(){
             </div>
           </div>`).join('') :
           '<div class="plat-empty">NO MANAGERS REGISTERED YET</div>'}
+      </div>
+
+      <!-- BILLING & USAGE MONITOR -->
+      <div class="plat-section" style="margin-bottom:10px">
+        <div class="plat-section-hd" style="color:#a78bfa">
+          💳 BILLING &amp; USAGE — ${billingCycle}
+          <span style="font-size:.75rem;font-weight:400;color:var(--muted)">KES ${totalBillable.toLocaleString()} total due</span>
+        </div>
+
+        <!-- Summary strip -->
+        <div style="padding:12px 14px;border-bottom:1px solid var(--border)">
+          <div class="bill-summary-grid">
+            <div class="bill-summary-kpi">
+              <div class="bill-summary-val" style="color:#a78bfa">${admins.length}</div>
+              <div class="bill-summary-lbl">ACTIVE SACCOs</div>
+            </div>
+            <div class="bill-summary-kpi">
+              <div class="bill-summary-val" style="color:var(--accent2)">KES ${totalBillable.toLocaleString()}</div>
+              <div class="bill-summary-lbl">TOTAL THIS MONTH</div>
+            </div>
+            <div class="bill-summary-kpi">
+              <div class="bill-summary-val" style="color:var(--accent)">${totalBillableCars}</div>
+              <div class="bill-summary-lbl">REGISTERED CARS</div>
+            </div>
+            <div class="bill-summary-kpi">
+              <div class="bill-summary-val" style="color:#60a5fa">${totalBillableDrvs}</div>
+              <div class="bill-summary-lbl">ACTIVE DRIVERS</div>
+            </div>
+          </div>
+          <div style="font-family:var(--font-m);font-size:.68rem;color:var(--muted);letter-spacing:.5px;text-align:center">
+            RATE: KES ${RATE_PER_CAR}/car · KES ${RATE_PER_DRIVER}/active driver · per month
+          </div>
+        </div>
+
+        <!-- Per-sacco billing cards -->
+        <div style="padding:12px 14px">
+          ${billingData.length ? billingData.map(b => {
+            const initials = (b.name||'?').split(' ').map(w=>w[0]).join('').substring(0,2).toUpperCase();
+            const paidKey  = 'bill_paid_'+b._docId+'_'+new Date().toISOString().substring(0,7);
+            const isPaid   = paidIds.has(b._docId);
+            const statusCls= b.totalDue===0 ? 'paid' : isPaid ? 'paid' : 'due';
+            const statusLbl= b.totalDue===0 ? '✓ NOTHING DUE' : isPaid ? '✓ PAID' : '⏳ DUE';
+            const lastSeen = b.lastLogin ? new Date(b.lastLogin).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'2-digit'}) : 'Never synced';
+            return `
+            <div class="bill-card" style="--bill-color:${b.totalDue===0?'var(--border)':isPaid?'var(--accent)':'#a78bfa'}">
+              <!-- Header row -->
+              <div class="bill-card-top">
+                <div class="bill-avatar" style="background:rgba(167,139,250,.15);color:#a78bfa">${initials}</div>
+                <div style="flex:1;min-width:0">
+                  <div class="bill-name">${b.name||'—'}</div>
+                  <div class="bill-email">${b.email||'—'}</div>
+                  <div class="bill-sacco">🏢 ${b.saccoName||'—'} · last sync: ${lastSeen}</div>
+                </div>
+                <span class="bill-status ${statusCls}">${statusLbl}</span>
+              </div>
+
+              <!-- Usage metrics -->
+              <div class="bill-metrics">
+                <div class="bill-metric">
+                  <div class="bill-metric-val" style="color:var(--accent)">${b.activeCars}</div>
+                  <div class="bill-metric-lbl">CARS</div>
+                </div>
+                <div class="bill-metric">
+                  <div class="bill-metric-val" style="color:#60a5fa">${b.activeDrivers}</div>
+                  <div class="bill-metric-lbl">ACTIVE DRVS</div>
+                </div>
+                <div class="bill-metric">
+                  <div class="bill-metric-val" style="color:var(--muted)">${b.totalDrivers}</div>
+                  <div class="bill-metric-lbl">ALL DRVS</div>
+                </div>
+              </div>
+
+              <!-- Cars list -->
+              ${b.carList.length ? `<div style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:4px">
+                ${b.carList.map(p=>`<span style="font-family:var(--font-m);font-size:.68rem;padding:2px 8px;background:rgba(26,122,60,.1);border:1px solid rgba(26,122,60,.25);color:var(--accent);border-radius:4px;letter-spacing:.5px">${p}</span>`).join('')}
+              </div>` : `<div style="font-family:var(--font-m);font-size:.72rem;color:var(--muted);margin-bottom:8px;letter-spacing:.5px">⚠ NO CARS SYNCED YET — MANAGER MUST LOG IN ONCE</div>`}
+
+              <!-- Fee breakdown -->
+              <div style="background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px">
+                <div style="display:flex;justify-content:space-between;margin-bottom:6px">
+                  <span style="font-family:var(--font-m);font-size:.72rem;color:var(--muted);letter-spacing:.5px">${b.activeCars} cars × KES ${b.rCar}</span>
+                  <span style="font-family:var(--font-d);font-size:.85rem;color:var(--text)">KES ${b.carFee.toLocaleString()}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:8px">
+                  <span style="font-family:var(--font-m);font-size:.72rem;color:var(--muted);letter-spacing:.5px">${b.activeDrivers} drivers × KES ${b.rDrv}</span>
+                  <span style="font-family:var(--font-d);font-size:.85rem;color:var(--text)">KES ${b.driverFee.toLocaleString()}</span>
+                </div>
+                <div style="display:flex;justify-content:space-between;padding-top:8px;border-top:1px solid var(--border)">
+                  <span style="font-family:var(--font-m);font-size:.78rem;color:var(--text);letter-spacing:1px;font-weight:700">TOTAL DUE</span>
+                  <span style="font-family:var(--font-d);font-size:1.2rem;color:#a78bfa;font-weight:700">KES ${b.totalDue.toLocaleString()}</span>
+                </div>
+              </div>
+
+              <!-- Action buttons -->
+              <div class="bill-actions">
+                <button onclick="devMarkPaid('${b._docId}','${(b.name||'').replace(/'/g,"\\'")}')"
+                  class="bill-btn" style="background:rgba(26,122,60,.1);border:1px solid rgba(26,122,60,.3);color:var(--accent)">
+                  ✅ MARK PAID
+                </button>
+                <button onclick="devBillReminder('${b._docId}')"
+                  class="bill-btn" style="background:rgba(167,139,250,.1);border:1px solid rgba(167,139,250,.3);color:#a78bfa">
+                  🔔 REMIND
+                </button>
+                <button onclick="devSetRate('${b._docId}','${(b.saccoName||'').replace(/'/g,"\\'")}')"
+                  class="bill-btn" style="background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.3);color:#60a5fa">
+                  ⚙ RATE
+                </button>
+              </div>
+            </div>`;
+          }).join('') : '<div class="plat-empty">NO BILLING DATA YET</div>'}
+        </div>
       </div>
 
       <!-- TRIP ACTIVITY — LAST 7 DAYS -->
@@ -7593,7 +7785,7 @@ function onDriverAuthenticated(user, profile){
     } else {
       adminTab = 'drivers';
       switchPage('home');
-      setTimeout(()=>{ loadRegisteredDrivers(); }, 300);
+      setTimeout(()=>{ loadRegisteredDrivers(); _syncFleetToFirestore(); }, 300);
       toast('👑 WELCOME, '+firstName+'!');
     }
 
@@ -9471,6 +9663,78 @@ async function devDeleteManager(docId, email, saccoName){
   } catch(e){
     toast('⚠ DELETE FAILED: ' + e.message);
   }
+}
+
+// ══════════════════════════════════════════════
+// BILLING ACTION FUNCTIONS
+// ══════════════════════════════════════════════
+
+async function devMarkPaid(docId, name){
+  if(!isDevEmail()) return;
+  const b = (window._devBilling||[]).find(x=>x._docId===docId);
+  if(!b) return;
+  const month = new Date().toISOString().substring(0,7); // YYYY-MM
+  const confirm = window.confirm(`Mark ${name||b.email} as PAID for ${month}?\n\nAmount: KES ${b.totalDue.toLocaleString()}\nCars: ${b.activeCars}  ·  Active Drivers: ${b.activeDrivers}`);
+  if(!confirm) return;
+  try{
+    await db.collection('devPayments').doc(docId+'_'+month).set({
+      saccoId:    docId,
+      saccoName:  b.saccoName||'',
+      managerName:b.name||'',
+      email:      b.email||'',
+      month,
+      activeCars:     b.activeCars,
+      activeDrivers:  b.activeDrivers,
+      carFee:         b.carFee,
+      driverFee:      b.driverFee,
+      totalPaid:      b.totalDue,
+      paidAt:         Date.now(),
+      markedBy:       currentAuthUser?.email
+    });
+    toast('✅ PAYMENT RECORDED — '+(name||b.email).toUpperCase());
+    // Update card status badge visually
+    const cards = document.querySelectorAll('.bill-card');
+    cards.forEach(card=>{
+      const btn = card.querySelector('button[onclick*="devMarkPaid(\''+docId+'\'"]');
+      if(btn){
+        const badge = card.querySelector('.bill-status');
+        if(badge){ badge.className='bill-status paid'; badge.textContent='✓ PAID'; }
+        card.style.setProperty('--bill-color','var(--accent)');
+      }
+    });
+  } catch(e){ toast('⚠ FAILED: '+e.message); }
+}
+
+async function devBillReminder(docId){
+  if(!isDevEmail()) return;
+  const b = (window._devBilling||[]).find(x=>x._docId===docId);
+  if(!b) return;
+  const month = new Date().toLocaleDateString('en-GB',{month:'long',year:'numeric'}).toUpperCase();
+  const msg = `Dear ${b.name||'Manager'},\n\nYour MatatuHub subscription for ${month} is due.\n\nUsage this month:\n• ${b.activeCars} registered car${b.activeCars===1?'':'s'} × KES ${RATE_PER_CAR||200} = KES ${b.carFee.toLocaleString()}\n• ${b.activeDrivers} active driver${b.activeDrivers===1?'':'s'} × KES ${RATE_PER_DRIVER||100} = KES ${b.driverFee.toLocaleString()}\n\nTOTAL DUE: KES ${b.totalDue.toLocaleString()}\n\nPlease settle to continue uninterrupted service.\n\nMatatuHub Support`;
+  // Open devMsgManager with pre-filled message
+  devMsgManager(docId);
+  setTimeout(()=>{
+    const ta = document.getElementById('devMsgBody');
+    if(ta) ta.value = msg;
+  }, 300);
+}
+
+function devSetRate(docId, saccoName){
+  if(!isDevEmail()) return;
+  const carRate = window.prompt(`Custom rate per CAR/month (KES) for ${saccoName}:\n\nLeave blank to use default (KES 200):`);
+  if(carRate === null) return;
+  const drvRate = window.prompt(`Custom rate per DRIVER/month (KES) for ${saccoName}:\n\nLeave blank to use default (KES 100):`);
+  if(drvRate === null) return;
+  const cr = parseInt(carRate)||200;
+  const dr = parseInt(drvRate)||100;
+  db.collection('drivers').doc(docId).set({
+    billingRateCar:    cr,
+    billingRateDriver: dr,
+    billingUpdatedAt:  Date.now(),
+    billingUpdatedBy:  currentAuthUser?.email
+  },{merge:true})
+  .then(()=>{ toast(`✅ CUSTOM RATE SET — KES ${cr}/car · KES ${dr}/driver`); loadPlatformStats(); })
+  .catch(e=>toast('⚠ '+e.message));
 }
 
 window.authLogin          = authLogin;
